@@ -9,13 +9,13 @@ export const CockpitView: React.FC = () => {
       {/* Welcome Banner */}
       <div className="flex items-center justify-between">
         <div>
-          <span className="font-mono text-xs font-semibold text-midGray uppercase tracking-wider">
+          <span className="font-mono text-mono-uppercase text-midGray uppercase">
             Today • Sunday, Sep 6
           </span>
-          <h2 className="font-display font-bold text-3xl text-primaryDark mt-1">
+          <h2 className="font-display font-bold text-display-1 text-primaryDark mt-1">
             Good morning, Creator.
           </h2>
-          <p className="text-secondaryGray text-sm mt-0.5">
+          <p className="text-secondaryGray text-ui-rg-sm mt-0.5">
             You have 4 habits and 3 tasks planned for deep focus today.
           </p>
         </div>
@@ -28,46 +28,46 @@ export const CockpitView: React.FC = () => {
       {/* Routine Progress Card & Habits Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Habit Completion Card */}
-        <div className="p-5 rounded-card bg-surface border border-border flex flex-col justify-between shadow-xs">
+        <div className="p-5 rounded-card bg-surface border border-border flex flex-col justify-between shadow-card">
           <div className="flex items-center justify-between">
-            <span className="font-display font-semibold text-base text-primaryDark">
+            <span className="font-display font-semibold text-display-5 text-primaryDark">
               Daily Habits Cadence
             </span>
-            <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 font-mono text-xs font-semibold">
+            <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-pill border border-amber-200/60 font-mono text-mono-xs font-semibold">
               <Flame className="w-3.5 h-3.5 fill-amber-500" />
               <span>5-day streak</span>
             </div>
           </div>
           <div className="my-4">
-            <div className="flex items-baseline justify-between mb-1.5 font-mono text-xs">
+            <div className="flex items-baseline justify-between mb-1.5 font-mono text-mono-xs">
               <span className="text-secondaryGray">Completion</span>
               <span className="font-bold text-primaryDark">75%</span>
             </div>
-            <div className="w-full bg-border rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-border rounded-pill h-2.5 overflow-hidden">
               <div
-                className="bg-accent-green h-full rounded-full transition-all duration-500"
+                className="bg-accent-green h-full rounded-pill transition-all duration-500"
                 style={{ width: '75%' }}
               />
             </div>
           </div>
-          <p className="text-xs text-secondaryGray">
+          <p className="text-ui-rg-xs text-secondaryGray">
             3 of 4 routines completed today. Keep up the rhythm!
           </p>
         </div>
 
         {/* Focus Time Card */}
-        <div className="p-5 rounded-card bg-surface border border-border flex flex-col justify-between shadow-xs">
+        <div className="p-5 rounded-card bg-surface border border-border flex flex-col justify-between shadow-card">
           <div className="flex items-center justify-between">
-            <span className="font-display font-semibold text-base text-primaryDark">
+            <span className="font-display font-semibold text-display-5 text-primaryDark">
               Focus Time
             </span>
             <Clock className="w-4 h-4 text-secondaryGray" />
           </div>
           <div className="my-2">
-            <span className="font-display font-bold text-3xl text-primaryDark">
+            <span className="font-display font-bold text-display-1 text-primaryDark">
               2.5 hrs
             </span>
-            <p className="text-xs text-secondaryGray mt-1">
+            <p className="text-ui-rg-xs text-secondaryGray mt-1">
               5 pomodoro cycles recorded
             </p>
           </div>
@@ -78,18 +78,18 @@ export const CockpitView: React.FC = () => {
         </div>
 
         {/* Up Next in Calendar */}
-        <div className="p-5 rounded-card bg-surface border border-border flex flex-col justify-between shadow-xs">
+        <div className="p-5 rounded-card bg-surface border border-border flex flex-col justify-between shadow-card">
           <div className="flex items-center justify-between">
-            <span className="font-display font-semibold text-base text-primaryDark">
+            <span className="font-display font-semibold text-display-5 text-primaryDark">
               Next Scheduled Block
             </span>
             <CalendarIcon className="w-4 h-4 text-secondaryGray" />
           </div>
           <div className="my-2">
-            <span className="font-display font-semibold text-base text-primaryDark">
+            <span className="font-display font-semibold text-display-5 text-primaryDark">
               Architecture & API Design
             </span>
-            <p className="text-xs text-secondaryGray mt-0.5">
+            <p className="text-ui-rg-xs text-secondaryGray mt-0.5">
               10:30 AM – 11:45 AM (Focus Block)
             </p>
           </div>
@@ -100,15 +100,15 @@ export const CockpitView: React.FC = () => {
       {/* Routine Tracker & Today's Tasks Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Habit List */}
-        <div className="p-6 rounded-panel bg-surface border border-border shadow-xs flex flex-col gap-4">
+        <div className="p-6 rounded-panel bg-surface border border-border shadow-card flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-accent-mauve" />
-              <h3 className="font-display font-bold text-lg text-primaryDark">
+              <h3 className="font-display font-bold text-display-4 text-primaryDark">
                 Daily Routines
               </h3>
             </div>
-            <span className="font-mono text-xs text-midGray">Auto-reset at 00:00</span>
+            <span className="font-mono text-mono-xs text-midGray uppercase">Auto-reset 00:00</span>
           </div>
 
           <div className="flex flex-col gap-2.5">
@@ -120,11 +120,11 @@ export const CockpitView: React.FC = () => {
             ].map((habit) => (
               <div
                 key={habit.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors"
+                className="flex items-center justify-between p-3 rounded-md bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <button
-                    className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                    className={`w-5 h-5 rounded-sm flex items-center justify-center border transition-all ${
                       habit.done
                         ? 'bg-primaryDark border-primaryDark text-bg'
                         : 'border-border bg-surface'
@@ -133,7 +133,7 @@ export const CockpitView: React.FC = () => {
                     {habit.done && <CheckCircle2 className="w-3.5 h-3.5" />}
                   </button>
                   <span
-                    className={`text-sm font-medium ${
+                    className={`text-ui-rg-sm font-medium ${
                       habit.done ? 'line-through text-midGray' : 'text-primaryDark'
                     }`}
                   >
@@ -147,12 +147,12 @@ export const CockpitView: React.FC = () => {
         </div>
 
         {/* Tactical Tasks Queue */}
-        <div className="p-6 rounded-panel bg-surface border border-border shadow-xs flex flex-col gap-4">
+        <div className="p-6 rounded-panel bg-surface border border-border shadow-card flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-bold text-lg text-primaryDark">
+            <h3 className="font-display font-bold text-display-4 text-primaryDark">
               Today's Task Queue
             </h3>
-            <Button variant="ghost" size="sm" className="text-xs">
+            <Button variant="ghost" size="sm" className="text-ui-rg-xs">
               + Add Task
             </Button>
           </div>
@@ -165,11 +165,11 @@ export const CockpitView: React.FC = () => {
             ].map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors"
+                className="flex items-center justify-between p-3 rounded-md bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <button
-                    className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                    className={`w-5 h-5 rounded-sm flex items-center justify-center border transition-all ${
                       task.done
                         ? 'bg-primaryDark border-primaryDark text-bg'
                         : 'border-border bg-surface'
@@ -178,7 +178,7 @@ export const CockpitView: React.FC = () => {
                     {task.done && <CheckCircle2 className="w-3.5 h-3.5" />}
                   </button>
                   <span
-                    className={`text-sm font-medium ${
+                    className={`text-ui-rg-sm font-medium ${
                       task.done ? 'line-through text-midGray' : 'text-primaryDark'
                     }`}
                   >
@@ -186,7 +186,7 @@ export const CockpitView: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-secondaryGray">{task.time}</span>
+                  <span className="font-mono text-mono-xs text-secondaryGray">{task.time}</span>
                   <Badge variant="mint">{task.category}</Badge>
                 </div>
               </div>

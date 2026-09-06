@@ -17,7 +17,6 @@ interface NavItem {
   id: NavigationTab;
   label: string;
   icon: React.ElementType;
-  badge?: string | number;
 }
 
 export const Sidebar: React.FC = () => {
@@ -40,14 +39,14 @@ export const Sidebar: React.FC = () => {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between px-2 pt-1.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primaryDark flex items-center justify-center text-bg shadow-sm">
+            <div className="w-7 h-7 rounded-lg bg-primaryDark flex items-center justify-center text-bg shadow-subtle">
               <Sparkles className="w-4 h-4 text-accent-green" />
             </div>
             <span className="font-display font-bold text-lg tracking-tight text-primaryDark">
               Atelier
             </span>
           </div>
-          <div className="flex items-center gap-1 bg-amber-100/80 border border-amber-200/60 px-2 py-0.5 rounded-full text-amber-900 text-xs font-mono font-medium">
+          <div className="flex items-center gap-1 bg-amber-100/80 border border-amber-200/60 px-2 py-0.5 rounded-pill text-amber-900 text-mono-xs font-mono font-semibold">
             <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
             <span>5d</span>
           </div>
@@ -57,7 +56,7 @@ export const Sidebar: React.FC = () => {
         <div className="flex flex-col gap-5">
           {/* MENU Section */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-mono font-semibold tracking-wider text-midGray uppercase px-2 mb-1">
+            <span className="font-mono text-mono-xs font-bold text-midGray uppercase px-2 mb-1">
               Menu
             </span>
             {menuItems.map((item) => {
@@ -68,10 +67,10 @@ export const Sidebar: React.FC = () => {
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    'flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-sans text-sm font-medium transition-all text-left group',
+                    'flex items-center gap-2.5 px-3 py-1.5 rounded-md font-sans text-ui-md-sm transition-all text-left group cursor-pointer',
                     isActive
-                      ? 'bg-accent-indigo text-primaryDark font-semibold shadow-xs'
-                      : 'text-secondaryGray hover:text-primaryDark hover:bg-[#EAE4D7]/60'
+                      ? 'bg-accent-indigo text-primaryDark font-semibold shadow-subtle'
+                      : 'text-secondaryGray hover:text-primaryDark hover:bg-border/50'
                   )}
                 >
                   <Icon
@@ -90,7 +89,7 @@ export const Sidebar: React.FC = () => {
 
           {/* WORKSPACE Section */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-mono font-semibold tracking-wider text-midGray uppercase px-2 mb-1">
+            <span className="font-mono text-mono-xs font-bold text-midGray uppercase px-2 mb-1">
               Workspace
             </span>
             {workspaceItems.map((item) => {
@@ -101,10 +100,10 @@ export const Sidebar: React.FC = () => {
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    'flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-sans text-sm font-medium transition-all text-left group',
+                    'flex items-center gap-2.5 px-3 py-1.5 rounded-md font-sans text-ui-md-sm transition-all text-left group cursor-pointer',
                     isActive
-                      ? 'bg-accent-indigo text-primaryDark font-semibold shadow-xs'
-                      : 'text-secondaryGray hover:text-primaryDark hover:bg-[#EAE4D7]/60'
+                      ? 'bg-accent-indigo text-primaryDark font-semibold shadow-subtle'
+                      : 'text-secondaryGray hover:text-primaryDark hover:bg-border/50'
                   )}
                 >
                   <Icon
@@ -123,9 +122,9 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer Settings & Studio Info */}
+      {/* Footer Settings */}
       <div className="flex flex-col gap-2 pt-3 border-t border-border/80">
-        <button className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-sans text-sm font-medium text-secondaryGray hover:text-primaryDark hover:bg-[#EAE4D7]/60 transition-all text-left">
+        <button className="flex items-center gap-2.5 px-3 py-1.5 rounded-md font-sans text-ui-rg-sm text-secondaryGray hover:text-primaryDark hover:bg-border/50 transition-all text-left cursor-pointer">
           <Settings className="w-4 h-4" />
           <span>Preferences</span>
         </button>
