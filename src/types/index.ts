@@ -119,12 +119,24 @@ export interface NoteDocument {
 export interface CalendarEvent {
   id: string;
   title: string;
-  category: 'meeting' | 'focus' | 'personal' | 'deadline';
-  startTime: string; // ISO string or HH:mm
-  endTime: string;
+  category: 'meeting' | 'focus' | 'personal' | 'deadline' | 'review';
+  startTime: string; // HH:mm or ISO
+  endTime: string; // HH:mm or ISO
   date: string; // YYYY-MM-DD
   description?: string;
   location?: string;
+  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue';
+}
+
+export interface RecurringWeeklyBlock {
+  id: string;
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  timeSlot: string; // e.g. "09:00", "10:00", "11:00", "14:00", "16:00"
+  title: string;
+  startFormatted: string; // e.g. "09:00"
+  endFormatted: string; // e.g. "09:45"
+  category: 'meeting' | 'focus' | 'review' | 'build' | 'planning';
+  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue';
 }
 
 export interface SyncStatus {
