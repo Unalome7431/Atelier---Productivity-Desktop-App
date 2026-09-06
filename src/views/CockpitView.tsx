@@ -1,9 +1,42 @@
-import React from 'react';
-import { CheckCircle2, Flame, Plus, Sparkles, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, Flame, Plus, Sparkles, Clock, Calendar as CalendarIcon, Check } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
+import { SegmentedBar } from '@/components/common/SegmentedBar';
+import { Modal } from '@/components/common/Modal';
+import { useRoutinesStore } from '@/stores/useRoutinesStore';
+import { useTasksStore } from '@/stores/useTasksStore';
 
 export const CockpitView: React.FC = () => {
+  const { routines, todayLogs, streakDays, loadRoutines, toggleRoutine } = useRoutinesStore();
+  const { tasks, loadTasks, addTask, toggleTask } = useTasksStore();
+
+  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskCategory, setTaskCategory] = useState('#work');
+  const [taskTime, setTaskTime] = useState('10:00 AM');
+
+  useEffect(() => {
+    loadRoutines();
+    loadTasks();
+  }, [loadRoutines, loadTasks]);
+
+  const completedRoutinesCount = routines.filter((r) =>
+    todayLogs.some((l) => l.routineId === r.id && l.completed)
+  ).length;
+
+  const routineCompletionPct = routines.length > 0
+    ? Math.round((completedRoutinesCount / routines.length) * 100)
+    : 0;
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskTitle.trim()) return;
+    await addTask(taskTitle.trim(), taskCategory, taskTime);
+    setTaskTitle('');
+    setIsNewTaskModalOpen(false);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 bg-bg max-w-7xl mx-auto w-full">
       {/* Welcome Banner */}
@@ -16,10 +49,15 @@ export const CockpitView: React.FC = () => {
             Good morning, Creator.
           </h2>
           <p className="text-secondaryGray text-ui-rg-sm mt-0.5">
-            You have 4 habits and 3 tasks planned for deep focus today.
+            You have {routines.length} habits and {tasks.length} tasks scheduled for deep focus today.
           </p>
         </div>
-        <Button variant="mint" size="md" className="gap-2">
+        <Button
+          variant="mint"
+          size="md"
+          className="gap-2 shadow-subtle"
+          onClick={() => setIsNewTaskModalOpen(true)}
+        >
           <Plus className="w-4 h-4" />
           <span>New Entry</span>
         </Button>
@@ -35,23 +73,21 @@ export const CockpitView: React.FC = () => {
             </span>
             <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-pill border border-amber-200/60 font-mono text-mono-xs font-semibold">
               <Flame className="w-3.5 h-3.5 fill-amber-500" />
-              <span>5-day streak</span>
+              <span>{streakDays}-day streak</span>
             </div>
           </div>
-          <div className="my-4">
-            <div className="flex items-baseline justify-between mb-1.5 font-mono text-mono-xs">
+          <div className="my-4 flex flex-col gap-2">
+            <div className="flex items-baseline justify-between font-mono text-mono-xs">
               <span className="text-secondaryGray">Completion</span>
-              <span className="font-bold text-primaryDark">75%</span>
+              <span className="font-bold text-primaryDark">{routineCompletionPct}%</span>
             </div>
-            <div className="w-full bg-border rounded-pill h-2.5 overflow-hidden">
-              <div
-                className="bg-accent-green h-full rounded-pill transition-all duration-500"
-                style={{ width: '75%' }}
-              />
-            </div>
+            <SegmentedBar
+              totalSegments={routines.length || 4}
+              completedSegments={completedRoutinesCount}
+            />
           </div>
           <p className="text-ui-rg-xs text-secondaryGray">
-            3 of 4 routines completed today. Keep up the rhythm!
+            {completedRoutinesCount} of {routines.length} routines completed today. Keep up the rhythm!
           </p>
         </div>
 
@@ -112,37 +148,40 @@ export const CockpitView: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-2.5">
-            {[
-              { id: '1', title: 'Morning Movement & Stretch', category: '#health', done: true },
-              { id: '2', title: 'Read 15 Pages of Architecture Book', category: '#learning', done: true },
-              { id: '3', title: 'Review PRs & Issues', category: '#work', done: true },
-              { id: '4', title: 'Evening Daily Reflection & Journal', category: '#mindset', done: false },
-            ].map((habit) => (
-              <div
-                key={habit.id}
-                className="flex items-center justify-between p-3 rounded-md bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <button
-                    className={`w-5 h-5 rounded-sm flex items-center justify-center border transition-all ${
-                      habit.done
-                        ? 'bg-primaryDark border-primaryDark text-bg'
-                        : 'border-border bg-surface'
-                    }`}
-                  >
-                    {habit.done && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </button>
-                  <span
-                    className={`text-ui-rg-sm font-medium ${
-                      habit.done ? 'line-through text-midGray' : 'text-primaryDark'
-                    }`}
-                  >
-                    {habit.title}
-                  </span>
+            {routines.map((routine) => {
+              const isDone = todayLogs.some(
+                (l) => l.routineId === routine.id && l.completed
+              );
+              return (
+                <div
+                  key={routine.id}
+                  onClick={() => toggleRoutine(routine.id)}
+                  className="flex items-center justify-between p-3 rounded-md bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      className={`w-5 h-5 rounded-sm flex items-center justify-center border transition-all ${
+                        isDone
+                          ? 'bg-primaryDark border-primaryDark text-bg'
+                          : 'border-border bg-surface'
+                      }`}
+                    >
+                      {isDone && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                    <span
+                      className={`text-ui-rg-sm font-medium ${
+                        isDone ? 'line-through text-midGray' : 'text-primaryDark'
+                      }`}
+                    >
+                      {routine.title}
+                    </span>
+                  </div>
+                  <Badge variant={isDone ? 'default' : 'lavender'}>
+                    {routine.category}
+                  </Badge>
                 </div>
-                <Badge variant={habit.done ? 'default' : 'lavender'}>{habit.category}</Badge>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -152,41 +191,47 @@ export const CockpitView: React.FC = () => {
             <h3 className="font-display font-bold text-display-4 text-primaryDark">
               Today's Task Queue
             </h3>
-            <Button variant="ghost" size="sm" className="text-ui-rg-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-ui-rg-xs"
+              onClick={() => setIsNewTaskModalOpen(true)}
+            >
               + Add Task
             </Button>
           </div>
 
           <div className="flex flex-col gap-2.5">
-            {[
-              { id: 't1', title: 'Scaffold Tauri + Vite frontend foundation', category: '#atelier', time: '09:00 AM', done: true },
-              { id: 't2', title: 'Design SQLite offline schema & sync queue', category: '#architecture', time: '11:00 AM', done: false },
-              { id: 't3', title: 'Set up spatial canvas with @xyflow/react', category: '#canvas', time: '02:00 PM', done: false },
-            ].map((task) => (
+            {tasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between p-3 rounded-md bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors"
+                onClick={() => toggleTask(task.id)}
+                className="flex items-center justify-between p-3 rounded-md bg-bg border border-border/80 hover:border-[#D8D2C5] transition-colors cursor-pointer select-none"
               >
                 <div className="flex items-center gap-3">
                   <button
                     className={`w-5 h-5 rounded-sm flex items-center justify-center border transition-all ${
-                      task.done
+                      task.completed
                         ? 'bg-primaryDark border-primaryDark text-bg'
                         : 'border-border bg-surface'
                     }`}
                   >
-                    {task.done && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    {task.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
                   </button>
                   <span
                     className={`text-ui-rg-sm font-medium ${
-                      task.done ? 'line-through text-midGray' : 'text-primaryDark'
+                      task.completed ? 'line-through text-midGray' : 'text-primaryDark'
                     }`}
                   >
                     {task.title}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-mono-xs text-secondaryGray">{task.time}</span>
+                  {task.scheduledTime && (
+                    <span className="font-mono text-mono-xs text-secondaryGray">
+                      {task.scheduledTime}
+                    </span>
+                  )}
                   <Badge variant="mint">{task.category}</Badge>
                 </div>
               </div>
@@ -194,6 +239,72 @@ export const CockpitView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* New Task Entry Modal */}
+      <Modal
+        isOpen={isNewTaskModalOpen}
+        onClose={() => setIsNewTaskModalOpen(false)}
+        title="Add Tactical Task"
+        description="Quickly capture a focused task for today's queue."
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreateTask} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
+              Task Title
+            </label>
+            <input
+              type="text"
+              autoFocus
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+              placeholder="e.g. Finalize SQLite sync engine contract..."
+              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
+                Category Tag
+              </label>
+              <input
+                type="text"
+                value={taskCategory}
+                onChange={(e) => setTaskCategory(e.target.value)}
+                placeholder="#work"
+                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
+                Time Block
+              </label>
+              <input
+                type="text"
+                value={taskTime}
+                onChange={(e) => setTaskTime(e.target.value)}
+                placeholder="10:00 AM"
+                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsNewTaskModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="sm">
+              Create Task
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

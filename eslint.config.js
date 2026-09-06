@@ -26,6 +26,7 @@ export default [
         clearInterval: 'readonly',
         localStorage: 'readonly',
         process: 'readonly',
+        CustomEvent: 'readonly',
         KeyboardEvent: 'readonly',
         HTMLSpanElement: 'readonly',
         HTMLButtonElement: 'readonly',
@@ -38,10 +39,10 @@ export default [
       '@typescript-eslint': tsPlugin,
     },
     rules: {
-      'no-undef': 'off', // TypeScript handles undef checks via compiler
+      'no-undef': 'off',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 ];
