@@ -1,9 +1,32 @@
-import React from 'react';
-import { Search, Play, RotateCcw, Sparkles } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Search, Play, Pause, RotateCcw, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
+import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { formatTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 export const TopHeader: React.FC = () => {
   const { activeTab, setCommandPaletteOpen } = useAppStore();
+  const {
+    mode,
+    remainingSeconds,
+    isRunning,
+    completedCyclesToday,
+    play,
+    pause,
+    reset,
+    tick,
+  } = usePomodoroStore();
+
+  useEffect(() => {
+    let timer: number | undefined;
+    if (isRunning) {
+      timer = window.setInterval(() => {
+        tick();
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isRunning, tick]);
 
   const titles: Record<string, string> = {
     cockpit: 'Daily Cockpit',
@@ -11,6 +34,12 @@ export const TopHeader: React.FC = () => {
     canvas: 'Spatial Ideation Canvas',
     kanban: 'Project Kanban',
     notes: 'Knowledge Notes & Docs',
+  };
+
+  const modeLabels = {
+    focus: 'FOCUS',
+    shortBreak: 'SHORT BREAK',
+    longBreak: 'LONG BREAK',
   };
 
   return (
@@ -25,34 +54,63 @@ export const TopHeader: React.FC = () => {
       {/* Center Pomodoro Focus Pill Bar */}
       <div className="flex items-center gap-3 bg-surface border border-border px-3.5 py-1.5 rounded-pill shadow-subtle">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
+          <span
+            className={cn(
+              'w-2 h-2 rounded-full',
+              mode === 'focus' ? 'bg-accent-green' : 'bg-accent-indigo',
+              isRunning && 'animate-pulse'
+            )}
+          />
           <span className="font-mono text-mono-xs font-bold text-primaryDark">
-            FOCUS
+            {modeLabels[mode]}
           </span>
         </div>
+
         <span className="font-mono font-bold text-mono-lg text-primaryDark">
-          25:00
+          {formatTime(remainingSeconds)}
         </span>
+
         <div className="flex items-center gap-1">
           <button
-            title="Start Session"
-            className="w-6 h-6 rounded-full bg-primaryDark text-bg flex items-center justify-center hover:bg-[#1a1918] transition-all cursor-pointer shadow-subtle"
+            onClick={() => (isRunning ? pause() : play())}
+            title={isRunning ? 'Pause Timer' : 'Start Session'}
+            className={cn(
+              'w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-subtle',
+              isRunning
+                ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                : 'bg-primaryDark text-bg hover:bg-[#1a1918]'
+            )}
           >
-            <Play className="w-3 h-3 fill-current ml-0.5" />
+            {isRunning ? (
+              <Pause className="w-3 h-3 fill-current" />
+            ) : (
+              <Play className="w-3 h-3 fill-current ml-0.5" />
+            )}
           </button>
           <button
+            onClick={() => reset()}
             title="Reset Timer"
             className="w-6 h-6 rounded-full text-secondaryGray hover:text-primaryDark hover:bg-border/60 flex items-center justify-center transition-all cursor-pointer"
           >
             <RotateCcw className="w-3 h-3" />
           </button>
         </div>
+
         {/* Cycle Progress Dots */}
         <div className="flex items-center gap-1.5 pl-1 border-l border-border/80">
-          <span className="w-2 h-2 rounded-full bg-primaryDark" />
-          <span className="w-2 h-2 rounded-full bg-border" />
-          <span className="w-2 h-2 rounded-full bg-border" />
-          <span className="w-2 h-2 rounded-full bg-border" />
+          {Array.from({ length: 4 }).map((_, i) => {
+            const isCompleted = i < completedCyclesToday;
+            return (
+              <span
+                key={i}
+                className={cn(
+                  'w-2 h-2 rounded-full transition-colors',
+                  isCompleted ? 'bg-primaryDark' : 'bg-border'
+                )}
+                title={`Cycle ${i + 1} of 4`}
+              />
+            );
+          })}
         </div>
       </div>
 

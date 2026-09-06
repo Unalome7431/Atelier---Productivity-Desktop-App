@@ -1,9 +1,22 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive' | 'mint' | 'pill';
-  size?: 'sm' | 'md' | 'lg' | 'icon';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'destructive'
+  | 'mint'
+  | 'lavender'
+  | 'pill';
+
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -11,31 +24,37 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   variant = 'primary',
   size = 'md',
+  leftIcon,
+  rightIcon,
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-sans font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none';
+    'inline-flex items-center justify-center font-sans font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none rounded-pill';
 
-  const variants = {
+  const variants: Record<ButtonVariant, string> = {
     primary:
-      'bg-primaryDark text-bg hover:bg-[#1a1918] shadow-sm rounded-full',
+      'bg-primaryDark text-bg hover:bg-[#1a1918] shadow-subtle',
     secondary:
-      'bg-surface text-primaryDark border border-border hover:bg-[#EFE9DC] shadow-sm rounded-full',
+      'bg-surface text-primaryDark border border-border hover:bg-[#EFE9DC] shadow-subtle',
     ghost:
-      'bg-transparent text-secondaryGray hover:text-primaryDark hover:bg-surface/60 rounded-full',
+      'bg-transparent text-secondaryGray hover:text-primaryDark hover:bg-border/50',
     destructive:
-      'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-full',
+      'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100',
     mint:
-      'bg-accent-green text-primaryDark font-semibold hover:brightness-95 shadow-sm rounded-full',
+      'bg-accent-green text-emerald-950 font-semibold hover:brightness-95 shadow-subtle border border-emerald-300/40',
+    lavender:
+      'bg-accent-indigo text-indigo-950 font-semibold hover:brightness-95 shadow-subtle border border-indigo-200/60',
     pill:
-      'bg-accent-indigo text-primaryDark hover:brightness-95 font-medium rounded-full',
+      'bg-surface text-secondaryGray border border-border hover:text-primaryDark hover:border-[#D0C8BA] shadow-subtle',
   };
 
-  const sizes = {
-    sm: 'text-xs px-3 py-1.5 gap-1.5',
-    md: 'text-sm px-4 py-2 gap-2',
+  const sizes: Record<ButtonSize, string> = {
+    xs: 'text-ui-rg-xxs px-2.5 py-1 gap-1',
+    sm: 'text-ui-rg-xs px-3 py-1.5 gap-1.5',
+    md: 'text-ui-md-sm px-4 py-2 gap-2',
     lg: 'text-base px-5 py-2.5 gap-2.5',
-    icon: 'p-2 aspect-square rounded-full',
+    icon: 'p-2 aspect-square',
+    'icon-sm': 'p-1.5 aspect-square',
   };
 
   return (
@@ -43,7 +62,9 @@ export const Button: React.FC<ButtonProps> = ({
       className={cn(baseStyles, variants[variant], sizes[size], className)}
       {...props}
     >
+      {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
       {children}
+      {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
     </button>
   );
 };
