@@ -3,12 +3,25 @@ import { syncService } from './syncService';
 import { KanbanBoard, KanbanCard } from '@/types';
 
 export class KanbanService {
+  private seedingPromise: Promise<void> | null = null;
+
   async getBoards(): Promise<KanbanBoard[]> {
     const boards = await db.select<any>('SELECT * FROM kanban_boards ORDER BY position_rank ASC');
     if (boards.length === 0) {
-      return await this.seedDefaultBoard();
+      if (!this.seedingPromise) {
+        this.seedingPromise = this.seedDefaultBoard().finally(() => {
+          this.seedingPromise = null;
+        });
+      }
+      await this.seedingPromise;
+      return await this.fetchBoards();
     }
 
+    return await this.fetchBoards();
+  }
+
+  private async fetchBoards(): Promise<KanbanBoard[]> {
+    const boards = await db.select<any>('SELECT * FROM kanban_boards ORDER BY position_rank ASC');
     const cards = await db.select<any>('SELECT * FROM kanban_cards ORDER BY position_rank ASC');
     const columns = [
       { id: 'planned', title: 'Planned', colorAccent: '#FCFCE8', orderIndex: 0 },
@@ -37,12 +50,12 @@ export class KanbanService {
     }));
   }
 
-  private async seedDefaultBoard(): Promise<KanbanBoard[]> {
+  private async seedDefaultBoard(): Promise<void> {
     const boardId = 'board_default';
     const now = new Date().toISOString();
 
     await db.execute(
-      `INSERT INTO kanban_boards (id, title, color_tag, position_rank, created_at, updated_at)
+      `INSERT OR IGNORE INTO kanban_boards (id, title, color_tag, position_rank, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [boardId, 'Productivity OS Roadmap', '#8E677E', '0', now, now]
     );
@@ -56,13 +69,11 @@ export class KanbanService {
     for (let i = 0; i < defaultCards.length; i++) {
       const c = defaultCards[i];
       await db.execute(
-        `INSERT INTO kanban_cards (id, board_id, column_id, title, description, tag_label, position_rank, created_at, updated_at)
+        `INSERT OR IGNORE INTO kanban_cards (id, board_id, column_id, title, description, tag_label, position_rank, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [c.id, boardId, c.column_id, c.title, c.desc, c.tag, `${i}`, now, now]
       );
     }
-
-    return await this.getBoards();
   }
 
   async moveCard(cardId: string, targetColumnId: string): Promise<void> {

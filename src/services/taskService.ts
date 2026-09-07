@@ -4,18 +4,31 @@ import { Task } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
 export class TaskService {
+  private seedingPromise: Promise<void> | null = null;
+
   async getTodayTasks(): Promise<Task[]> {
     const today = getTodayDateString();
+
+    // Check if the tasks table is completely unseeded
+    const allRows = await db.select<any>('SELECT id FROM tasks');
+    if (allRows.length === 0) {
+      if (!this.seedingPromise) {
+        this.seedingPromise = this.seedDefaultTasks().finally(() => {
+          this.seedingPromise = null;
+        });
+      }
+      await this.seedingPromise;
+    }
+
     const rows = await db.select<any>(
       `SELECT * FROM tasks WHERE scheduled_date = ? OR scheduled_date IS NULL ORDER BY position_rank ASC`,
       [today]
     );
 
-    if (rows.length === 0) {
-      return await this.seedDefaultTasks();
-    }
+    // Auto-heal / deduplicate legacy duplicates (e.g. from StrictMode / dev reloads)
+    const cleanedRows = await this.deduplicateTasks(rows);
 
-    return rows.map((t) => ({
+    return cleanedRows.map((t) => ({
       id: t.id,
       title: t.title,
       description: t.description,
@@ -31,24 +44,65 @@ export class TaskService {
     }));
   }
 
-  private async seedDefaultTasks(): Promise<Task[]> {
+  private async deduplicateTasks(rows: any[]): Promise<any[]> {
+    const seen = new Set<string>();
+    const keep: any[] = [];
+    const deleteIds: string[] = [];
+
+    for (const row of rows) {
+      // Key by title + scheduled_date so duplicate seed copies are identified
+      const key = `${row.title}__${row.scheduled_date || ''}`;
+      if (seen.has(key)) {
+        deleteIds.push(row.id);
+      } else {
+        seen.add(key);
+        keep.push(row);
+      }
+    }
+
+    if (deleteIds.length > 0) {
+      for (const id of deleteIds) {
+        await db.execute('DELETE FROM tasks WHERE id = ?', [id]);
+      }
+    }
+
+    return keep;
+  }
+
+  private async seedDefaultTasks(): Promise<void> {
     const today = getTodayDateString();
+    const now = new Date().toISOString();
     const defaultTasks = [
-      { title: 'Scaffold Tauri + Vite frontend foundation', category: '#atelier', time: '09:00 AM', done: true },
-      { title: 'Design SQLite offline schema & sync queue', category: '#architecture', time: '11:00 AM', done: true },
-      { title: 'Implement full data repositories and sync protocol', category: '#data', time: '02:00 PM', done: false },
+      {
+        id: 'tsk_default_scaffold',
+        title: 'Scaffold Tauri + Vite frontend foundation',
+        category: '#atelier',
+        time: '09:00 AM',
+        done: true,
+      },
+      {
+        id: 'tsk_default_sqlite',
+        title: 'Design SQLite offline schema & sync queue',
+        category: '#architecture',
+        time: '11:00 AM',
+        done: true,
+      },
+      {
+        id: 'tsk_default_sync',
+        title: 'Implement full data repositories and sync protocol',
+        category: '#data',
+        time: '02:00 PM',
+        done: false,
+      },
     ];
 
-    const seeded: Task[] = [];
     for (let i = 0; i < defaultTasks.length; i++) {
       const t = defaultTasks[i];
-      const id = `tsk_${Date.now()}_${i}`;
-      const now = new Date().toISOString();
       await db.execute(
-        `INSERT INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, completed_at, created_at, updated_at)
+        `INSERT OR IGNORE INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, completed_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          id,
+          t.id,
           t.title,
           null,
           t.done ? 'done' : 'todo',
@@ -61,20 +115,7 @@ export class TaskService {
           now,
         ]
       );
-      seeded.push({
-        id,
-        title: t.title,
-        category: t.category,
-        scheduledDate: today,
-        scheduledTime: t.time,
-        completed: t.done,
-        completedAt: t.done ? now : undefined,
-        orderIndex: i,
-        createdAt: now,
-        updatedAt: now,
-      });
     }
-    return seeded;
   }
 
   async createTask(title: string, category = '#work', time?: string): Promise<Task> {

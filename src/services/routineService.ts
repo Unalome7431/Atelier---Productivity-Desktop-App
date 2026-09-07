@@ -4,13 +4,45 @@ import { Routine, RoutineLog } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
 export class RoutineService {
+  private seedingPromise: Promise<void> | null = null;
+
   async getAllRoutines(): Promise<Routine[]> {
     const rows = await db.select<any>('SELECT * FROM routines ORDER BY position_rank ASC');
     if (rows.length === 0) {
       // Seed default initial habits if none exist
-      return await this.seedDefaultRoutines();
+      if (!this.seedingPromise) {
+        this.seedingPromise = this.seedDefaultRoutines().finally(() => {
+          this.seedingPromise = null;
+        });
+      }
+      await this.seedingPromise;
+      const seeded = await db.select<any>('SELECT * FROM routines ORDER BY position_rank ASC');
+      return this.mapCleanRoutines(seeded);
     }
-    return rows.map((r) => ({
+    return this.mapCleanRoutines(rows);
+  }
+
+  private async mapCleanRoutines(rows: any[]): Promise<Routine[]> {
+    const seen = new Set<string>();
+    const keep: any[] = [];
+    const deleteIds: string[] = [];
+
+    for (const r of rows) {
+      if (seen.has(r.title)) {
+        deleteIds.push(r.id);
+      } else {
+        seen.add(r.title);
+        keep.push(r);
+      }
+    }
+
+    if (deleteIds.length > 0) {
+      for (const id of deleteIds) {
+        await db.execute('DELETE FROM routines WHERE id = ?', [id]);
+      }
+    }
+
+    return keep.map((r) => ({
       id: r.id,
       title: r.title,
       description: r.description,
@@ -23,35 +55,23 @@ export class RoutineService {
     }));
   }
 
-  private async seedDefaultRoutines(): Promise<Routine[]> {
-    const defaultRoutines: Omit<Routine, 'id' | 'createdAt'>[] = [
-      { title: 'Morning Movement & Stretch', category: '#health', cadence: 'daily' },
-      { title: 'Read 15 Pages of Architecture Book', category: '#learning', cadence: 'daily' },
-      { title: 'Review PRs & Issues', category: '#work', cadence: 'weekdays' },
-      { title: 'Evening Daily Reflection & Journal', category: '#mindset', cadence: 'daily' },
+  private async seedDefaultRoutines(): Promise<void> {
+    const defaultRoutines = [
+      { id: 'rt_morning', title: 'Morning Movement & Stretch', category: '#health', cadence: 'daily' },
+      { id: 'rt_read', title: 'Read 15 Pages of Architecture Book', category: '#learning', cadence: 'daily' },
+      { id: 'rt_prs', title: 'Review PRs & Issues', category: '#work', cadence: 'weekdays' },
+      { id: 'rt_evening', title: 'Evening Daily Reflection & Journal', category: '#mindset', cadence: 'daily' },
     ];
 
-    const seeded: Routine[] = [];
+    const now = new Date().toISOString();
     for (let i = 0; i < defaultRoutines.length; i++) {
       const r = defaultRoutines[i];
-      const id = `rt_${Date.now()}_${i}`;
-      const now = new Date().toISOString();
       await db.execute(
-        `INSERT INTO routines (id, title, description, category, cadence, custom_days, icon, color, position_rank, created_at, updated_at)
+        `INSERT OR IGNORE INTO routines (id, title, description, category, cadence, custom_days, icon, color, position_rank, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, r.title, r.description || null, r.category, r.cadence, '[]', null, null, `${i}`, now, now]
+        [r.id, r.title, null, r.category, r.cadence, '[]', null, null, `${i}`, now, now]
       );
-      seeded.push({
-        id,
-        title: r.title,
-        description: r.description,
-        category: r.category,
-        cadence: r.cadence,
-        customDays: [],
-        createdAt: now,
-      });
     }
-    return seeded;
   }
 
   async getTodayLogs(): Promise<RoutineLog[]> {

@@ -29,6 +29,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   isLoading: false,
 
   loadEvents: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const events = await calendarService.getEvents();

@@ -11,18 +11,22 @@ interface NotesState {
   createNote: (title: string, content?: string) => Promise<void>;
 }
 
-export const useNotesStore = create<NotesState>((set) => ({
+export const useNotesStore = create<NotesState>((set, get) => ({
   notes: [],
   activeNoteId: undefined,
   isLoading: false,
 
   loadNotes: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const notes = await noteService.getNotes();
+      // Preserve existing selection if still valid; otherwise pick first
+      const current = get().activeNoteId;
+      const nextActive = current && notes.some((n) => n.id === current) ? current : notes[0]?.id;
       set({
         notes,
-        activeNoteId: notes[0]?.id,
+        activeNoteId: nextActive,
         isLoading: false,
       });
     } catch (err) {
