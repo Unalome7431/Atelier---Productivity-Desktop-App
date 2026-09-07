@@ -61,9 +61,27 @@ export class KanbanService {
     );
 
     const defaultCards = [
-      { id: 'c1', column_id: 'planned', title: 'Telegram Serverless Webhook Bot', tag: '#research', desc: 'Explore grammY edge runtime on Cloudflare Workers' },
-      { id: 'c2', column_id: 'in_progress', title: 'Desktop Foundation & Data Layer', tag: '#core', desc: 'Phase 1-3 setup with Tauri, SQLite & Sync Engine' },
-      { id: 'c3', column_id: 'done', title: 'PRD & Styleguide Definition', tag: '#spec', desc: 'Aura UI styling and task tracker architecture' },
+      {
+        id: 'c1',
+        column_id: 'planned',
+        title: 'Telegram Serverless Webhook Bot',
+        tag: '#research',
+        desc: 'Explore grammY edge runtime on Cloudflare Workers',
+      },
+      {
+        id: 'c2',
+        column_id: 'in_progress',
+        title: 'Desktop Foundation & Data Layer',
+        tag: '#core',
+        desc: 'Phase 1-3 setup with Tauri, SQLite & Sync Engine',
+      },
+      {
+        id: 'c3',
+        column_id: 'done',
+        title: 'PRD & Styleguide Definition',
+        tag: '#spec',
+        desc: 'Aura UI styling and task tracker architecture',
+      },
     ];
 
     for (let i = 0; i < defaultCards.length; i++) {
@@ -78,10 +96,11 @@ export class KanbanService {
 
   async moveCard(cardId: string, targetColumnId: string): Promise<void> {
     const now = new Date().toISOString();
-    await db.execute(
-      `UPDATE kanban_cards SET column_id = ?, updated_at = ? WHERE id = ?`,
-      [targetColumnId, now, cardId]
-    );
+    await db.execute(`UPDATE kanban_cards SET column_id = ?, updated_at = ? WHERE id = ?`, [
+      targetColumnId,
+      now,
+      cardId,
+    ]);
 
     await syncService.enqueueMutation('kanban_cards', cardId, 'UPDATE', {
       column_id: targetColumnId,
@@ -89,7 +108,12 @@ export class KanbanService {
     });
   }
 
-  async addCard(boardId: string, columnId: string, title: string, tag = '#task'): Promise<KanbanCard> {
+  async addCard(
+    boardId: string,
+    columnId: string,
+    title: string,
+    tag = '#task'
+  ): Promise<KanbanCard> {
     const cardId = `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
 

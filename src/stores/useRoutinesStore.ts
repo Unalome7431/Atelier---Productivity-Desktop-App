@@ -9,6 +9,19 @@ interface RoutinesState {
   isLoading: boolean;
   loadRoutines: () => Promise<void>;
   toggleRoutine: (routineId: string) => Promise<void>;
+  incrementRoutine: (routineId: string) => Promise<void>;
+  decrementRoutine: (routineId: string) => Promise<void>;
+  addRoutine: (params: {
+    title: string;
+    description?: string;
+    category?: string;
+    cadence?: 'daily' | 'weekdays' | 'custom';
+    customDays?: number[];
+    icon?: string;
+    color?: string;
+    targetCount?: number;
+  }) => Promise<void>;
+  deleteRoutine: (routineId: string) => Promise<void>;
 }
 
 export const useRoutinesStore = create<RoutinesState>((set, get) => ({
@@ -21,11 +34,13 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     if (get().isLoading) return;
     set({ isLoading: true });
     try {
-      const [routines, todayLogs, streak] = await Promise.all([
-        routineService.getAllRoutines(),
-        routineService.getTodayLogs(),
-        routineService.calculateStreak(),
-      ]);
+      // 1. Fetch routines
+      const routines = await routineService.getAllRoutines();
+      // 2. Midnight auto-instantiation engine: ensure today's logs exist for active routines
+      const todayLogs = await routineService.ensureTodayLogs();
+      // 3. Compute real streak
+      const streak = await routineService.calculateStreak();
+
       set({ routines, todayLogs, streakDays: streak, isLoading: false });
     } catch (err) {
       console.error('Failed to load routines:', err);
@@ -38,14 +53,63 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     const existing = todayLogs.find((l) => l.routineId === routineId);
     const nextCompleted = !existing?.completed;
 
-    const nextLogs = todayLogs.filter((l) => l.routineId !== routineId).concat({
-      id: `log_${routineId}`,
-      routineId,
-      date: new Date().toISOString().split('T')[0],
-      completed: nextCompleted,
+    // Optimistic UI update
+    set({
+      todayLogs: todayLogs.map((l) =>
+        l.routineId === routineId
+          ? {
+              ...l,
+              completed: nextCompleted,
+              completedAt: nextCompleted ? new Date().toISOString() : undefined,
+            }
+          : l
+      ),
     });
 
-    set({ todayLogs: nextLogs });
-    await routineService.toggleRoutine(routineId, nextCompleted);
+    const updatedLog = await routineService.toggleRoutine(routineId, nextCompleted);
+    const streak = await routineService.calculateStreak();
+    set((state) => ({
+      todayLogs: state.todayLogs.map((l) => (l.routineId === routineId ? updatedLog : l)),
+      streakDays: streak,
+    }));
+  },
+
+  incrementRoutine: async (routineId: string) => {
+    const updatedLog = await routineService.updateRoutineCount(routineId, 1);
+    const streak = await routineService.calculateStreak();
+    set((state) => ({
+      todayLogs: state.todayLogs.map((l) => (l.routineId === routineId ? updatedLog : l)),
+      streakDays: streak,
+    }));
+  },
+
+  decrementRoutine: async (routineId: string) => {
+    const updatedLog = await routineService.updateRoutineCount(routineId, -1);
+    const streak = await routineService.calculateStreak();
+    set((state) => ({
+      todayLogs: state.todayLogs.map((l) => (l.routineId === routineId ? updatedLog : l)),
+      streakDays: streak,
+    }));
+  },
+
+  addRoutine: async (params) => {
+    const newRoutine = await routineService.createRoutine(params);
+    const todayLogs = await routineService.getTodayLogs();
+    const streak = await routineService.calculateStreak();
+    set((state) => ({
+      routines: [...state.routines, newRoutine],
+      todayLogs,
+      streakDays: streak,
+    }));
+  },
+
+  deleteRoutine: async (routineId: string) => {
+    await routineService.deleteRoutine(routineId);
+    const streak = await routineService.calculateStreak();
+    set((state) => ({
+      routines: state.routines.filter((r) => r.id !== routineId),
+      todayLogs: state.todayLogs.filter((l) => l.routineId !== routineId),
+      streakDays: streak,
+    }));
   },
 }));

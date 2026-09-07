@@ -28,9 +28,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {rightElement && (
-          <div className="absolute right-3 flex items-center">{rightElement}</div>
-        )}
+        {rightElement && <div className="absolute right-3 flex items-center">{rightElement}</div>}
       </div>
     );
   }

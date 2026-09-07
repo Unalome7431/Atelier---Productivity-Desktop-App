@@ -7,16 +7,8 @@ import { cn } from '@/lib/utils';
 
 export const TopHeader: React.FC = () => {
   const { activeTab, setCommandPaletteOpen } = useAppStore();
-  const {
-    mode,
-    remainingSeconds,
-    isRunning,
-    completedCyclesToday,
-    play,
-    pause,
-    reset,
-    tick,
-  } = usePomodoroStore();
+  const { mode, remainingSeconds, isRunning, completedCyclesToday, play, pause, reset, tick } =
+    usePomodoroStore();
 
   useEffect(() => {
     let timer: number | undefined;

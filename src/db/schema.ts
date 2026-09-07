@@ -21,6 +21,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     custom_days TEXT DEFAULT '[]',
     icon TEXT,
     color TEXT,
+    target_count INTEGER DEFAULT 1,
     position_rank TEXT NOT NULL DEFAULT '0',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -32,6 +33,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     routine_id TEXT NOT NULL,
     date TEXT NOT NULL,
     completed INTEGER DEFAULT 0,
+    current_count INTEGER DEFAULT 0,
     completed_at TEXT,
     FOREIGN KEY(routine_id) REFERENCES routines(id) ON DELETE CASCADE,
     UNIQUE(routine_id, date)
@@ -49,6 +51,9 @@ export const SQLITE_SCHEMA_QUERIES = [
     scheduled_end_time TEXT,
     kanban_card_id TEXT,
     category_tag TEXT DEFAULT '#work',
+    icon_type TEXT DEFAULT 'default',
+    time_tag TEXT,
+    subtasks TEXT DEFAULT '[]',
     completed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -149,5 +154,5 @@ export const SQLITE_SCHEMA_QUERIES = [
     payload TEXT NOT NULL,
     created_at TEXT NOT NULL,
     synced_at TEXT
-  );`
+  );`,
 ];

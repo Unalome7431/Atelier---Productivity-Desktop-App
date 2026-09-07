@@ -1,6 +1,6 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
-import { Task } from '@/types';
+import { Task, TaskSubtask } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
 export class TaskService {
@@ -9,7 +9,6 @@ export class TaskService {
   async getTodayTasks(): Promise<Task[]> {
     const today = getTodayDateString();
 
-    // Check if the tasks table is completely unseeded
     const allRows = await db.select<any>('SELECT id FROM tasks');
     if (allRows.length === 0) {
       if (!this.seedingPromise) {
@@ -21,27 +20,51 @@ export class TaskService {
     }
 
     const rows = await db.select<any>(
-      `SELECT * FROM tasks WHERE scheduled_date = ? OR scheduled_date IS NULL ORDER BY position_rank ASC`,
+      `SELECT * FROM tasks WHERE scheduled_date = ? ORDER BY position_rank ASC`,
       [today]
     );
 
-    // Auto-heal / deduplicate legacy duplicates (e.g. from StrictMode / dev reloads)
     const cleanedRows = await this.deduplicateTasks(rows);
+    return cleanedRows.map((t) => this.mapTask(t));
+  }
 
-    return cleanedRows.map((t) => ({
+  async getInboxTasks(): Promise<Task[]> {
+    await db.init();
+    const rows = await db.select<any>(
+      `SELECT * FROM tasks WHERE scheduled_date IS NULL ORDER BY position_rank ASC`
+    );
+
+    const cleanedRows = await this.deduplicateTasks(rows);
+    return cleanedRows.map((t) => this.mapTask(t));
+  }
+
+  private mapTask(t: any): Task {
+    let subtasks: TaskSubtask[] = [];
+    if (t.subtasks) {
+      try {
+        subtasks = typeof t.subtasks === 'string' ? JSON.parse(t.subtasks) : t.subtasks;
+      } catch {
+        subtasks = [];
+      }
+    }
+
+    return {
       id: t.id,
       title: t.title,
       description: t.description,
       category: t.category_tag || '#work',
-      scheduledDate: t.scheduled_date,
+      iconType: t.icon_type || 'default',
+      timeTag: t.time_tag || t.scheduled_start_time || undefined,
+      scheduledDate: t.scheduled_date || null,
       scheduledTime: t.scheduled_start_time,
       completed: t.status === 'done',
       completedAt: t.completed_at,
       orderIndex: parseInt(t.position_rank || '0', 10),
+      subtasks,
       sourceKanbanCardId: t.kanban_card_id,
       createdAt: t.created_at,
       updatedAt: t.updated_at,
-    }));
+    };
   }
 
   private async deduplicateTasks(rows: any[]): Promise<any[]> {
@@ -50,8 +73,7 @@ export class TaskService {
     const deleteIds: string[] = [];
 
     for (const row of rows) {
-      // Key by title + scheduled_date so duplicate seed copies are identified
-      const key = `${row.title}__${row.scheduled_date || ''}`;
+      const key = `${row.title}__${row.scheduled_date || 'inbox'}`;
       if (seen.has(key)) {
         deleteIds.push(row.id);
       } else {
@@ -72,44 +94,73 @@ export class TaskService {
   private async seedDefaultTasks(): Promise<void> {
     const today = getTodayDateString();
     const now = new Date().toISOString();
+
     const defaultTasks = [
       {
-        id: 'tsk_default_scaffold',
-        title: 'Scaffold Tauri + Vite frontend foundation',
-        category: '#atelier',
-        time: '09:00 AM',
-        done: true,
-      },
-      {
-        id: 'tsk_default_sqlite',
-        title: 'Design SQLite offline schema & sync queue',
-        category: '#architecture',
-        time: '11:00 AM',
-        done: true,
-      },
-      {
-        id: 'tsk_default_sync',
-        title: 'Implement full data repositories and sync protocol',
-        category: '#data',
-        time: '02:00 PM',
+        id: 'tsk_api_contract',
+        title: 'Finalize API module contract',
+        category: '#backend',
+        icon_type: 'flame',
+        time_tag: '11:30',
+        scheduled_date: today,
         done: false,
+        subtasks: [
+          { id: 'sub_1', title: 'Verify SQLite schema constraints', completed: true },
+          { id: 'sub_2', title: 'Draft IPC endpoint handlers for Tauri', completed: false },
+        ],
+      },
+      {
+        id: 'tsk_onboarding_handoff',
+        title: 'Prepare onboarding handoff',
+        category: '#team',
+        icon_type: 'chat',
+        time_tag: 'Today',
+        scheduled_date: today,
+        done: false,
+        subtasks: [
+          { id: 'sub_3', title: 'Export Figma screen assets', completed: true },
+          { id: 'sub_4', title: 'Document Aura UI tokens', completed: true },
+        ],
+      },
+      {
+        id: 'tsk_cohort_feedback',
+        title: 'Respond to beta cohort feedback',
+        category: '#product',
+        icon_type: 'mail',
+        time_tag: 'Later',
+        scheduled_date: today,
+        done: false,
+        subtasks: [],
+      },
+      {
+        id: 'tsk_inbox_crdt',
+        title: 'Explore offline CRDT algorithms for multi-device sync',
+        category: '#research',
+        icon_type: 'code',
+        time_tag: 'Backlog',
+        scheduled_date: null,
+        done: false,
+        subtasks: [],
       },
     ];
 
     for (let i = 0; i < defaultTasks.length; i++) {
       const t = defaultTasks[i];
       await db.execute(
-        `INSERT OR IGNORE INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, completed_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR IGNORE INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, icon_type, time_tag, subtasks, completed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           t.id,
           t.title,
           null,
           t.done ? 'done' : 'todo',
           `${i}`,
-          today,
-          t.time,
+          t.scheduled_date,
+          t.time_tag,
           t.category,
+          t.icon_type,
+          t.time_tag,
+          JSON.stringify(t.subtasks),
           t.done ? now : null,
           now,
           now,
@@ -118,25 +169,57 @@ export class TaskService {
     }
   }
 
-  async createTask(title: string, category = '#work', time?: string): Promise<Task> {
+  async createTask(params: {
+    title: string;
+    description?: string;
+    category?: string;
+    timeTag?: string;
+    iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
+    scheduledDate?: string | null;
+    sourceKanbanCardId?: string;
+  }): Promise<Task> {
     const today = getTodayDateString();
     const id = `tsk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
+    const category = params.category || '#work';
+    const scheduledDate = params.scheduledDate !== undefined ? params.scheduledDate : today;
+    const iconType = params.iconType || 'default';
+    const timeTag = params.timeTag || (scheduledDate ? 'Today' : 'Backlog');
 
     await db.execute(
-      `INSERT INTO tasks (id, title, status, position_rank, scheduled_date, scheduled_start_time, category_tag, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, 'todo', '99', today, time || null, category, now, now]
+      `INSERT INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, icon_type, time_tag, subtasks, kanban_card_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        params.title,
+        params.description || null,
+        'todo',
+        '99',
+        scheduledDate,
+        timeTag,
+        category,
+        iconType,
+        timeTag,
+        '[]',
+        params.sourceKanbanCardId || null,
+        now,
+        now,
+      ]
     );
 
     const task: Task = {
       id,
-      title,
+      title: params.title,
+      description: params.description,
       category,
-      scheduledDate: today,
-      scheduledTime: time,
+      iconType,
+      timeTag,
+      scheduledDate,
+      scheduledTime: timeTag,
       completed: false,
       orderIndex: 99,
+      subtasks: [],
+      sourceKanbanCardId: params.sourceKanbanCardId,
       createdAt: now,
       updatedAt: now,
     };
@@ -149,16 +232,125 @@ export class TaskService {
     const now = new Date().toISOString();
     const status = completed ? 'done' : 'todo';
 
-    await db.execute(
-      `UPDATE tasks SET status = ?, completed_at = ?, updated_at = ? WHERE id = ?`,
-      [status, completed ? now : null, now, taskId]
-    );
+    await db.execute(`UPDATE tasks SET status = ?, completed_at = ?, updated_at = ? WHERE id = ?`, [
+      status,
+      completed ? now : null,
+      now,
+      taskId,
+    ]);
 
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       status,
       completed_at: completed ? now : null,
       updated_at: now,
     });
+  }
+
+  async reorderTasks(taskIds: string[]): Promise<void> {
+    const now = new Date().toISOString();
+    for (let i = 0; i < taskIds.length; i++) {
+      const id = taskIds[i];
+      await db.execute(`UPDATE tasks SET position_rank = ?, updated_at = ? WHERE id = ?`, [
+        `${i}`,
+        now,
+        id,
+      ]);
+    }
+  }
+
+  async moveTaskToInbox(taskId: string): Promise<void> {
+    const now = new Date().toISOString();
+    await db.execute(
+      `UPDATE tasks SET scheduled_date = NULL, time_tag = 'Backlog', updated_at = ? WHERE id = ?`,
+      [now, taskId]
+    );
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      scheduled_date: null,
+      time_tag: 'Backlog',
+      updated_at: now,
+    });
+  }
+
+  async moveTaskToToday(taskId: string): Promise<void> {
+    const today = getTodayDateString();
+    const now = new Date().toISOString();
+    await db.execute(
+      `UPDATE tasks SET scheduled_date = ?, time_tag = 'Today', updated_at = ? WHERE id = ?`,
+      [today, now, taskId]
+    );
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      scheduled_date: today,
+      time_tag: 'Today',
+      updated_at: now,
+    });
+  }
+
+  async addSubtask(taskId: string, subtaskTitle: string): Promise<TaskSubtask[]> {
+    const rows = await db.select<any>(`SELECT subtasks FROM tasks WHERE id = ?`, [taskId]);
+    let subtasks: TaskSubtask[] = [];
+    if (rows[0]?.subtasks) {
+      try {
+        subtasks =
+          typeof rows[0].subtasks === 'string' ? JSON.parse(rows[0].subtasks) : rows[0].subtasks;
+      } catch {
+        subtasks = [];
+      }
+    }
+
+    const newSubtask: TaskSubtask = {
+      id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+      title: subtaskTitle.trim(),
+      completed: false,
+    };
+    subtasks.push(newSubtask);
+
+    const now = new Date().toISOString();
+    const jsonStr = JSON.stringify(subtasks);
+    await db.execute(`UPDATE tasks SET subtasks = ?, updated_at = ? WHERE id = ?`, [
+      jsonStr,
+      now,
+      taskId,
+    ]);
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      subtasks: jsonStr,
+      updated_at: now,
+    });
+
+    return subtasks;
+  }
+
+  async toggleSubtask(taskId: string, subtaskId: string): Promise<TaskSubtask[]> {
+    const rows = await db.select<any>(`SELECT subtasks FROM tasks WHERE id = ?`, [taskId]);
+    let subtasks: TaskSubtask[] = [];
+    if (rows[0]?.subtasks) {
+      try {
+        subtasks =
+          typeof rows[0].subtasks === 'string' ? JSON.parse(rows[0].subtasks) : rows[0].subtasks;
+      } catch {
+        subtasks = [];
+      }
+    }
+
+    subtasks = subtasks.map((s) => (s.id === subtaskId ? { ...s, completed: !s.completed } : s));
+
+    const now = new Date().toISOString();
+    const jsonStr = JSON.stringify(subtasks);
+    await db.execute(`UPDATE tasks SET subtasks = ?, updated_at = ? WHERE id = ?`, [
+      jsonStr,
+      now,
+      taskId,
+    ]);
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      subtasks: jsonStr,
+      updated_at: now,
+    });
+
+    return subtasks;
+  }
+
+  async deleteTask(taskId: string): Promise<void> {
+    await db.execute(`DELETE FROM tasks WHERE id = ?`, [taskId]);
+    await syncService.enqueueMutation('tasks', taskId, 'DELETE', { id: taskId });
   }
 }
 

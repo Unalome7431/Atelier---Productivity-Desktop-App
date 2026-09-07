@@ -46,7 +46,11 @@ export const CanvasView: React.FC = () => {
             Infinite Spatial Canvas
           </h3>
           <p className="text-ui-rg-sm text-secondaryGray">
-            Spatial node graphing powered by <span className="font-mono text-mono-md font-semibold text-primaryDark">@xyflow/react</span>. Connect concept notes, cards, and architecture diagrams.
+            Spatial node graphing powered by{' '}
+            <span className="font-mono text-mono-md font-semibold text-primaryDark">
+              @xyflow/react
+            </span>
+            . Connect concept notes, cards, and architecture diagrams.
           </p>
         </div>
       </div>

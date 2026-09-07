@@ -36,9 +36,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     set((state) => ({
       boards: state.boards.map((b) => ({
         ...b,
-        cards: b.cards.map((c) =>
-          c.id === cardId ? { ...c, columnId: targetColumnId } : c
-        ),
+        cards: b.cards.map((c) => (c.id === cardId ? { ...c, columnId: targetColumnId } : c)),
       })),
     }));
     await kanbanService.moveCard(cardId, targetColumnId);

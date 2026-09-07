@@ -59,9 +59,27 @@ export class CanvasService {
     );
 
     const defaultNodes = [
-      { id: 'node_1', type: 'simple_text', x: 100, y: 120, data: { label: 'Atelier Core Engine', content: 'Tauri + SQLite + Sync Queue' } },
-      { id: 'node_2', type: 'kanban', x: 450, y: 120, data: { label: 'Roadmap Kanban', referenceId: 'board_default' } },
-      { id: 'node_3', type: 'note', x: 300, y: 320, data: { label: 'Architecture Doc', referenceId: 'n_arch' } },
+      {
+        id: 'node_1',
+        type: 'simple_text',
+        x: 100,
+        y: 120,
+        data: { label: 'Atelier Core Engine', content: 'Tauri + SQLite + Sync Queue' },
+      },
+      {
+        id: 'node_2',
+        type: 'kanban',
+        x: 450,
+        y: 120,
+        data: { label: 'Roadmap Kanban', referenceId: 'board_default' },
+      },
+      {
+        id: 'node_3',
+        type: 'note',
+        x: 300,
+        y: 320,
+        data: { label: 'Architecture Doc', referenceId: 'n_arch' },
+      },
     ];
 
     for (const n of defaultNodes) {
@@ -87,11 +105,22 @@ export class CanvasService {
       await db.execute(
         `INSERT INTO canvas_nodes (id, canvas_id, type, position_x, position_y, data, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [n.id, canvasId, n.type || 'text', n.position?.x || 0, n.position?.y || 0, JSON.stringify(n.data || {}), now]
+        [
+          n.id,
+          canvasId,
+          n.type || 'text',
+          n.position?.x || 0,
+          n.position?.y || 0,
+          JSON.stringify(n.data || {}),
+          now,
+        ]
       );
     }
 
-    await syncService.enqueueMutation('canvas_nodes', canvasId, 'UPDATE', { nodes, updated_at: now });
+    await syncService.enqueueMutation('canvas_nodes', canvasId, 'UPDATE', {
+      nodes,
+      updated_at: now,
+    });
   }
 }
 

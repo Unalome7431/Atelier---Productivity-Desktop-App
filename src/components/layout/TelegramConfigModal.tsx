@@ -57,7 +57,9 @@ export const TelegramConfigModal: React.FC = () => {
               </span>
             </div>
           </div>
-          <Badge variant="mint" dot>Linked & Ready</Badge>
+          <Badge variant="mint" dot>
+            Linked & Ready
+          </Badge>
         </div>
 
         {/* Configuration inputs */}
@@ -92,11 +94,18 @@ export const TelegramConfigModal: React.FC = () => {
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="text-ui-rg-xs text-secondaryGray">
-              Verification command: <code className="font-mono text-primaryDark bg-bg px-1.5 py-0.5 rounded border border-border">/link {chatId}</code>
+              Verification command:{' '}
+              <code className="font-mono text-primaryDark bg-bg px-1.5 py-0.5 rounded border border-border">
+                /link {chatId}
+              </code>
             </span>
           </div>
           <Button variant="ghost" size="xs" onClick={handleCopy} className="gap-1">
-            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            {isCopied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
             <span>{isCopied ? 'Copied' : 'Copy'}</span>
           </Button>
         </div>

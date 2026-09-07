@@ -125,9 +125,7 @@ export const CommandPalette: React.FC = () => {
     if (!query.trim()) return commands;
     const lower = query.toLowerCase();
     return commands.filter(
-      (c) =>
-        c.title.toLowerCase().includes(lower) ||
-        c.category.toLowerCase().includes(lower)
+      (c) => c.title.toLowerCase().includes(lower) || c.category.toLowerCase().includes(lower)
     );
   }, [query, commands]);
 
@@ -149,14 +147,10 @@ export const CommandPalette: React.FC = () => {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < filteredCommands.length - 1 ? prev + 1 : 0
-        );
+        setSelectedIndex((prev) => (prev < filteredCommands.length - 1 ? prev + 1 : 0));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : filteredCommands.length - 1
-        );
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredCommands.length - 1));
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredCommands[selectedIndex]) {
@@ -229,17 +223,13 @@ export const CommandPalette: React.FC = () => {
                     <div
                       className={cn(
                         'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
-                        isSelected
-                          ? 'bg-bg text-primaryDark'
-                          : 'bg-bg/80 text-secondaryGray'
+                        isSelected ? 'bg-bg text-primaryDark' : 'bg-bg/80 text-secondaryGray'
                       )}
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <span className="text-ui-md-sm text-primaryDark">
-                        {cmd.title}
-                      </span>
+                      <span className="text-ui-md-sm text-primaryDark">{cmd.title}</span>
                       <span className="text-mono-tag text-midGray ml-2 font-mono uppercase">
                         [{cmd.category}]
                       </span>
