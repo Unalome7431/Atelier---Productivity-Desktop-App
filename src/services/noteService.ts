@@ -3,25 +3,50 @@ import { syncService } from './syncService';
 import { NoteDocument } from '@/types';
 
 export class NoteService {
+  private seedingPromise: Promise<void> | null = null;
+
   async getNotes(): Promise<NoteDocument[]> {
     const notes = await db.select<any>('SELECT * FROM notes ORDER BY updated_at DESC');
     if (notes.length === 0) {
-      return await this.seedDefaultNotes();
+      // Guard against StrictMode double-invoke / concurrent callers racing on empty DB
+      if (!this.seedingPromise) {
+        this.seedingPromise = this.seedDefaultNotes().finally(() => {
+          this.seedingPromise = null;
+        });
+      }
+      await this.seedingPromise;
+      // Re-read after seed (avoids recursion race)
+      const seeded = await db.select<any>('SELECT * FROM notes ORDER BY updated_at DESC');
+      return this.mapRows(seeded);
     }
 
-    return notes.map((n) => ({
-      id: n.id,
-      title: n.title,
-      content: n.content_json,
-      category: n.folder,
-      tags: n.category_color ? [n.category_color] : ['#general'],
-      isPinned: Boolean(n.folder === 'pinned'),
-      createdAt: n.created_at,
-      updatedAt: n.updated_at,
-    }));
+    return this.mapRows(notes);
   }
 
-  private async seedDefaultNotes(): Promise<NoteDocument[]> {
+  private mapRows(rows: any[]): NoteDocument[] {
+    // De-duplicate by id and keep newest updated_at — guards legacy duplicates in fallback localStorage
+    const byId = new Map<string, any>();
+    for (const n of rows) {
+      const existing = byId.get(n.id);
+      if (!existing || (n.updated_at ?? '') > (existing.updated_at ?? '')) {
+        byId.set(n.id, n);
+      }
+    }
+    return [...byId.values()]
+      .sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        content: n.content_json,
+        category: n.folder,
+        tags: n.category_color ? [n.category_color] : ['#general'],
+        isPinned: Boolean(n.folder === 'pinned'),
+        createdAt: n.created_at,
+        updatedAt: n.updated_at,
+      }));
+  }
+
+  private async seedDefaultNotes(): Promise<void> {
     const now = new Date().toISOString();
     const defaultNotes = [
       {
@@ -43,13 +68,11 @@ export class NoteService {
 
     for (const n of defaultNotes) {
       await db.execute(
-        `INSERT INTO notes (id, title, content_json, folder, category_color, created_at, updated_at)
+        `INSERT OR IGNORE INTO notes (id, title, content_json, folder, category_color, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [n.id, n.title, n.content, n.folder, n.color, now, now]
       );
     }
-
-    return await this.getNotes();
   }
 
   async createNote(title: string, content = ''): Promise<NoteDocument> {

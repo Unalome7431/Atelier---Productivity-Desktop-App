@@ -16,6 +16,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   isLoading: false,
 
   loadCanvases: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const canvases = await canvasService.getCanvases();

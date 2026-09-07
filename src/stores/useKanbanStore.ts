@@ -11,12 +11,13 @@ interface KanbanState {
   addCard: (boardId: string, columnId: string, title: string, tag?: string) => Promise<void>;
 }
 
-export const useKanbanStore = create<KanbanState>((set) => ({
+export const useKanbanStore = create<KanbanState>((set, get) => ({
   boards: [],
   activeBoardId: undefined,
   isLoading: false,
 
   loadBoards: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const boards = await kanbanService.getBoards();

@@ -3,12 +3,25 @@ import { syncService } from './syncService';
 import { CalendarEvent, RecurringWeeklyBlock } from '@/types';
 
 export class CalendarService {
+  private seedingPromise: Promise<void> | null = null;
+
   async getEvents(): Promise<CalendarEvent[]> {
     const events = await db.select<any>('SELECT * FROM calendar_events ORDER BY start_time ASC');
     if (events.length === 0) {
-      return await this.seedDefaultEvents();
+      if (!this.seedingPromise) {
+        this.seedingPromise = this.seedDefaultEvents().finally(() => {
+          this.seedingPromise = null;
+        });
+      }
+      await this.seedingPromise;
+      return await this.fetchEvents();
     }
 
+    return await this.fetchEvents();
+  }
+
+  private async fetchEvents(): Promise<CalendarEvent[]> {
+    const events = await db.select<any>('SELECT * FROM calendar_events ORDER BY start_time ASC');
     return events.map((e) => ({
       id: e.id,
       title: e.title,
@@ -21,7 +34,7 @@ export class CalendarService {
     }));
   }
 
-  private async seedDefaultEvents(): Promise<CalendarEvent[]> {
+  private async seedDefaultEvents(): Promise<void> {
     const now = new Date().toISOString();
 
     const defaultEvents: {
@@ -130,7 +143,7 @@ export class CalendarService {
 
     for (const e of defaultEvents) {
       await db.execute(
-        `INSERT INTO calendar_events (id, title, event_type, start_time, end_time, color_token, created_at, updated_at)
+        `INSERT OR IGNORE INTO calendar_events (id, title, event_type, start_time, end_time, color_token, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           e.id,
@@ -144,8 +157,6 @@ export class CalendarService {
         ]
       );
     }
-
-    return await this.getEvents();
   }
 
   async addEvent(

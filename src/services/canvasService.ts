@@ -3,12 +3,25 @@ import { syncService } from './syncService';
 import { CanvasDocument } from '@/types';
 
 export class CanvasService {
+  private seedingPromise: Promise<void> | null = null;
+
   async getCanvases(): Promise<CanvasDocument[]> {
     const canvases = await db.select<any>('SELECT * FROM canvases ORDER BY updated_at DESC');
     if (canvases.length === 0) {
-      return await this.seedDefaultCanvas();
+      if (!this.seedingPromise) {
+        this.seedingPromise = this.seedDefaultCanvas().finally(() => {
+          this.seedingPromise = null;
+        });
+      }
+      await this.seedingPromise;
+      return await this.fetchCanvases();
     }
 
+    return await this.fetchCanvases();
+  }
+
+  private async fetchCanvases(): Promise<CanvasDocument[]> {
+    const canvases = await db.select<any>('SELECT * FROM canvases ORDER BY updated_at DESC');
     const nodes = await db.select<any>('SELECT * FROM canvas_nodes');
     const edges = await db.select<any>('SELECT * FROM canvas_edges');
 
@@ -35,12 +48,12 @@ export class CanvasService {
     }));
   }
 
-  private async seedDefaultCanvas(): Promise<CanvasDocument[]> {
+  private async seedDefaultCanvas(): Promise<void> {
     const canvasId = 'canvas_main';
     const now = new Date().toISOString();
 
     await db.execute(
-      `INSERT INTO canvases (id, title, viewport, created_at, updated_at)
+      `INSERT OR IGNORE INTO canvases (id, title, viewport, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?)`,
       [canvasId, 'Spatial Architecture & Concepts', '{"x": 0, "y": 0, "zoom": 1}', now, now]
     );
@@ -53,19 +66,17 @@ export class CanvasService {
 
     for (const n of defaultNodes) {
       await db.execute(
-        `INSERT INTO canvas_nodes (id, canvas_id, type, position_x, position_y, data, updated_at)
+        `INSERT OR IGNORE INTO canvas_nodes (id, canvas_id, type, position_x, position_y, data, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [n.id, canvasId, n.type, n.x, n.y, JSON.stringify(n.data), now]
       );
     }
 
     await db.execute(
-      `INSERT INTO canvas_edges (id, canvas_id, source_node_id, target_node_id, label, updated_at)
+      `INSERT OR IGNORE INTO canvas_edges (id, canvas_id, source_node_id, target_node_id, label, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       ['e_1_2', canvasId, 'node_1', 'node_2', 'feeds into', now]
     );
-
-    return await this.getCanvases();
   }
 
   async saveCanvasNodes(canvasId: string, nodes: any[]): Promise<void> {

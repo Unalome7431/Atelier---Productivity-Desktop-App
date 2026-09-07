@@ -18,6 +18,7 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   isLoading: false,
 
   loadRoutines: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const [routines, todayLogs, streak] = await Promise.all([

@@ -15,6 +15,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   isLoading: false,
 
   loadTasks: async () => {
+    if (get().isLoading) return;
     set({ isLoading: true });
     try {
       const tasks = await taskService.getTodayTasks();

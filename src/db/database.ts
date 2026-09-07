@@ -99,14 +99,15 @@ class DatabaseManager {
   private fallbackExecute(query: string, params: any[] = []): QueryResult {
     const trimmed = query.trim().toUpperCase();
 
-    if (trimmed.startsWith('INSERT INTO')) {
-      const match = query.match(/INSERT\s+INTO\s+([a-zA-Z0-9_]+)/i);
+    if (trimmed.startsWith('INSERT')) {
+      // Handles INSERT INTO and INSERT OR IGNORE / OR REPLACE
+      const match = query.match(/INSERT(?:\s+OR\s+(?:IGNORE|REPLACE))?\s+INTO\s+([a-zA-Z0-9_]+)/i);
       if (match) {
         const table = match[1].toLowerCase();
+        const isOrReplace = /INSERT\s+OR\s+REPLACE/i.test(query);
         const records = this.fallbackMemoryStore.get(table) || [];
         const recordObj: Record<string, any> = {};
 
-        // Extract column names if specified
         const colMatch = query.match(/\(([^)]+)\)\s+VALUES/i);
         if (colMatch) {
           const cols = colMatch[1].split(',').map((c) => c.trim());
@@ -114,10 +115,63 @@ class DatabaseManager {
             recordObj[col] = params[idx];
           });
         }
+
+        // Enforce PRIMARY KEY-like uniqueness on `id` and `mutation_id`
+        const pk = recordObj['id'] ?? recordObj['mutation_id'];
+        if (pk !== undefined) {
+          const pkField = recordObj['id'] !== undefined ? 'id' : 'mutation_id';
+          const existingIdx = records.findIndex((r: any) => r[pkField] === pk);
+          if (existingIdx !== -1) {
+            if (isOrReplace) {
+              records[existingIdx] = { ...records[existingIdx], ...recordObj };
+              this.fallbackMemoryStore.set(table, records);
+              this.persistFallbackTable(table);
+              return { rowsAffected: 1 };
+            }
+            // OR IGNORE or plain INSERT → do not duplicate (mimics PK constraint)
+            return { rowsAffected: 0 };
+          }
+        }
+
         records.push(recordObj);
         this.fallbackMemoryStore.set(table, records);
         this.persistFallbackTable(table);
         return { rowsAffected: 1 };
+      }
+    }
+
+    if (trimmed.startsWith('UPDATE')) {
+      const match = query.match(/UPDATE\s+([a-zA-Z0-9_]+)\s+SET\s+(.+?)\s+WHERE\s+(.+)/i);
+      if (match) {
+        const table = match[1].toLowerCase();
+        const setClause = match[2];
+        const whereClause = match[3];
+        const records = this.fallbackMemoryStore.get(table) || [];
+        const setCols = setClause.split(',').map((s) => s.trim().split(/\s*=\s*/)[0].trim());
+
+        // Number of SET params = setCols.length, remainder are WHERE params
+        const setParams = params.slice(0, setCols.length);
+        const whereParams = params.slice(setCols.length);
+
+        let affected = 0;
+        for (const r of records) {
+          let matches = false;
+          if (whereClause.includes('mutation_id =') || whereClause.includes('mutation_id=')) {
+            matches = r.mutation_id === whereParams[0];
+          } else if (whereClause.includes('id =') || whereClause.includes('id=')) {
+            matches = r.id === whereParams[0];
+          } else if (whereClause.includes('routine_id =') && whereClause.includes('date =')) {
+            matches = r.routine_id === whereParams[0] && r.date === whereParams[1];
+          }
+          if (matches) {
+            setCols.forEach((col, idx) => {
+              r[col] = setParams[idx];
+            });
+            affected++;
+          }
+        }
+        if (affected > 0) this.persistFallbackTable(table);
+        return { rowsAffected: affected };
       }
     }
 
@@ -131,10 +185,17 @@ class DatabaseManager {
           this.persistFallbackTable(table);
           return { rowsAffected: 1 };
         }
-        // Match simple `id = ?` or `routine_id = ? AND date = ?`
         let records = this.fallbackMemoryStore.get(table) || [];
         const initialLen = records.length;
-        if (whereClause.includes('id =') || whereClause.includes('id=')) {
+        if (whereClause.includes('routine_id =') && whereClause.includes('date =')) {
+          records = records.filter((r) => !(r.routine_id === params[0] && r.date === params[1]));
+        } else if (whereClause.includes('mutation_id =') || whereClause.includes('mutation_id=')) {
+          records = records.filter((r) => r.mutation_id !== params[0]);
+        } else if (whereClause.includes('canvas_id =') || whereClause.includes('canvas_id=')) {
+          records = records.filter((r) => r.canvas_id !== params[0]);
+        } else if (whereClause.includes('board_id =') || whereClause.includes('board_id=')) {
+          records = records.filter((r) => r.board_id !== params[0]);
+        } else if (whereClause.includes('id =') || whereClause.includes('id=')) {
           records = records.filter((r) => r.id !== params[0]);
         }
         this.fallbackMemoryStore.set(table, records);
@@ -151,18 +212,68 @@ class DatabaseManager {
     if (!match) return [];
 
     const table = match[1].toLowerCase();
-    const records = (this.fallbackMemoryStore.get(table) || []) as T[];
+    let records = [...((this.fallbackMemoryStore.get(table) || []) as any[])];
 
-    if (query.toUpperCase().includes('WHERE') && params.length > 0) {
-      if (query.includes('id =') || query.includes('id=')) {
-        return records.filter((r: any) => r.id === params[0]);
+    // De-duplicate by primary key (id / mutation_id) — guards against legacy duplicates
+    const seen = new Set<string>();
+    const deduped: any[] = [];
+    for (const r of records) {
+      const pk = r.id ?? r.mutation_id;
+      if (pk !== undefined) {
+        if (seen.has(String(pk))) continue;
+        seen.add(String(pk));
       }
-      if (query.includes('date =') || query.includes('date=')) {
-        return records.filter((r: any) => r.date === params[0]);
+      deduped.push(r);
+    }
+    records = deduped;
+
+    // Apply WHERE filtering
+    const upper = query.toUpperCase();
+    if (upper.includes('WHERE') && params.length > 0) {
+      if (query.includes('synced_at IS NULL')) {
+        records = records.filter((r: any) => r.synced_at === null || r.synced_at === undefined);
+      } else if (query.includes('routine_id =') && query.includes('date =')) {
+        records = records.filter((r: any) => r.routine_id === params[0] && r.date === params[1]);
+      } else if (query.includes('mutation_id =') || query.includes('mutation_id=')) {
+        records = records.filter((r: any) => r.mutation_id === params[0]);
+      } else if (query.includes('board_id =') || query.includes('board_id=')) {
+        records = records.filter((r: any) => r.board_id === params[0]);
+      } else if (query.includes('canvas_id =') || query.includes('canvas_id=')) {
+        records = records.filter((r: any) => r.canvas_id === params[0]);
+      } else if (query.includes('scheduled_date =') || query.includes('scheduled_date=')) {
+        // Handle `scheduled_date = ? OR scheduled_date IS NULL`
+        records = records.filter((r: any) => r.scheduled_date === params[0] || r.scheduled_date == null);
+      } else if (query.includes('id =') || query.includes('id=')) {
+        records = records.filter((r: any) => r.id === params[0]);
+      } else if (query.includes('date =') || query.includes('date=')) {
+        records = records.filter((r: any) => r.date === params[0]);
       }
     }
 
-    return records;
+    // Apply ORDER BY (supports updated_at, created_at, position_rank, created_at ASC)
+    if (upper.includes('ORDER BY')) {
+      const orderMatch = query.match(/ORDER BY\s+([a-zA-Z0-9_]+)(?:\s+(ASC|DESC))?/i);
+      if (orderMatch) {
+        const col = orderMatch[1].toLowerCase();
+        const dir = (orderMatch[2] || 'ASC').toUpperCase();
+        records.sort((a: any, b: any) => {
+          const av = a[col] ?? '';
+          const bv = b[col] ?? '';
+          if (col === 'position_rank') {
+            const numA = Number(av);
+            const numB = Number(bv);
+            if (!isNaN(numA) && !isNaN(numB)) {
+              return dir === 'ASC' ? numA - numB : numB - numA;
+            }
+          }
+          if (av < bv) return dir === 'ASC' ? -1 : 1;
+          if (av > bv) return dir === 'ASC' ? 1 : -1;
+          return 0;
+        });
+      }
+    }
+
+    return records as T[];
   }
 }
 
