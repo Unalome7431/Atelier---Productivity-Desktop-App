@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Pin, Search } from 'lucide-react';
 import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { Modal } from '@/components/common/Modal';
 import { useNotesStore } from '@/stores/useNotesStore';
 
@@ -36,9 +35,7 @@ export const NotesView: React.FC = () => {
       {/* Notes Sidebar List */}
       <div className="w-72 border-r border-border bg-surface p-4 flex flex-col gap-4 select-none">
         <div className="flex items-center justify-between">
-          <h3 className="font-display font-bold text-display-4 text-primaryDark">
-            Notes & Docs
-          </h3>
+          <h3 className="font-display font-bold text-display-4 text-primaryDark">Notes & Docs</h3>
           <Button
             variant="primary"
             size="icon"
@@ -83,14 +80,7 @@ export const NotesView: React.FC = () => {
                     <Pin className="w-3 h-3 text-indigo-700 fill-indigo-700 shrink-0 ml-1" />
                   )}
                 </div>
-                <p className="text-ui-rg-xs text-secondaryGray line-clamp-2">
-                  {note.content}
-                </p>
-                <div className="flex gap-1 mt-1">
-                  <Badge variant="default" size="xs">
-                    {note.tags[0] || '#doc'}
-                  </Badge>
-                </div>
+                <p className="text-ui-rg-xs text-secondaryGray line-clamp-2">{note.content}</p>
               </div>
             );
           })}
@@ -102,7 +92,12 @@ export const NotesView: React.FC = () => {
         <div className="flex-1 p-8 overflow-y-auto max-w-4xl mx-auto w-full flex flex-col gap-6">
           <div>
             <span className="font-mono text-mono-xs text-midGray uppercase">
-              Last updated {new Date(activeNote.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Local SQLite
+              Last updated{' '}
+              {new Date(activeNote.updatedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}{' '}
+              • Local SQLite
             </span>
             <h1 className="font-display font-bold text-display-2 text-primaryDark mt-2">
               {activeNote.title}
@@ -113,10 +108,11 @@ export const NotesView: React.FC = () => {
             <p>{activeNote.content}</p>
             <div className="p-4 rounded-lg bg-surface border border-border">
               <h4 className="font-display font-semibold text-display-6 text-primaryDark mb-1">
-                ✦ Local & Cloud Persistence
+                Local & Cloud Persistence
               </h4>
               <p className="text-ui-rg-xs text-secondaryGray">
-                All changes made to this document write directly to local SQLite and are queued with monotonic timestamps for remote sync.
+                All changes made to this document write directly to local SQLite and are queued with
+                monotonic timestamps for remote sync.
               </p>
             </div>
           </div>

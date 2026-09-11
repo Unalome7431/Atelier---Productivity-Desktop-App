@@ -30,7 +30,7 @@ export class CalendarService {
       endTime: e.end_time,
       date: e.start_time.includes('T') ? e.start_time.split('T')[0] : e.start_time,
       description: e.color_token && !e.color_token.startsWith('#') ? e.color_token : undefined,
-      colorAccent: (e.color_token === '#mint' || e.event_type === 'focus') ? 'mint' : 'lavender',
+      colorAccent: e.color_token === '#mint' || e.event_type === 'focus' ? 'mint' : 'lavender',
     }));
   }
 

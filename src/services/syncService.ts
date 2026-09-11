@@ -79,10 +79,10 @@ class SyncService {
       // Simulate remote PostgreSQL batch push with LWW conflict resolution
       const now = new Date().toISOString();
       for (const mut of pending) {
-        await db.execute(
-          `UPDATE client_sync_queue SET synced_at = ? WHERE mutation_id = ?`,
-          [now, mut.mutation_id]
-        );
+        await db.execute(`UPDATE client_sync_queue SET synced_at = ? WHERE mutation_id = ?`, [
+          now,
+          mut.mutation_id,
+        ]);
       }
 
       this.notify({

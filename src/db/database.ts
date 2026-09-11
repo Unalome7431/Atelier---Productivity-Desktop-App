@@ -25,6 +25,23 @@ class DatabaseManager {
         for (const query of SQLITE_SCHEMA_QUERIES) {
           await this.db.execute(query);
         }
+
+        // Safe column additions for existing local SQLite databases
+        const safeColumnMigrations = [
+          'ALTER TABLE routines ADD COLUMN target_count INTEGER DEFAULT 1;',
+          'ALTER TABLE routine_logs ADD COLUMN current_count INTEGER DEFAULT 0;',
+          'ALTER TABLE tasks ADD COLUMN subtasks TEXT DEFAULT "[]";',
+          'ALTER TABLE tasks ADD COLUMN icon_type TEXT DEFAULT "default";',
+          'ALTER TABLE tasks ADD COLUMN time_tag TEXT;',
+        ];
+        for (const migration of safeColumnMigrations) {
+          try {
+            await this.db.execute(migration);
+          } catch {
+            // Column already exists, safe to ignore
+          }
+        }
+
         this.isInitialized = true;
         console.log('[Atelier DB] Native SQLite initialized successfully.');
         return;
@@ -147,7 +164,12 @@ class DatabaseManager {
         const setClause = match[2];
         const whereClause = match[3];
         const records = this.fallbackMemoryStore.get(table) || [];
-        const setCols = setClause.split(',').map((s) => s.trim().split(/\s*=\s*/)[0].trim());
+        const setCols = setClause.split(',').map((s) =>
+          s
+            .trim()
+            .split(/\s*=\s*/)[0]
+            .trim()
+        );
 
         // Number of SET params = setCols.length, remainder are WHERE params
         const setParams = params.slice(0, setCols.length);
@@ -229,23 +251,48 @@ class DatabaseManager {
 
     // Apply WHERE filtering
     const upper = query.toUpperCase();
-    if (upper.includes('WHERE') && params.length > 0) {
+    if (upper.includes('WHERE')) {
       if (query.includes('synced_at IS NULL')) {
         records = records.filter((r: any) => r.synced_at === null || r.synced_at === undefined);
-      } else if (query.includes('routine_id =') && query.includes('date =')) {
+      } else if (query.includes('scheduled_date IS NULL')) {
+        records = records.filter(
+          (r: any) =>
+            r.scheduled_date === null || r.scheduled_date === undefined || r.scheduled_date === ''
+        );
+      } else if (query.includes('routine_id =') && query.includes('date =') && params.length >= 2) {
         records = records.filter((r: any) => r.routine_id === params[0] && r.date === params[1]);
-      } else if (query.includes('mutation_id =') || query.includes('mutation_id=')) {
+      } else if (
+        (query.includes('mutation_id =') || query.includes('mutation_id=')) &&
+        params.length > 0
+      ) {
         records = records.filter((r: any) => r.mutation_id === params[0]);
-      } else if (query.includes('board_id =') || query.includes('board_id=')) {
+      } else if (
+        (query.includes('board_id =') || query.includes('board_id=')) &&
+        params.length > 0
+      ) {
         records = records.filter((r: any) => r.board_id === params[0]);
-      } else if (query.includes('canvas_id =') || query.includes('canvas_id=')) {
+      } else if (
+        (query.includes('canvas_id =') || query.includes('canvas_id=')) &&
+        params.length > 0
+      ) {
         records = records.filter((r: any) => r.canvas_id === params[0]);
-      } else if (query.includes('scheduled_date =') || query.includes('scheduled_date=')) {
-        // Handle `scheduled_date = ? OR scheduled_date IS NULL`
-        records = records.filter((r: any) => r.scheduled_date === params[0] || r.scheduled_date == null);
-      } else if (query.includes('id =') || query.includes('id=')) {
+      } else if (
+        query.includes('scheduled_date =') &&
+        query.includes('OR scheduled_date IS NULL') &&
+        params.length > 0
+      ) {
+        records = records.filter(
+          (r: any) =>
+            r.scheduled_date === params[0] || r.scheduled_date == null || r.scheduled_date === ''
+        );
+      } else if (
+        (query.includes('scheduled_date =') || query.includes('scheduled_date=')) &&
+        params.length > 0
+      ) {
+        records = records.filter((r: any) => r.scheduled_date === params[0]);
+      } else if ((query.includes('id =') || query.includes('id=')) && params.length > 0) {
         records = records.filter((r: any) => r.id === params[0]);
-      } else if (query.includes('date =') || query.includes('date=')) {
+      } else if ((query.includes('date =') || query.includes('date=')) && params.length > 0) {
         records = records.filter((r: any) => r.date === params[0]);
       }
     }

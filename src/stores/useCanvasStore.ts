@@ -36,9 +36,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (!activeCanvasId) return;
 
     set({
-      canvases: canvases.map((c) =>
-        c.id === activeCanvasId ? { ...c, nodes } : c
-      ),
+      canvases: canvases.map((c) => (c.id === activeCanvasId ? { ...c, nodes } : c)),
     });
 
     await canvasService.saveCanvasNodes(activeCanvasId, nodes);

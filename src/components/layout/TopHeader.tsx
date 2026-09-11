@@ -1,22 +1,16 @@
-import React, { useEffect } from 'react';
-import { Search, Play, Pause, RotateCcw, Sparkles } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Search, Play, Pause, RotateCcw } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 export const TopHeader: React.FC = () => {
-  const { activeTab, setCommandPaletteOpen } = useAppStore();
-  const {
-    mode,
-    remainingSeconds,
-    isRunning,
-    completedCyclesToday,
-    play,
-    pause,
-    reset,
-    tick,
-  } = usePomodoroStore();
+  const { setCommandPaletteOpen } = useAppStore();
+  const { mode, remainingSeconds, isRunning, completedCyclesToday, play, pause, reset, tick } =
+    usePomodoroStore();
+
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   useEffect(() => {
     let timer: number | undefined;
@@ -28,13 +22,12 @@ export const TopHeader: React.FC = () => {
     return () => clearInterval(timer);
   }, [isRunning, tick]);
 
-  const titles: Record<string, string> = {
-    cockpit: 'Daily Cockpit',
-    calendar: 'Schedule & Calendar',
-    canvas: 'Spatial Ideation Canvas',
-    kanban: 'Project Kanban',
-    notes: 'Knowledge Notes & Docs',
-  };
+  useEffect(() => {
+    const clockTimer = window.setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(clockTimer);
+  }, []);
 
   const modeLabels = {
     focus: 'FOCUS',
@@ -42,16 +35,57 @@ export const TopHeader: React.FC = () => {
     longBreak: 'LONG BREAK',
   };
 
+  // Format header date pill: "WEDNESDAY · 17 APR"
+  const formattedDatePill = useMemo(() => {
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    const dayName = days[currentTime.getDay()];
+    const dateNum = currentTime.getDate();
+    const monthName = months[currentTime.getMonth()];
+    return `${dayName} · ${dateNum} ${monthName}`;
+  }, [currentTime]);
+
+  // Format header live clock: "09:42 AM"
+  const formattedClockPill = useMemo(() => {
+    let hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const padMin = minutes < 10 ? `0${minutes}` : minutes;
+    const padHours = hours < 10 ? `0${hours}` : hours;
+    return `${padHours}:${padMin} ${ampm}`;
+  }, [currentTime]);
+
   return (
     <header className="h-14 border-b border-border bg-bg/90 px-6 flex items-center justify-between select-none z-10">
-      {/* Title / Breadcrumbs */}
+      {/* Left: Global Search & Command Trigger (formerly Header Title position) */}
       <div className="flex items-center gap-3">
-        <h1 className="font-display font-bold text-display-3 text-primaryDark tracking-tight">
-          {titles[activeTab] || 'Atelier'}
-        </h1>
+        <button
+          onClick={() => setCommandPaletteOpen(true)}
+          className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-pill bg-surface border border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9] transition-all text-ui-rg-xs shadow-subtle cursor-pointer"
+        >
+          <Search className="w-3.5 h-3.5 text-secondaryGray" />
+          <span>Quick search or jump</span>
+          <kbd className="font-mono text-mono-xs bg-bg px-1.5 py-0.5 rounded-sm border border-border text-midGray">
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
-      {/* Center Pomodoro Focus Pill Bar */}
+      {/* Center: Pomodoro Focus Pill Bar */}
       <div className="flex items-center gap-3 bg-surface border border-border px-3.5 py-1.5 rounded-pill shadow-subtle">
         <div className="flex items-center gap-1.5">
           <span
@@ -114,20 +148,16 @@ export const TopHeader: React.FC = () => {
         </div>
       </div>
 
-      {/* Global Search & Command Trigger */}
+      {/* Right: Live Date & Clock Pill (formerly Search Bar position) */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-pill bg-surface border border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9] transition-all text-ui-rg-xs shadow-subtle cursor-pointer"
-        >
-          <Search className="w-3.5 h-3.5 text-secondaryGray" />
-          <span>Quick search or jump</span>
-          <kbd className="font-mono text-mono-xs bg-bg px-1.5 py-0.5 rounded-sm border border-border text-midGray">
-            ⌘K
-          </kbd>
-        </button>
-        <div className="w-7 h-7 rounded-full bg-accent-indigo border border-indigo-200/50 flex items-center justify-center text-primaryDark font-mono font-bold text-xs shadow-subtle">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-700" />
+        <div className="flex items-center gap-2 bg-[#D1FAE5]/60 border border-emerald-300/60 px-3.5 py-1.5 rounded-pill shadow-xs">
+          <span className="font-mono text-mono-xs font-bold text-emerald-950 tracking-wider">
+            {formattedDatePill}
+          </span>
+          <span className="text-emerald-700/60 font-mono text-xs">·</span>
+          <span className="font-mono text-mono-xs font-bold text-emerald-950">
+            {formattedClockPill}
+          </span>
         </div>
       </div>
     </header>

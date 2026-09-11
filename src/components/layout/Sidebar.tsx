@@ -7,7 +7,6 @@ import {
   KanbanSquare,
   FileText,
   Settings,
-  Flame,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { NavigationTab } from '@/types';
@@ -45,10 +44,6 @@ export const Sidebar: React.FC = () => {
             <span className="font-display font-bold text-lg tracking-tight text-primaryDark">
               Atelier
             </span>
-          </div>
-          <div className="flex items-center gap-1 bg-amber-100/80 border border-amber-200/60 px-2 py-0.5 rounded-pill text-amber-900 text-mono-xs font-mono font-semibold">
-            <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-            <span>5d</span>
           </div>
         </div>
 

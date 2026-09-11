@@ -15,7 +15,9 @@ export const Footer: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-accent-green inline-block" />
           <span className="text-mono-tag font-mono text-primaryDark font-medium">
-            {syncStatus.state === 'synced' ? 'All changes saved to local & cloud' : 'Syncing mutations...'}
+            {syncStatus.state === 'synced'
+              ? 'All changes saved to local & cloud'
+              : 'Syncing mutations...'}
           </span>
         </div>
         <span className="text-border">|</span>

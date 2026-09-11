@@ -56,8 +56,18 @@ export const CalendarView: React.FC = () => {
 
   // Month names
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -211,9 +221,7 @@ export const CalendarView: React.FC = () => {
               <h2 className="font-display font-bold text-display-3 text-primaryDark tracking-tight">
                 {monthNames[currentMonth]} {currentYear}
               </h2>
-              <span className="text-ui-rg-xs text-secondaryGray">
-                Monthly schedule
-              </span>
+              <span className="text-ui-rg-xs text-secondaryGray">Monthly schedule</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -286,9 +294,7 @@ export const CalendarView: React.FC = () => {
                       <span
                         className={cn(
                           'font-mono text-mono-xs font-semibold px-1',
-                          cell.isCurrentMonth
-                            ? 'text-primaryDark'
-                            : 'text-midGray'
+                          cell.isCurrentMonth ? 'text-primaryDark' : 'text-midGray'
                         )}
                       >
                         {cell.dayNum}
@@ -365,9 +371,7 @@ export const CalendarView: React.FC = () => {
               {selectedDateEvents.length === 0 ? (
                 <div className="p-6 rounded-card bg-bg border border-dashed border-border text-center flex flex-col items-center gap-2 text-secondaryGray">
                   <CalendarIcon className="w-6 h-6 text-midGray" />
-                  <span className="text-ui-rg-xs">
-                    No agenda scheduled for this date.
-                  </span>
+                  <span className="text-ui-rg-xs">No agenda scheduled for this date.</span>
                   <Button
                     variant="ghost"
                     size="xs"
@@ -396,7 +400,11 @@ export const CalendarView: React.FC = () => {
                             {item.startTime}
                           </span>
                           <span className="bg-white/90 text-primaryDark text-[11px] font-mono px-2 py-0.5 rounded-pill font-medium border border-border/40 shadow-xs">
-                            {item.category === 'focus' ? 'Focus' : item.category === 'meeting' ? 'Meeting' : 'Review'}
+                            {item.category === 'focus'
+                              ? 'Focus'
+                              : item.category === 'meeting'
+                                ? 'Meeting'
+                                : 'Review'}
                           </span>
                         </div>
                         <button

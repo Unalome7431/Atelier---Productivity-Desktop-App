@@ -8,7 +8,7 @@ interface KanbanState {
   isLoading: boolean;
   loadBoards: () => Promise<void>;
   moveCard: (cardId: string, targetColumnId: string) => Promise<void>;
-  addCard: (boardId: string, columnId: string, title: string, tag?: string) => Promise<void>;
+  addCard: (boardId: string, columnId: string, title: string) => Promise<void>;
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -36,16 +36,14 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     set((state) => ({
       boards: state.boards.map((b) => ({
         ...b,
-        cards: b.cards.map((c) =>
-          c.id === cardId ? { ...c, columnId: targetColumnId } : c
-        ),
+        cards: b.cards.map((c) => (c.id === cardId ? { ...c, columnId: targetColumnId } : c)),
       })),
     }));
     await kanbanService.moveCard(cardId, targetColumnId);
   },
 
-  addCard: async (boardId: string, columnId: string, title: string, tag?: string) => {
-    const newCard = await kanbanService.addCard(boardId, columnId, title, tag);
+  addCard: async (boardId: string, columnId: string, title: string) => {
+    const newCard = await kanbanService.addCard(boardId, columnId, title);
     set((state) => ({
       boards: state.boards.map((b) =>
         b.id === boardId ? { ...b, cards: [...b.cards, newCard] } : b
