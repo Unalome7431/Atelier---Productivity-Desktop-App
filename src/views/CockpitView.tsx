@@ -6,22 +6,20 @@ import {
   Plus,
   Sparkles,
   GripVertical,
-  MessageSquare,
-  Mail,
-  Code,
   Trash2,
   ChevronDown,
   ChevronUp,
   Inbox,
   Sun,
   Minus,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { SegmentedBar } from '@/components/common/SegmentedBar';
 import { CircularProgress } from '@/components/cockpit/CircularProgress';
 import { CreateRoutineModal } from '@/components/cockpit/CreateRoutineModal';
 import { CreateTaskModal } from '@/components/cockpit/CreateTaskModal';
+import { AllRoutinesModal, getStreakBadgeStyle } from '@/components/cockpit/AllRoutinesModal';
 import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { getTodayDateString, cn } from '@/lib/utils';
@@ -32,6 +30,7 @@ export const CockpitView: React.FC = () => {
     routines,
     todayLogs,
     streakDays,
+    individualStreaks,
     loadRoutines,
     toggleRoutine,
     incrementRoutine,
@@ -50,21 +49,17 @@ export const CockpitView: React.FC = () => {
     addSubtask,
     toggleSubtask,
     deleteTask,
-    addTask,
   } = useTasksStore();
 
   // Modals state
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isAllRoutinesModalOpen, setIsAllRoutinesModalOpen] = useState(false);
   const [activeTaskTab, setActiveTaskTab] = useState<'today' | 'inbox'>('today');
 
   // Subtasks expansion state
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [newSubtaskInputs, setNewSubtaskInputs] = useState<Record<string, string>>({});
-
-  // Quick Inbox entry input
-  const [quickInboxTitle, setQuickInboxTitle] = useState('');
-  const [quickInboxCategory, setQuickInboxCategory] = useState('#inbox');
 
   // Drag and drop state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -97,43 +92,23 @@ export const CockpitView: React.FC = () => {
     return () => clearInterval(interval);
   }, [loadRoutines, loadTasks]);
 
-  // Format header date pill: "WEDNESDAY · 17 APR"
-  const formattedDatePill = useMemo(() => {
-    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
-    ];
-    const dayName = days[currentTime.getDay()];
-    const dateNum = currentTime.getDate();
-    const monthName = months[currentTime.getMonth()];
-    return `${dayName} · ${dateNum} ${monthName}`;
-  }, [currentTime]);
-
-  // Format header live clock: "09:42 AM"
-  const formattedClockPill = useMemo(() => {
-    let hours = currentTime.getHours();
-    const minutes = currentTime.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    const padMin = minutes < 10 ? `0${minutes}` : minutes;
-    const padHours = hours < 10 ? `0${hours}` : hours;
-    return `${padHours}:${padMin} ${ampm}`;
-  }, [currentTime]);
-
-  // Routine Progress Calculations
-  const completedRoutinesCount = useMemo(() => {
+  // Routines active for today based on cadence
+  const todayRoutines = useMemo(() => {
+    const dayOfWeek = currentTime.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
     return routines.filter((r) => {
+      if (r.cadence === 'weekdays') {
+        return dayOfWeek >= 1 && dayOfWeek <= 5;
+      }
+      if (r.cadence === 'custom') {
+        return Array.isArray(r.customDays) && r.customDays.includes(dayOfWeek);
+      }
+      return true; // 'daily' or unspecified
+    });
+  }, [routines, currentTime]);
+
+  // Routine Progress Calculations based on today's active routines
+  const completedRoutinesCount = useMemo(() => {
+    return todayRoutines.filter((r) => {
       const log = todayLogs.find((l) => l.routineId === r.id);
       if (!log) return false;
       return (
@@ -141,12 +116,12 @@ export const CockpitView: React.FC = () => {
         (log.currentCount !== undefined && log.currentCount >= (r.targetCount || 1))
       );
     }).length;
-  }, [routines, todayLogs]);
+  }, [todayRoutines, todayLogs]);
 
   const routineCompletionPct = useMemo(() => {
-    if (routines.length === 0) return 0;
-    return Math.round((completedRoutinesCount / routines.length) * 100);
-  }, [completedRoutinesCount, routines.length]);
+    if (todayRoutines.length === 0) return 0;
+    return Math.round((completedRoutinesCount / todayRoutines.length) * 100);
+  }, [completedRoutinesCount, todayRoutines.length]);
 
   // Subtask expansion toggler
   const toggleTaskExpansion = (taskId: string) => {
@@ -167,20 +142,6 @@ export const CockpitView: React.FC = () => {
     if (!text) return;
     await addSubtask(taskId, text);
     setNewSubtaskInputs((prev) => ({ ...prev, [taskId]: '' }));
-  };
-
-  // Quick Inbox capture
-  const handleQuickInboxSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickInboxTitle.trim()) return;
-    await addTask({
-      title: quickInboxTitle.trim(),
-      category: quickInboxCategory.trim() || '#inbox',
-      scheduledDate: null,
-      timeTag: 'Backlog',
-      iconType: 'default',
-    });
-    setQuickInboxTitle('');
   };
 
   // Drag and Drop reordering handlers
@@ -225,37 +186,8 @@ export const CockpitView: React.FC = () => {
     setDragOverTaskId(null);
   };
 
-  // Icon component helper
-  const renderTaskIcon = (task: Task) => {
-    const iconType = task.iconType || 'default';
-    if (iconType === 'flame') {
-      return (
-        <div className="w-8 h-8 rounded-full bg-rose-50 border border-rose-200/80 flex items-center justify-center text-rose-600 flex-shrink-0">
-          <Flame className="w-4 h-4 fill-rose-500 text-rose-500" />
-        </div>
-      );
-    }
-    if (iconType === 'chat') {
-      return (
-        <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-600 flex-shrink-0">
-          <MessageSquare className="w-4 h-4" />
-        </div>
-      );
-    }
-    if (iconType === 'mail') {
-      return (
-        <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600 flex-shrink-0">
-          <Mail className="w-4 h-4" />
-        </div>
-      );
-    }
-    if (iconType === 'code') {
-      return (
-        <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700 flex-shrink-0">
-          <Code className="w-4 h-4" />
-        </div>
-      );
-    }
+  // Icon component helper - default icon for all to-do items
+  const renderTaskIcon = () => {
     return (
       <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center text-secondaryGray flex-shrink-0">
         <Sparkles className="w-4 h-4 text-accent-mauve" />
@@ -298,30 +230,7 @@ export const CockpitView: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-bg max-w-7xl mx-auto w-full">
-      {/* 1. Header Section matching Figma ("Productivity overview" + Live Date/Clock Pill) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display font-bold text-3xl md:text-4xl text-primaryDark tracking-tight">
-            Productivity overview
-          </h1>
-          <p className="text-secondaryGray text-ui-rg-sm mt-1">
-            Track daily disciplines, manage tactical tasks, and maintain momentum.
-          </p>
-        </div>
-
-        {/* Live Date & Time Pill matching Figma design */}
-        <div className="flex items-center gap-2 bg-[#D1FAE5]/60 border border-emerald-300/60 px-4 py-2 rounded-pill shadow-xs self-start sm:self-auto">
-          <span className="font-mono text-mono-xs font-bold text-emerald-950 tracking-wider">
-            {formattedDatePill}
-          </span>
-          <span className="text-emerald-700/60 font-mono text-xs">·</span>
-          <span className="font-mono text-mono-xs font-bold text-emerald-950">
-            {formattedClockPill}
-          </span>
-        </div>
-      </div>
-
-      {/* 2. Main Dual-Card Grid matching Figma ("Routine progress" on Left, "To-do list" on Right) */}
+      {/* Main Dual-Card Grid matching Figma ("Habit tracker" on Left, "To-do list" on Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================================= */}
         {/* LEFT PRIMARY CARD: Routine progress                                       */}
@@ -330,19 +239,29 @@ export const CockpitView: React.FC = () => {
           {/* Card Header */}
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-display font-bold text-xl text-primaryDark">Routine progress</h2>
+              <h2 className="font-display font-bold text-xl text-primaryDark">Habit tracker</h2>
               <p className="text-secondaryGray text-ui-rg-xs mt-0.5">
-                Track the practices that support consistent work.
+                Check in your active habits & daily disciplines.
               </p>
             </div>
-            {/* Lavender rounded square add button */}
-            <button
-              onClick={() => setIsRoutineModalOpen(true)}
-              title="Add Routine Habit"
-              className="w-8 h-8 rounded-lg bg-accent-indigo hover:bg-accent-indigo/80 text-primaryDark border border-indigo-200 flex items-center justify-center transition-all cursor-pointer shadow-subtle active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => setIsAllRoutinesModalOpen(true)}
+                className="font-mono text-mono-xs"
+              >
+                View All
+              </Button>
+              {/* Lavender rounded square add button */}
+              <button
+                onClick={() => setIsRoutineModalOpen(true)}
+                title="Add Routine Habit"
+                className="w-8 h-8 rounded-lg bg-accent-indigo hover:bg-accent-indigo/80 text-primaryDark border border-indigo-200 flex items-center justify-center transition-all cursor-pointer shadow-subtle active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Routine Metrics Overview Row */}
@@ -359,19 +278,24 @@ export const CockpitView: React.FC = () => {
                 <span className="font-sans font-semibold text-ui-md-sm text-primaryDark">
                   Habit Consistency
                 </span>
-                <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-pill border border-amber-200 font-mono text-mono-xs font-semibold">
-                  <Flame className="w-3.5 h-3.5 fill-amber-500" />
+                <div
+                  className={cn(
+                    'flex items-center gap-1 px-2.5 py-0.5 rounded-pill border font-mono text-mono-xs font-semibold shadow-xs transition-colors',
+                    getStreakBadgeStyle(streakDays).badge
+                  )}
+                >
+                  <Flame className={cn('w-3.5 h-3.5', getStreakBadgeStyle(streakDays).flame)} />
                   <span>{streakDays}-day streak</span>
                 </div>
               </div>
               <SegmentedBar
-                totalSegments={routines.length || 5}
+                totalSegments={todayRoutines.length || 1}
                 completedSegments={completedRoutinesCount}
                 activeColor="bg-accent-green"
               />
               <div className="flex items-center justify-between font-mono text-mono-xs text-secondaryGray">
                 <span>
-                  {completedRoutinesCount} of {routines.length} completed
+                  {completedRoutinesCount} of {todayRoutines.length} completed
                 </span>
                 <span className="text-midGray">Reset 00:00</span>
               </div>
@@ -380,125 +304,119 @@ export const CockpitView: React.FC = () => {
 
           {/* Routine List */}
           <div className="flex flex-col gap-3">
-            {routines.map((routine) => {
-              const log = todayLogs.find((l) => l.routineId === routine.id);
-              const isDone =
-                Boolean(log?.completed) ||
-                (log?.currentCount !== undefined && log.currentCount >= (routine.targetCount || 1));
-              const currentCount = log?.currentCount || 0;
-              const targetCount = routine.targetCount || 1;
-              const isCounterHabit = targetCount > 1;
+            {todayRoutines.length === 0 ? (
+              <div className="p-8 rounded-xl bg-bg border border-dashed border-border text-center flex flex-col items-center justify-center gap-1.5">
+                <p className="font-sans font-medium text-ui-md-sm text-primaryDark">
+                  No routines scheduled for today
+                </p>
+                <p className="text-ui-rg-xs text-secondaryGray">
+                  Add daily habits or check your cadence rules.
+                </p>
+              </div>
+            ) : (
+              todayRoutines.map((routine) => {
+                const log = todayLogs.find((l) => l.routineId === routine.id);
+                const isDone =
+                  Boolean(log?.completed) ||
+                  (log?.currentCount !== undefined &&
+                    log.currentCount >= (routine.targetCount || 1));
+                const currentCount = log?.currentCount || 0;
+                const targetCount = routine.targetCount || 1;
+                const isCounterHabit = targetCount > 1;
+                const routineStreak = individualStreaks[routine.id] || 0;
+                const routineStreakStyle = getStreakBadgeStyle(routineStreak);
 
-              return (
-                <div
-                  key={routine.id}
-                  className="p-3.5 rounded-xl bg-bg border border-border/80 hover:border-[#D8D2C5] transition-all flex flex-col gap-2.5 group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* Emoji Icon */}
-                      <span className="text-lg select-none">{routine.icon || '💧'}</span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              'font-sans font-semibold text-ui-md-sm',
-                              isDone ? 'line-through text-midGray' : 'text-primaryDark'
-                            )}
-                          >
-                            {routine.title}
-                          </span>
-                          <span className="font-mono text-mono-tag px-1.5 py-0.5 rounded bg-surface border border-border text-secondaryGray uppercase">
-                            {routine.cadence}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right action / status */}
-                    <div className="flex items-center gap-2">
-                      {isCounterHabit ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-mono-xs font-bold text-primaryDark mr-1">
-                            {currentCount}/{targetCount}
-                          </span>
-                          <button
-                            onClick={() => decrementRoutine(routine.id)}
-                            disabled={currentCount <= 0}
-                            title="Decrement"
-                            className="w-6 h-6 rounded-md bg-surface border border-border flex items-center justify-center text-secondaryGray hover:text-primaryDark disabled:opacity-30 cursor-pointer"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => incrementRoutine(routine.id)}
-                            disabled={currentCount >= targetCount}
-                            title="Increment"
-                            className="w-6 h-6 rounded-md bg-accent-green border border-emerald-300 flex items-center justify-center text-emerald-950 font-bold hover:brightness-95 disabled:opacity-30 cursor-pointer"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => toggleRoutine(routine.id)}
+                return (
+                  <div
+                    key={routine.id}
+                    className="p-3.5 rounded-xl bg-bg border border-border/80 hover:border-[#D8D2C5] transition-all flex flex-col gap-2.5 group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span
                           className={cn(
-                            'w-6 h-6 rounded-md flex items-center justify-center border transition-all cursor-pointer shadow-subtle',
-                            isDone
-                              ? 'bg-primaryDark border-primaryDark text-bg'
-                              : 'border-border bg-surface hover:border-midGray'
+                            'font-sans font-semibold text-ui-md-sm',
+                            isDone ? 'line-through text-midGray' : 'text-primaryDark'
                           )}
                         >
-                          {isDone && <Check className="w-4 h-4 stroke-[2.5]" />}
-                        </button>
-                      )}
-
-                      {/* Delete Habit button on hover */}
-                      <button
-                        onClick={() => deleteRoutine(routine.id)}
-                        title="Delete Routine"
-                        className="opacity-0 group-hover:opacity-100 text-midGray hover:text-rose-600 p-1 transition-opacity cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar for Counter Habit (e.g. Hydration 3/4) */}
-                  {isCounterHabit && (
-                    <div className="w-full bg-border/70 rounded-pill h-2 overflow-hidden">
-                      <div
-                        className="bg-accent-green h-full rounded-pill transition-all duration-300"
-                        style={{
-                          width: `${Math.min(100, Math.round((currentCount / targetCount) * 100))}%`,
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Segmented Streak Dashes for Streak Habit (e.g. Code Review) */}
-                  {!isCounterHabit && (
-                    <div className="flex items-center justify-between pt-1 text-mono-tag font-mono text-midGray">
-                      <div className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-green" />
-                        <span>Daily consistency</span>
+                          {routine.title}
+                        </span>
+                        <div
+                          className={cn(
+                            'flex items-center gap-0.5 px-2 py-0.2 rounded-pill border font-mono text-[10px] font-semibold shadow-xs',
+                            routineStreakStyle.badge
+                          )}
+                          title={`${routineStreak}-day habit streak`}
+                        >
+                          <Flame className={cn('w-3 h-3', routineStreakStyle.flame)} />
+                          <span>{routineStreak}d</span>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((dayIdx) => (
-                          <div
-                            key={dayIdx}
+
+                      {/* Right action / status */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {isCounterHabit ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-mono-xs font-bold text-primaryDark mr-1">
+                              {currentCount}/{targetCount}
+                            </span>
+                            <button
+                              onClick={() => decrementRoutine(routine.id)}
+                              disabled={currentCount <= 0}
+                              title="Decrement"
+                              className="w-6 h-6 rounded-md bg-surface border border-border flex items-center justify-center text-secondaryGray hover:text-primaryDark disabled:opacity-30 cursor-pointer"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => incrementRoutine(routine.id)}
+                              disabled={currentCount >= targetCount}
+                              title="Increment"
+                              className="w-6 h-6 rounded-md bg-accent-green border border-emerald-300 flex items-center justify-center text-emerald-950 font-bold hover:brightness-95 disabled:opacity-30 cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => toggleRoutine(routine.id)}
                             className={cn(
-                              'w-3.5 h-1.5 rounded-sm',
-                              dayIdx <= streakDays ? 'bg-accent-green' : 'bg-border'
+                              'w-6 h-6 rounded-md flex items-center justify-center border transition-all cursor-pointer shadow-subtle',
+                              isDone
+                                ? 'bg-primaryDark border-primaryDark text-bg'
+                                : 'border-border bg-surface hover:border-midGray'
                             )}
-                          />
-                        ))}
+                          >
+                            {isDone && <Check className="w-4 h-4 stroke-[2.5]" />}
+                          </button>
+                        )}
+
+                        {/* Delete Habit button on hover */}
+                        <button
+                          onClick={() => deleteRoutine(routine.id)}
+                          title="Delete Routine"
+                          className="opacity-0 group-hover:opacity-100 text-midGray hover:text-rose-600 p-1 transition-opacity cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+
+                    {/* Progress Bar for Counter Habit (e.g. Hydration 3/4) */}
+                    {isCounterHabit && (
+                      <div className="w-full bg-border/70 rounded-pill h-2 overflow-hidden">
+                        <div
+                          className="bg-accent-green h-full rounded-pill transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, Math.round((currentCount / targetCount) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -573,33 +491,6 @@ export const CockpitView: React.FC = () => {
             </button>
           </div>
 
-          {/* Quick Inbox Capture input when in Inbox Tab */}
-          {activeTaskTab === 'inbox' && (
-            <form
-              onSubmit={handleQuickInboxSubmit}
-              className="flex gap-2 p-2 bg-bg border border-border rounded-xl"
-            >
-              <input
-                type="text"
-                value={quickInboxTitle}
-                onChange={(e) => setQuickInboxTitle(e.target.value)}
-                placeholder="Capture unscheduled to-do or thought..."
-                className="flex-1 bg-transparent px-2 text-ui-rg-sm text-primaryDark placeholder:text-midGray outline-none"
-              />
-              <input
-                type="text"
-                value={quickInboxCategory}
-                onChange={(e) => setQuickInboxCategory(e.target.value)}
-                placeholder="#category"
-                className="w-24 bg-surface border border-border rounded-md px-2 py-1 text-ui-rg-xs text-primaryDark outline-none"
-              />
-              <Button type="submit" variant="primary" size="xs" className="gap-1">
-                <Plus className="w-3 h-3" />
-                <span>Capture</span>
-              </Button>
-            </form>
-          )}
-
           {/* Task Items List */}
           <div className="flex flex-col gap-3">
             {activeTaskTab === 'today' && tasks.length === 0 && (
@@ -632,6 +523,15 @@ export const CockpitView: React.FC = () => {
                 <p className="text-ui-rg-xs text-secondaryGray max-w-sm">
                   Quickly dump unassigned ideas, incoming requests, or backlog items here anytime.
                 </p>
+                <Button
+                  variant="mint"
+                  size="sm"
+                  onClick={() => setIsTaskModalOpen(true)}
+                  className="mt-2 gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add First Task</span>
+                </Button>
               </div>
             )}
 
@@ -681,7 +581,7 @@ export const CockpitView: React.FC = () => {
                       </button>
 
                       {/* Icon Circle */}
-                      {renderTaskIcon(task)}
+                      {renderTaskIcon()}
 
                       {/* Title & Subtasks trigger */}
                       <div className="flex flex-col min-w-0 flex-1">
@@ -697,8 +597,9 @@ export const CockpitView: React.FC = () => {
 
                           {/* Source Kanban Badge if linked */}
                           {task.sourceKanbanCardId && (
-                            <span className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-100 text-purple-900 border border-purple-200 flex-shrink-0">
-                              ✦ Kanban
+                            <span className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-100 text-purple-900 border border-purple-200 flex-shrink-0 flex items-center gap-1">
+                              <LayoutDashboard className="w-3 h-3" />
+                              <span>Kanban</span>
                             </span>
                           )}
                         </div>
@@ -727,13 +628,6 @@ export const CockpitView: React.FC = () => {
                       {/* Time chip (e.g. 11:30, Today, Later) */}
                       {renderTimeBadge(task)}
 
-                      {/* Category Pill */}
-                      {task.category && (
-                        <Badge variant="default" size="xs">
-                          {task.category}
-                        </Badge>
-                      )}
-
                       {/* Context actions */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {activeTaskTab === 'today' ? (
@@ -748,9 +642,10 @@ export const CockpitView: React.FC = () => {
                           <button
                             onClick={() => moveTaskToToday(task.id)}
                             title="Move to Today's Queue"
-                            className="text-xs text-emerald-800 bg-accent-green/80 hover:bg-accent-green px-2 py-0.5 rounded-pill font-mono font-medium transition-colors cursor-pointer"
+                            className="text-xs text-emerald-800 bg-accent-green/80 hover:bg-accent-green px-2 py-0.5 rounded-pill font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
                           >
-                            ☀️ Today
+                            <Sun className="w-3 h-3" />
+                            <span>Today</span>
                           </button>
                         )}
 
@@ -847,6 +742,11 @@ export const CockpitView: React.FC = () => {
       <CreateRoutineModal
         isOpen={isRoutineModalOpen}
         onClose={() => setIsRoutineModalOpen(false)}
+      />
+      <AllRoutinesModal
+        isOpen={isAllRoutinesModalOpen}
+        onClose={() => setIsAllRoutinesModalOpen(false)}
+        onOpenCreate={() => setIsRoutineModalOpen(true)}
       />
       <CreateTaskModal
         isOpen={isTaskModalOpen}

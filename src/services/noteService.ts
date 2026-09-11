@@ -39,7 +39,7 @@ export class NoteService {
         title: n.title,
         content: n.content_json,
         category: n.folder,
-        tags: n.category_color ? [n.category_color] : ['#general'],
+        tags: [],
         isPinned: Boolean(n.folder === 'pinned'),
         createdAt: n.created_at,
         updatedAt: n.updated_at,
@@ -55,14 +55,14 @@ export class NoteService {
         content:
           'Atelier operates with a strict local-first architecture. Every action, routine check-in, task completion, and note edit writes immediately to the embedded SQLite database before broadcasting across the network.',
         folder: 'pinned',
-        color: '#design',
+        color: null,
       },
       {
         id: 'n_log',
         title: 'Weekly Studio Log',
         content: 'Key milestones achieved in Phase 1-3 layout & offline sync sprint...',
         folder: 'general',
-        color: '#log',
+        color: null,
       },
     ];
 
@@ -82,14 +82,14 @@ export class NoteService {
     await db.execute(
       `INSERT INTO notes (id, title, content_json, folder, category_color, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, content, 'general', '#general', now, now]
+      [id, title, content, 'general', null, now, now]
     );
 
     const note: NoteDocument = {
       id,
       title,
       content,
-      tags: ['#general'],
+      tags: [],
       isPinned: false,
       createdAt: now,
       updatedAt: now,

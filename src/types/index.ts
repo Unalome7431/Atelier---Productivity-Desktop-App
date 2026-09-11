@@ -4,7 +4,7 @@ export interface Routine {
   id: string;
   title: string;
   description?: string;
-  category: string;
+  category?: string;
   cadence: 'daily' | 'weekdays' | 'custom';
   customDays?: number[]; // 0 = Sun, 1 = Mon, ...
   icon?: string;
@@ -33,7 +33,7 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
-  category: string; // e.g. '#work', '#backend', '#team'
+  category?: string;
   iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
   timeTag?: string; // e.g. '11:30', 'Today', 'Later'
   scheduledDate?: string | null; // YYYY-MM-DD (null = Inbox backlog)
@@ -65,7 +65,7 @@ export interface KanbanCard {
   columnId: string;
   title: string;
   description?: string;
-  tags: string[];
+  tags?: string[];
   dueDate?: string;
   orderIndex: number;
   createdAt: string;
@@ -122,7 +122,7 @@ export interface NoteDocument {
   title: string;
   content: string; // HTML or Markdown
   category?: string;
-  tags: string[];
+  tags?: string[];
   isPinned?: boolean;
   updatedAt: string;
   createdAt: string;

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Check } from 'lucide-react';
 import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { Modal } from '@/components/common/Modal';
 import { useKanbanStore } from '@/stores/useKanbanStore';
 import { useTasksStore } from '@/stores/useTasksStore';
@@ -14,7 +13,6 @@ export const KanbanView: React.FC = () => {
   const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
   const [targetColumnId, setTargetColumnId] = useState('planned');
   const [cardTitle, setCardTitle] = useState('');
-  const [cardTag, setCardTag] = useState('#core');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,15 +29,14 @@ export const KanbanView: React.FC = () => {
   const handleCreateCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cardTitle.trim() || !activeBoard) return;
-    await addCard(activeBoard.id, targetColumnId, cardTitle.trim(), cardTag);
+    await addCard(activeBoard.id, targetColumnId, cardTitle.trim());
     setCardTitle('');
     setIsNewCardModalOpen(false);
   };
 
-  const handleSendToCockpit = async (cardId: string, title: string, tag: string) => {
+  const handleSendToCockpit = async (cardId: string, title: string) => {
     await addTask({
       title,
-      category: tag,
       iconType: 'code',
       timeTag: 'Today',
       scheduledDate: getTodayDateString(),
@@ -124,14 +121,9 @@ export const KanbanView: React.FC = () => {
                     key={card.id}
                     className="p-4 rounded-card bg-bg border border-border shadow-subtle flex flex-col gap-2 group transition-all"
                   >
-                    <div className="flex items-center justify-between">
-                      <Badge variant="lavender" size="sm">
-                        {card.tags[0] || '#task'}
-                      </Badge>
+                    <div className="flex items-center justify-end">
                       <button
-                        onClick={() =>
-                          handleSendToCockpit(card.id, card.title, card.tags[0] || '#task')
-                        }
+                        onClick={() => handleSendToCockpit(card.id, card.title)}
                         title="Send to Today's Cockpit"
                         className="opacity-0 group-hover:opacity-100 text-xs text-secondaryGray hover:text-primaryDark transition-opacity cursor-pointer font-mono"
                       >
@@ -189,19 +181,6 @@ export const KanbanView: React.FC = () => {
               onChange={(e) => setCardTitle(e.target.value)}
               placeholder="e.g. Design serverless webhook gateway..."
               className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-              Tag Label
-            </label>
-            <input
-              type="text"
-              value={cardTag}
-              onChange={(e) => setCardTag(e.target.value)}
-              placeholder="#core"
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
             />
           </div>
 

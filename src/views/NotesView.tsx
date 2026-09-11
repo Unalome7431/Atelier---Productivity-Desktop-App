@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Pin, Search } from 'lucide-react';
 import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { Modal } from '@/components/common/Modal';
 import { useNotesStore } from '@/stores/useNotesStore';
 
@@ -82,11 +81,6 @@ export const NotesView: React.FC = () => {
                   )}
                 </div>
                 <p className="text-ui-rg-xs text-secondaryGray line-clamp-2">{note.content}</p>
-                <div className="flex gap-1 mt-1">
-                  <Badge variant="default" size="xs">
-                    {note.tags[0] || '#doc'}
-                  </Badge>
-                </div>
               </div>
             );
           })}
@@ -114,7 +108,7 @@ export const NotesView: React.FC = () => {
             <p>{activeNote.content}</p>
             <div className="p-4 rounded-lg bg-surface border border-border">
               <h4 className="font-display font-semibold text-display-6 text-primaryDark mb-1">
-                ✦ Local & Cloud Persistence
+                Local & Cloud Persistence
               </h4>
               <p className="text-ui-rg-xs text-secondaryGray">
                 All changes made to this document write directly to local SQLite and are queued with

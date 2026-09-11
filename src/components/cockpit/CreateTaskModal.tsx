@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flame, MessageSquare, Mail, Code, CheckCircle2, Plus, X } from 'lucide-react';
+import { Plus, X, Sun, Inbox } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { useTasksStore } from '@/stores/useTasksStore';
@@ -11,39 +11,6 @@ export interface CreateTaskModalProps {
   defaultDestination?: 'today' | 'inbox';
 }
 
-const ICON_OPTIONS = [
-  {
-    id: 'flame',
-    label: 'Urgent / Fire',
-    icon: Flame,
-    color: 'text-amber-600 bg-rose-50 border-rose-200',
-  },
-  {
-    id: 'chat',
-    label: 'Communication',
-    icon: MessageSquare,
-    color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
-  },
-  {
-    id: 'mail',
-    label: 'Feedback / Review',
-    icon: Mail,
-    color: 'text-purple-600 bg-purple-50 border-purple-200',
-  },
-  {
-    id: 'code',
-    label: 'Deep Dev / Code',
-    icon: Code,
-    color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-  },
-  {
-    id: 'default',
-    label: 'General Task',
-    icon: CheckCircle2,
-    color: 'text-secondaryGray bg-surface border-border',
-  },
-];
-
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
@@ -52,8 +19,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const { addTask, addSubtask } = useTasksStore();
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('#backend');
-  const [iconType, setIconType] = useState<'flame' | 'chat' | 'mail' | 'code' | 'default'>('flame');
   const [timeTag, setTimeTag] = useState('Today');
   const [destination, setDestination] = useState<'today' | 'inbox'>(defaultDestination);
   const [subtasksInput, setSubtasksInput] = useState<string[]>([]);
@@ -76,8 +41,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const scheduledDate = destination === 'today' ? getTodayDateString() : null;
     const newTask = await addTask({
       title: title.trim(),
-      category: category.trim() || '#work',
-      iconType,
+      category: '',
+      iconType: 'default',
       timeTag: timeTag.trim() || (destination === 'today' ? 'Today' : 'Backlog'),
       scheduledDate,
     });
@@ -124,13 +89,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               setDestination('today');
               if (timeTag === 'Backlog') setTimeTag('Today');
             }}
-            className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               destination === 'today'
                 ? 'bg-primaryDark text-bg shadow-xs'
                 : 'text-secondaryGray hover:text-primaryDark'
             }`}
           >
-            ☀️ Today's Queue
+            <Sun className="w-3.5 h-3.5" />
+            <span>Today's Queue</span>
           </button>
           <button
             type="button"
@@ -138,74 +104,29 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               setDestination('inbox');
               setTimeTag('Backlog');
             }}
-            className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               destination === 'inbox'
                 ? 'bg-primaryDark text-bg shadow-xs'
                 : 'text-secondaryGray hover:text-primaryDark'
             }`}
           >
-            📥 Daily Inbox / Backlog
+            <Inbox className="w-3.5 h-3.5" />
+            <span>Daily Inbox / Backlog</span>
           </button>
         </div>
 
-        {/* Category & Time Chip */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-              Category Tag
-            </label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="#backend, #team, #product"
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-              Time / Deadline Chip
-            </label>
-            <input
-              type="text"
-              value={timeTag}
-              onChange={(e) => setTimeTag(e.target.value)}
-              placeholder="e.g. 11:30, Today, Later, 2:00 PM"
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
-            />
-          </div>
-        </div>
-
-        {/* Icon Type Selection */}
+        {/* Time / Deadline Chip */}
         <div className="flex flex-col gap-1.5">
           <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-            Visual Category Icon
+            Time / Deadline Chip
           </label>
-          <div className="grid grid-cols-5 gap-2">
-            {ICON_OPTIONS.map((opt) => {
-              const IconComp = opt.icon;
-              const isSelected = iconType === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setIconType(opt.id as any)}
-                  title={opt.label}
-                  className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all cursor-pointer ${
-                    isSelected
-                      ? `${opt.color} ring-2 ring-primaryDark/20 shadow-xs scale-105`
-                      : 'bg-bg border-border text-secondaryGray hover:border-midGray'
-                  }`}
-                >
-                  <IconComp className="w-4 h-4" />
-                  <span className="text-[10px] font-mono mt-1 tracking-tight truncate max-w-full">
-                    {opt.id}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <input
+            type="text"
+            value={timeTag}
+            onChange={(e) => setTimeTag(e.target.value)}
+            placeholder="e.g. 11:30, Today, Later, 2:00 PM"
+            className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+          />
         </div>
 
         {/* Sub-steps Checklist */}

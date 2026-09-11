@@ -41,7 +41,7 @@ export class KanbanService {
           columnId: c.column_id,
           title: c.title,
           description: c.description,
-          tags: c.tag_label ? [c.tag_label] : [],
+          tags: [],
           dueDate: c.due_date,
           orderIndex: parseInt(c.position_rank || '0', 10),
           createdAt: c.created_at,
@@ -65,21 +65,18 @@ export class KanbanService {
         id: 'c1',
         column_id: 'planned',
         title: 'Telegram Serverless Webhook Bot',
-        tag: '#research',
         desc: 'Explore grammY edge runtime on Cloudflare Workers',
       },
       {
         id: 'c2',
         column_id: 'in_progress',
         title: 'Desktop Foundation & Data Layer',
-        tag: '#core',
         desc: 'Phase 1-3 setup with Tauri, SQLite & Sync Engine',
       },
       {
         id: 'c3',
         column_id: 'done',
         title: 'PRD & Styleguide Definition',
-        tag: '#spec',
         desc: 'Aura UI styling and task tracker architecture',
       },
     ];
@@ -89,7 +86,7 @@ export class KanbanService {
       await db.execute(
         `INSERT OR IGNORE INTO kanban_cards (id, board_id, column_id, title, description, tag_label, position_rank, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [c.id, boardId, c.column_id, c.title, c.desc, c.tag, `${i}`, now, now]
+        [c.id, boardId, c.column_id, c.title, c.desc, null, `${i}`, now, now]
       );
     }
   }
@@ -112,7 +109,7 @@ export class KanbanService {
     boardId: string,
     columnId: string,
     title: string,
-    tag = '#task'
+    tag?: string
   ): Promise<KanbanCard> {
     const cardId = `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
@@ -120,14 +117,14 @@ export class KanbanService {
     await db.execute(
       `INSERT INTO kanban_cards (id, board_id, column_id, title, tag_label, position_rank, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [cardId, boardId, columnId, title, tag, '99', now, now]
+      [cardId, boardId, columnId, title, tag || null, '99', now, now]
     );
 
     const card: KanbanCard = {
       id: cardId,
       columnId,
       title,
-      tags: [tag],
+      tags: tag ? [tag] : [],
       orderIndex: 99,
       createdAt: now,
       updatedAt: now,

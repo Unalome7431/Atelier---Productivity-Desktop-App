@@ -69,10 +69,10 @@ export class RoutineService {
         id: r.id,
         title: r.title,
         description: r.description,
-        category: r.category || '#general',
+        category: r.category || '',
         cadence: r.cadence || 'daily',
         customDays,
-        icon: r.icon || '💧',
+        icon: r.icon || 'droplets',
         color: r.color || 'mint',
         targetCount: Number(r.target_count) || 1,
         orderIndex: Number(r.position_rank) || 0,
@@ -89,45 +89,45 @@ export class RoutineService {
       {
         id: 'rt_hydration',
         title: 'Hydration',
-        category: '#health',
+        category: '',
         cadence: 'daily',
-        icon: '💧',
+        icon: 'droplets',
         color: 'mint',
         target_count: 4,
       },
       {
         id: 'rt_code_review',
         title: 'Code review',
-        category: '#dev',
+        category: '',
         cadence: 'weekdays',
-        icon: '💻',
+        icon: 'code',
         color: 'lavender',
         target_count: 1,
       },
       {
         id: 'rt_stretch',
         title: 'Morning Movement & Stretch',
-        category: '#health',
+        category: '',
         cadence: 'daily',
-        icon: '🧘',
+        icon: 'activity',
         color: 'mint',
         target_count: 1,
       },
       {
         id: 'rt_read',
         title: 'Read 15 Pages of Architecture Book',
-        category: '#learning',
+        category: '',
         cadence: 'daily',
-        icon: '📖',
+        icon: 'book-open',
         color: 'sky',
         target_count: 1,
       },
       {
         id: 'rt_journal',
         title: 'Evening Daily Reflection & Journal',
-        category: '#mindset',
+        category: '',
         cadence: 'daily',
-        icon: '✍️',
+        icon: 'pen-tool',
         color: 'mauve',
         target_count: 1,
       },
@@ -350,8 +350,8 @@ export class RoutineService {
     const cadence = params.cadence || 'daily';
     const customDays = params.customDays || [];
     const targetCount = params.targetCount || 1;
-    const category = params.category || '#general';
-    const icon = params.icon || '💧';
+    const category = params.category || '';
+    const icon = params.icon || 'droplets';
     const color = params.color || 'mint';
 
     await db.execute(
@@ -471,6 +471,66 @@ export class RoutineService {
     }
 
     return streak;
+  }
+
+  async calculateIndividualStreaks(): Promise<Record<string, number>> {
+    const routines = await this.getAllRoutines();
+    if (routines.length === 0) return {};
+
+    const allLogs = await db.select<any>(`SELECT * FROM routine_logs ORDER BY date DESC`);
+    const logsByRoutineAndDate = new Map<string, any>();
+    for (const l of allLogs) {
+      logsByRoutineAndDate.set(`${l.routine_id}_${l.date}`, l);
+    }
+
+    const today = getTodayDateString();
+    const [y, m, d] = today.split('-').map(Number);
+    const result: Record<string, number> = {};
+
+    for (const routine of routines) {
+      let streak = 0;
+      let dayOffset = 1;
+
+      while (dayOffset <= 365) {
+        const checkDateObj = new Date(y, m - 1, d - dayOffset);
+        const checkDateStr = checkDateObj.toISOString().split('T')[0];
+
+        if (!this.isRoutineActiveOnDate(routine, checkDateStr)) {
+          dayOffset++;
+          continue;
+        }
+
+        const log = logsByRoutineAndDate.get(`${routine.id}_${checkDateStr}`);
+        const isDone =
+          log &&
+          (Boolean(log.completed) ||
+            (log.current_count !== undefined && log.current_count >= (routine.targetCount || 1)));
+
+        if (isDone) {
+          streak++;
+          dayOffset++;
+        } else {
+          break;
+        }
+      }
+
+      // Check if today is active and completed
+      if (this.isRoutineActiveOnDate(routine, today)) {
+        const todayLog = logsByRoutineAndDate.get(`${routine.id}_${today}`);
+        const todayDone =
+          todayLog &&
+          (Boolean(todayLog.completed) ||
+            (todayLog.current_count !== undefined &&
+              todayLog.current_count >= (routine.targetCount || 1)));
+        if (todayDone) {
+          streak++;
+        }
+      }
+
+      result[routine.id] = streak;
+    }
+
+    return result;
   }
 }
 

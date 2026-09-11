@@ -52,7 +52,7 @@ export class TaskService {
       id: t.id,
       title: t.title,
       description: t.description,
-      category: t.category_tag || '#work',
+      category: t.category_tag || '',
       iconType: t.icon_type || 'default',
       timeTag: t.time_tag || t.scheduled_start_time || undefined,
       scheduledDate: t.scheduled_date || null,
@@ -99,7 +99,7 @@ export class TaskService {
       {
         id: 'tsk_api_contract',
         title: 'Finalize API module contract',
-        category: '#backend',
+        category: '',
         icon_type: 'flame',
         time_tag: '11:30',
         scheduled_date: today,
@@ -112,7 +112,7 @@ export class TaskService {
       {
         id: 'tsk_onboarding_handoff',
         title: 'Prepare onboarding handoff',
-        category: '#team',
+        category: '',
         icon_type: 'chat',
         time_tag: 'Today',
         scheduled_date: today,
@@ -125,7 +125,7 @@ export class TaskService {
       {
         id: 'tsk_cohort_feedback',
         title: 'Respond to beta cohort feedback',
-        category: '#product',
+        category: '',
         icon_type: 'mail',
         time_tag: 'Later',
         scheduled_date: today,
@@ -135,7 +135,7 @@ export class TaskService {
       {
         id: 'tsk_inbox_crdt',
         title: 'Explore offline CRDT algorithms for multi-device sync',
-        category: '#research',
+        category: '',
         icon_type: 'code',
         time_tag: 'Backlog',
         scheduled_date: null,
@@ -181,7 +181,7 @@ export class TaskService {
     const today = getTodayDateString();
     const id = `tsk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
-    const category = params.category || '#work';
+    const category = params.category || '';
     const scheduledDate = params.scheduledDate !== undefined ? params.scheduledDate : today;
     const iconType = params.iconType || 'default';
     const timeTag = params.timeTag || (scheduledDate ? 'Today' : 'Backlog');

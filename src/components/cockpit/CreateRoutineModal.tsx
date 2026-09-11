@@ -8,7 +8,6 @@ export interface CreateRoutineModalProps {
   onClose: () => void;
 }
 
-const AVAILABLE_ICONS = ['💧', '💻', '🧘', '📖', '✍️', '☕', '🏃', '🌿', '🎯', '⚡', '🎨', '🧹'];
 const DAY_LABELS = [
   { day: 0, label: 'S' },
   { day: 1, label: 'M' },
@@ -23,12 +22,9 @@ export const CreateRoutineModal: React.FC<CreateRoutineModalProps> = ({ isOpen, 
   const { addRoutine } = useRoutinesStore();
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('#health');
   const [cadence, setCadence] = useState<'daily' | 'weekdays' | 'custom'>('daily');
   const [customDays, setCustomDays] = useState<number[]>([1, 3, 5]); // Default Mon, Wed, Fri
   const [targetCount, setTargetCount] = useState(1);
-  const [icon, setIcon] = useState('💧');
-  const [color, setColor] = useState('mint');
 
   const toggleCustomDay = (dayIndex: number) => {
     if (customDays.includes(dayIndex)) {
@@ -44,12 +40,12 @@ export const CreateRoutineModal: React.FC<CreateRoutineModalProps> = ({ isOpen, 
 
     await addRoutine({
       title: title.trim(),
-      category: category.trim() || '#general',
+      category: '',
       cadence,
       customDays: cadence === 'custom' ? customDays : [],
       targetCount: Math.max(1, Number(targetCount) || 1),
-      icon,
-      color,
+      icon: 'default',
+      color: 'mint',
     });
 
     setTitle('');
@@ -78,67 +74,6 @@ export const CreateRoutineModal: React.FC<CreateRoutineModalProps> = ({ isOpen, 
             placeholder="e.g. 20-min Morning Movement, Code review..."
             className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
           />
-        </div>
-
-        {/* Icon & Category */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-              Select Icon
-            </label>
-            <div className="flex flex-wrap gap-1.5 p-2 bg-bg border border-border rounded-md">
-              {AVAILABLE_ICONS.map((ic) => (
-                <button
-                  type="button"
-                  key={ic}
-                  onClick={() => setIcon(ic)}
-                  className={`w-7 h-7 rounded flex items-center justify-center text-sm transition-transform cursor-pointer ${
-                    icon === ic
-                      ? 'bg-surface border border-primaryDark scale-110 shadow-xs'
-                      : 'hover:bg-surface'
-                  }`}
-                >
-                  {ic}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-              Category Tag
-            </label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="#health, #dev, #mindset"
-              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
-            />
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase mt-2">
-              Color Accent
-            </label>
-            <div className="flex gap-2">
-              {[
-                { id: 'mint', class: 'bg-[#D1FAE5]' },
-                { id: 'lavender', class: 'bg-[#EBE7FF]' },
-                { id: 'sky', class: 'bg-[#BAE6FD]' },
-                { id: 'pink', class: 'bg-[#FCFCE8]' },
-                { id: 'mauve', class: 'bg-[#8E677E]' },
-              ].map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setColor(c.id)}
-                  className={`w-6 h-6 rounded-full ${c.class} border transition-all cursor-pointer ${
-                    color === c.id
-                      ? 'border-primaryDark scale-110 ring-2 ring-primaryDark/20'
-                      : 'border-border'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Cadence Rules */}

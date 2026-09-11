@@ -127,9 +127,15 @@ export const TelegramConfigModal: React.FC = () => {
               size="sm"
               onClick={handleTestConnection}
               disabled={isTesting}
-              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />}
+              leftIcon={
+                testSuccess ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />
+                )
+              }
             >
-              {testSuccess ? 'Verified ✓' : isTesting ? 'Testing...' : 'Test Connection'}
+              {testSuccess ? 'Verified' : isTesting ? 'Testing...' : 'Test Connection'}
             </Button>
             <Button variant="primary" size="sm" onClick={() => setIsOpen(false)}>
               Save Settings
