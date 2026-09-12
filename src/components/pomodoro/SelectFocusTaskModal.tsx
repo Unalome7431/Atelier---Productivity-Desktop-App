@@ -168,8 +168,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                         <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
                           {t.title}
                         </p>
-                        {(Boolean(t.subtasks?.length) ||
-                          Boolean(t.pomodoroCyclesCompleted)) && (
+                        {(Boolean(t.subtasks?.length) || Boolean(t.pomodoroCyclesCompleted)) && (
                           <div className="flex items-center gap-2 mt-0.5 text-mono-xs font-mono text-secondaryGray">
                             {t.subtasks && t.subtasks.length > 0 && (
                               <span className="flex items-center gap-1">

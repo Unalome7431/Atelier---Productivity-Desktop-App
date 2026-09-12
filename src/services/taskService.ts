@@ -252,10 +252,10 @@ export class TaskService {
 
   async moveTaskToInbox(taskId: string): Promise<void> {
     const now = new Date().toISOString();
-    await db.execute(
-      `UPDATE tasks SET scheduled_date = NULL, updated_at = ? WHERE id = ?`,
-      [now, taskId]
-    );
+    await db.execute(`UPDATE tasks SET scheduled_date = NULL, updated_at = ? WHERE id = ?`, [
+      now,
+      taskId,
+    ]);
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       scheduled_date: null,
       updated_at: now,
@@ -265,10 +265,11 @@ export class TaskService {
   async moveTaskToToday(taskId: string): Promise<void> {
     const today = getTodayDateString();
     const now = new Date().toISOString();
-    await db.execute(
-      `UPDATE tasks SET scheduled_date = ?, updated_at = ? WHERE id = ?`,
-      [today, now, taskId]
-    );
+    await db.execute(`UPDATE tasks SET scheduled_date = ?, updated_at = ? WHERE id = ?`, [
+      today,
+      now,
+      taskId,
+    ]);
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       scheduled_date: today,
       updated_at: now,

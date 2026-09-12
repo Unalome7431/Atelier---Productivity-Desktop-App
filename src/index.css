@@ -12,6 +12,7 @@
 @import '@fontsource/jetbrains-mono/500.css';
 @import '@fontsource/jetbrains-mono/600.css';
 @import '@fontsource/jetbrains-mono/700.css';
+@import '@xyflow/react/dist/style.css';
 
 @tailwind base;
 @tailwind components;
@@ -56,5 +57,38 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: #d8d2c5;
+  }
+
+  /* Direct draggable connector lines without visible dots */
+  .react-flow__edge {
+    cursor: grab;
+  }
+
+  .react-flow__edge:active {
+    cursor: grabbing;
+  }
+
+  .react-flow__edgeupdater {
+    cursor: grab !important;
+    pointer-events: all !important;
+    fill: transparent !important;
+    stroke: transparent !important;
+    opacity: 0 !important;
+  }
+
+  .react-flow__edgeupdater:active {
+    cursor: grabbing !important;
+  }
+
+  .react-flow__edge-path {
+    transition:
+      stroke 0.15s ease,
+      stroke-width 0.15s ease,
+      filter 0.15s ease;
+  }
+
+  .react-flow__edge:hover .react-flow__edge-path {
+    stroke-width: 2.75px !important;
+    filter: drop-shadow(0 0 3px rgba(129, 140, 248, 0.5));
   }
 }

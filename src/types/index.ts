@@ -104,11 +104,26 @@ export interface KanbanBoard {
 }
 
 export interface CanvasNodeData {
-  label: string;
-  type: 'note' | 'task' | 'kanban' | 'text' | 'group';
+  label?: string;
+  type?: 'note' | 'task' | 'kanban' | 'text' | 'group' | 'simple_text' | 'media' | 'section';
+  title?: string;
   content?: string;
   color?: string;
+  badge?: string;
   referenceId?: string;
+  boardId?: string;
+  items?: Array<{ id: string; title: string; completed: boolean }>;
+  completedCount?: number;
+  totalCount?: number;
+  imageUrl?: string;
+  altText?: string;
+  caption?: string;
+  fit?: 'cover' | 'contain' | 'fill';
+  sectionTitle?: string;
+  bgColor?: string;
+  width?: number;
+  height?: number;
+  [key: string]: any;
 }
 
 export interface CanvasNodeItem {
@@ -116,19 +131,33 @@ export interface CanvasNodeItem {
   type?: string;
   position: { x: number; y: number };
   data: CanvasNodeData;
+  width?: number;
+  height?: number;
+  style?: React.CSSProperties;
 }
 
 export interface CanvasEdgeItem {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
   label?: string;
   animated?: boolean;
+  style?: React.CSSProperties;
+  data?: Record<string, any>;
+}
+
+export interface CanvasViewport {
+  x: number;
+  y: number;
+  zoom: number;
 }
 
 export interface CanvasDocument {
   id: string;
   title: string;
+  viewport?: CanvasViewport;
   nodes: CanvasNodeItem[];
   edges: CanvasEdgeItem[];
   updatedAt: string;
