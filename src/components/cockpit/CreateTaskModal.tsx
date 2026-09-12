@@ -19,7 +19,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const { addTask, addSubtask } = useTasksStore();
 
   const [title, setTitle] = useState('');
-  const [timeTag, setTimeTag] = useState('Today');
   const [destination, setDestination] = useState<'today' | 'inbox'>(defaultDestination);
   const [subtasksInput, setSubtasksInput] = useState<string[]>([]);
   const [newSubtaskText, setNewSubtaskText] = useState('');
@@ -43,7 +42,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       title: title.trim(),
       category: '',
       iconType: 'default',
-      timeTag: timeTag.trim() || (destination === 'today' ? 'Today' : 'Backlog'),
       scheduledDate,
     });
 
@@ -62,7 +60,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={destination === 'today' ? "Add to Today's Task Queue" : 'Capture to Inbox Backlog'}
-      description="Quickly capture a tactical action item with sub-steps and time chips."
+      description="Quickly capture a tactical action item with optional sub-steps."
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -85,10 +83,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         <div className="flex items-center gap-2 p-1 bg-surface border border-border rounded-pill">
           <button
             type="button"
-            onClick={() => {
-              setDestination('today');
-              if (timeTag === 'Backlog') setTimeTag('Today');
-            }}
+            onClick={() => setDestination('today')}
             className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               destination === 'today'
                 ? 'bg-primaryDark text-bg shadow-xs'
@@ -100,10 +95,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => {
-              setDestination('inbox');
-              setTimeTag('Backlog');
-            }}
+            onClick={() => setDestination('inbox')}
             className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               destination === 'inbox'
                 ? 'bg-primaryDark text-bg shadow-xs'
@@ -113,20 +105,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <Inbox className="w-3.5 h-3.5" />
             <span>Daily Inbox / Backlog</span>
           </button>
-        </div>
-
-        {/* Time / Deadline Chip */}
-        <div className="flex flex-col gap-1.5">
-          <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-            Time / Deadline Chip
-          </label>
-          <input
-            type="text"
-            value={timeTag}
-            onChange={(e) => setTimeTag(e.target.value)}
-            placeholder="e.g. 11:30, Today, Later, 2:00 PM"
-            className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
-          />
         </div>
 
         {/* Sub-steps Checklist */}

@@ -357,13 +357,15 @@ export const CalendarView: React.FC = () => {
                 </h3>
               </div>
 
-              <button
+              <Button
+                variant="lavender"
+                size="xs"
                 onClick={() => handleOpenAddAgenda(selectedDate)}
-                className="w-8 h-8 rounded-full bg-accent-indigo text-indigo-950 border border-indigo-200 flex items-center justify-center hover:brightness-95 transition-all shadow-subtle cursor-pointer"
-                title="Add item for this date"
+                className="gap-1 font-mono text-mono-xs"
               >
-                <Plus className="w-4 h-4" />
-              </button>
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Item</span>
+              </Button>
             </div>
 
             {/* Agenda Item Cards */}

@@ -11,6 +11,9 @@ import {
   Plus,
   Send,
   RotateCcw,
+  SkipForward,
+  Sparkles,
+  Coffee,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
@@ -28,7 +31,8 @@ interface CommandItem {
 
 export const CommandPalette: React.FC = () => {
   const { isCommandPaletteOpen, setCommandPaletteOpen, setActiveTab } = useAppStore();
-  const { isRunning, play, pause, reset } = usePomodoroStore();
+  const { isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget } =
+    usePomodoroStore();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +95,45 @@ export const CommandPalette: React.FC = () => {
         perform: () => reset(),
       },
       {
+        id: 'action-focus-skip',
+        title: 'Skip Current Focus / Break Cycle',
+        category: 'Focus',
+        icon: SkipForward,
+        perform: () => skipCycle(),
+      },
+      {
+        id: 'action-focus-mode-focus',
+        title: 'Switch Mode: Focus Block (25m)',
+        category: 'Focus',
+        icon: Sparkles,
+        perform: () => setMode('focus'),
+      },
+      {
+        id: 'action-focus-mode-short',
+        title: 'Switch Mode: Short Break (5m)',
+        category: 'Focus',
+        icon: Coffee,
+        perform: () => setMode('shortBreak'),
+      },
+      {
+        id: 'action-focus-mode-long',
+        title: 'Switch Mode: Long Break (15m)',
+        category: 'Focus',
+        icon: Coffee,
+        perform: () => setMode('longBreak'),
+      },
+      ...(activeTarget
+        ? [
+            {
+              id: 'action-focus-unbind',
+              title: `Unbind Focus Task: "${activeTarget.title}"`,
+              category: 'Focus' as const,
+              icon: Sparkles,
+              perform: () => unbindTarget(),
+            },
+          ]
+        : []),
+      {
         id: 'action-new-task',
         title: 'Add New Tactical Task to Today',
         category: 'Actions',
@@ -118,7 +161,7 @@ export const CommandPalette: React.FC = () => {
         perform: () => {},
       },
     ],
-    [setActiveTab, isRunning, play, pause, reset]
+    [setActiveTab, isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget]
   );
 
   const filteredCommands = useMemo(() => {

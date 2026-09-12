@@ -10,7 +10,6 @@ interface TasksState {
   addTask: (params: {
     title: string;
     category?: string;
-    timeTag?: string;
     iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
     scheduledDate?: string | null;
     sourceKanbanCardId?: string;
@@ -22,6 +21,8 @@ interface TasksState {
   addSubtask: (taskId: string, title: string) => Promise<void>;
   toggleSubtask: (taskId: string, subtaskId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  incrementTaskPomodoro: (taskId: string) => Promise<void>;
+  setTaskPomodoroEstimated: (taskId: string, estimated: number) => Promise<void>;
 }
 
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -90,7 +91,6 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const updatedTask: Task = {
       ...taskToMove,
       scheduledDate: null,
-      timeTag: 'Backlog',
     };
 
     set((state) => ({
@@ -109,7 +109,6 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const updatedTask: Task = {
       ...taskToMove,
       scheduledDate: new Date().toISOString().split('T')[0],
-      timeTag: 'Today',
     };
 
     set((state) => ({
@@ -146,5 +145,29 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       inboxTasks: state.inboxTasks.filter((t) => t.id !== taskId),
     }));
     await taskService.deleteTask(taskId);
+  },
+
+  incrementTaskPomodoro: async (taskId: string) => {
+    const next = await taskService.incrementPomodoroCycle(taskId);
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, pomodoroCyclesCompleted: next } : t
+      ),
+      inboxTasks: state.inboxTasks.map((t) =>
+        t.id === taskId ? { ...t, pomodoroCyclesCompleted: next } : t
+      ),
+    }));
+  },
+
+  setTaskPomodoroEstimated: async (taskId: string, estimated: number) => {
+    await taskService.updatePomodoroEstimation(taskId, estimated);
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, pomodoroCyclesEstimated: estimated } : t
+      ),
+      inboxTasks: state.inboxTasks.map((t) =>
+        t.id === taskId ? { ...t, pomodoroCyclesEstimated: estimated } : t
+      ),
+    }));
   },
 }));

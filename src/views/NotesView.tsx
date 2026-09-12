@@ -37,12 +37,13 @@ export const NotesView: React.FC = () => {
         <div className="flex items-center justify-between">
           <h3 className="font-display font-bold text-display-4 text-primaryDark">Notes & Docs</h3>
           <Button
-            variant="primary"
-            size="icon"
-            className="w-7 h-7"
+            variant="secondary"
+            size="xs"
+            className="gap-1 font-mono text-mono-xs"
             onClick={() => setIsNewNoteModalOpen(true)}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
+            <span>New</span>
           </Button>
         </div>
 
