@@ -10,7 +10,6 @@ interface TasksState {
   addTask: (params: {
     title: string;
     category?: string;
-    timeTag?: string;
     iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
     scheduledDate?: string | null;
     sourceKanbanCardId?: string;
@@ -92,7 +91,6 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const updatedTask: Task = {
       ...taskToMove,
       scheduledDate: null,
-      timeTag: 'Backlog',
     };
 
     set((state) => ({
@@ -111,7 +109,6 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const updatedTask: Task = {
       ...taskToMove,
       scheduledDate: new Date().toISOString().split('T')[0],
-      timeTag: 'Today',
     };
 
     set((state) => ({

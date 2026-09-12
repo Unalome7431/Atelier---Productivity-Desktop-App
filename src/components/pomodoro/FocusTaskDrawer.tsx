@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   CheckCircle2,
-  Clock,
   Layers,
   Check,
   Plus,
@@ -77,7 +76,7 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
         <div className="p-6 border-b border-border bg-bg/80 flex items-start justify-between">
           <div className="flex flex-col gap-1 min-w-0 pr-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-accent-indigo fill-accent-indigo" />
+              <Sparkles className="w-4 h-4 text-indigo-700 fill-indigo-700/20" />
               <span className="font-mono text-mono-uppercase text-midGray uppercase">
                 Active Focus Target
               </span>
@@ -86,17 +85,11 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
               {activeTarget.title}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 rounded-pill bg-[#EBE7FF] text-primaryDark text-mono-xs font-mono font-medium">
+              <span className="px-2 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-medium">
                 {activeTarget.type === 'kanban'
                   ? `Kanban: ${activeTarget.boardTitle || 'Board'}`
-                  : activeTarget.timeTag || "Today's Queue"}
+                  : "Today's Queue"}
               </span>
-              {currentTask?.scheduledTime && (
-                <span className="flex items-center gap-1 font-mono text-mono-xs text-secondaryGray">
-                  <Clock className="w-3 h-3" />
-                  {currentTask.scheduledTime}
-                </span>
-              )}
             </div>
           </div>
 
@@ -230,7 +223,7 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
           {activeTarget.type === 'kanban' && (
             <div className="bg-bg rounded-card border border-border p-4 flex flex-col gap-2">
               <div className="flex items-center gap-2 text-ui-rg-xs text-secondaryGray">
-                <Layers className="w-4 h-4 text-accent-indigo" />
+                <Layers className="w-4 h-4 text-indigo-700" />
                 <span>Roadmap context:</span>
               </div>
               <p className="text-ui-bold-sm text-primaryDark font-medium">

@@ -155,7 +155,6 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                           id: t.id,
                           title: t.title,
                           type: 'task',
-                          timeTag: t.timeTag,
                         })
                       }
                       className={cn(
@@ -190,7 +189,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-accent-indigo text-primaryDark text-mono-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-bold">
                             Current
                           </span>
                         ) : (
@@ -222,7 +221,6 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                           id: t.id,
                           title: t.title,
                           type: 'task',
-                          timeTag: 'Inbox Backlog',
                         })
                       }
                       className={cn(
@@ -242,7 +240,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-accent-indigo text-primaryDark text-mono-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-bold">
                             Current
                           </span>
                         ) : (
@@ -295,7 +293,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-accent-indigo text-primaryDark text-mono-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-bold">
                             Current
                           </span>
                         ) : (

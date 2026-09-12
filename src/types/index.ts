@@ -35,9 +35,7 @@ export interface Task {
   description?: string;
   category?: string;
   iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
-  timeTag?: string; // e.g. '11:30', 'Today', 'Later'
   scheduledDate?: string | null; // YYYY-MM-DD (null = Inbox backlog)
-  scheduledTime?: string; // e.g. '09:00 AM'
   completed: boolean;
   completedAt?: string;
   orderIndex: number;
@@ -56,7 +54,6 @@ export interface ActiveFocusTarget {
   type: 'task' | 'kanban';
   boardTitle?: string;
   columnTitle?: string;
-  timeTag?: string;
 }
 
 export interface PomodoroSettings {

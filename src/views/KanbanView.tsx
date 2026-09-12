@@ -40,7 +40,6 @@ export const KanbanView: React.FC = () => {
     await addTask({
       title,
       iconType: 'code',
-      timeTag: 'Today',
       scheduledDate: getTodayDateString(),
       sourceKanbanCardId: cardId,
     });
@@ -143,13 +142,20 @@ export const KanbanView: React.FC = () => {
                         }}
                         title="Set as Pomodoro Focus"
                         className={cn(
-                          'text-xs px-1.5 py-0.5 rounded font-mono transition-all cursor-pointer flex items-center gap-1',
+                          'text-xs px-2 py-0.5 rounded font-mono transition-all cursor-pointer flex items-center gap-1',
                           activeTaskId === card.id
-                            ? 'bg-[#EBE7FF] text-primaryDark font-bold opacity-100'
+                            ? 'bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 font-bold opacity-100'
                             : 'opacity-0 group-hover:opacity-100 text-secondaryGray hover:text-primaryDark hover:bg-surface'
                         )}
                       >
-                        <Sparkles className="w-3 h-3 text-accent-indigo shrink-0" />
+                        <Sparkles
+                          className={cn(
+                            'w-3 h-3 shrink-0',
+                            activeTaskId === card.id
+                              ? 'text-indigo-700 fill-indigo-700/20'
+                              : 'text-secondaryGray'
+                          )}
+                        />
                         <span>{activeTaskId === card.id ? 'Focusing' : 'Focus'}</span>
                       </button>
                       <button

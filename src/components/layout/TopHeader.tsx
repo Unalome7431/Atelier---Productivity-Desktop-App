@@ -280,15 +280,15 @@ export const TopHeader: React.FC = () => {
 
           {/* Task Binding Capsule */}
           {activeTarget ? (
-            <div className="flex items-center gap-1 bg-[#EBE7FF]/70 hover:bg-[#EBE7FF] border border-[#D5CEF5] px-2.5 py-0.5 rounded-pill transition-colors group">
+            <div className="flex items-center gap-1 bg-[#EBE7FF] hover:bg-[#E2DCFF] border border-[#D5CEF5] px-2.5 py-0.5 rounded-pill transition-colors group">
               <button
                 type="button"
                 onClick={() => setIsFocusDrawerOpen(true)}
                 className="flex items-center gap-1.5 max-w-[210px] cursor-pointer"
                 title="View & manage active focus task"
               >
-                <Sparkles className="w-3.5 h-3.5 text-accent-indigo fill-accent-indigo/30 shrink-0" />
-                <span className="font-sans font-medium text-ui-rg-xs text-primaryDark truncate">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-700 fill-indigo-700/20 shrink-0" />
+                <span className="font-sans font-medium text-ui-rg-xs text-indigo-950 truncate">
                   Current Focus: {activeTarget.title}
                 </span>
               </button>
@@ -299,7 +299,7 @@ export const TopHeader: React.FC = () => {
                   unbindTarget();
                 }}
                 title="Unbind task from focus timer"
-                className="w-4 h-4 rounded-full text-secondaryGray hover:text-primaryDark hover:bg-black/5 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-4 h-4 rounded-full text-indigo-800/70 hover:text-rose-900 hover:bg-rose-100/60 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-2.5 h-2.5" />
               </button>
@@ -311,7 +311,7 @@ export const TopHeader: React.FC = () => {
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-pill bg-bg border border-border/80 text-secondaryGray hover:text-primaryDark hover:border-border transition-all cursor-pointer group"
               title="Bind an active task or card to this focus session"
             >
-              <Sparkles className="w-3 h-3 text-secondaryGray group-hover:text-accent-indigo transition-colors" />
+              <Sparkles className="w-3 h-3 text-secondaryGray group-hover:text-indigo-700 transition-colors" />
               <span className="font-sans text-ui-rg-xs">Select focus task</span>
             </button>
           )}

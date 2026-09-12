@@ -32,7 +32,6 @@ class DatabaseManager {
           'ALTER TABLE routine_logs ADD COLUMN current_count INTEGER DEFAULT 0;',
           'ALTER TABLE tasks ADD COLUMN subtasks TEXT DEFAULT "[]";',
           'ALTER TABLE tasks ADD COLUMN icon_type TEXT DEFAULT "default";',
-          'ALTER TABLE tasks ADD COLUMN time_tag TEXT;',
           'ALTER TABLE tasks ADD COLUMN pomodoro_cycles_completed INTEGER DEFAULT 0;',
           'ALTER TABLE tasks ADD COLUMN pomodoro_cycles_estimated INTEGER DEFAULT 1;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_focus_mins INTEGER DEFAULT 25;',

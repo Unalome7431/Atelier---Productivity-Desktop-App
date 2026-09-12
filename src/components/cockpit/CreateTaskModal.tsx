@@ -42,7 +42,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       title: title.trim(),
       category: '',
       iconType: 'default',
-      timeTag: destination === 'today' ? 'Today' : 'Backlog',
       scheduledDate,
     });
 

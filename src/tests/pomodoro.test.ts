@@ -117,7 +117,6 @@ async function runTests() {
     id: 'test-task-1',
     title: 'Implement Pomodoro Focus Bar',
     type: 'task' as const,
-    timeTag: 'Today',
   };
   store.bindTarget(testTaskTarget);
   assert(

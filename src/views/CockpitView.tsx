@@ -592,9 +592,9 @@ export const CockpitView: React.FC = () => {
                         <button
                           onClick={() => unbindTarget()}
                           title="Currently bound focus task. Click to unbind."
-                          className="flex items-center gap-1 px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-primaryDark font-mono text-[10px] font-bold cursor-pointer hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 transition-colors"
+                          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 font-mono text-[10px] font-bold cursor-pointer hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 transition-colors"
                         >
-                          <Sparkles className="w-3 h-3 text-accent-indigo fill-accent-indigo shrink-0" />
+                          <Sparkles className="w-3 h-3 text-indigo-700 fill-indigo-700/20 shrink-0" />
                           <span>Focusing</span>
                         </button>
                       ) : task.pomodoroCyclesCompleted && task.pomodoroCyclesCompleted > 0 ? (
@@ -602,7 +602,7 @@ export const CockpitView: React.FC = () => {
                           title={`${task.pomodoroCyclesCompleted} of ${task.pomodoroCyclesEstimated || 1} focus cycles completed`}
                           className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-50 text-purple-900 border border-purple-200/80 flex items-center gap-1"
                         >
-                          <Sparkles className="w-2.5 h-2.5 text-accent-indigo" />
+                          <Sparkles className="w-2.5 h-2.5 text-indigo-700" />
                           <span>
                             {task.pomodoroCyclesCompleted}/{task.pomodoroCyclesEstimated || 1}
                           </span>
@@ -619,7 +619,6 @@ export const CockpitView: React.FC = () => {
                                 id: task.id,
                                 title: task.title,
                                 type: 'task',
-                                timeTag: task.timeTag || "Today's Queue",
                               })
                             }
                             title="Bind to Pomodoro Focus Bar"

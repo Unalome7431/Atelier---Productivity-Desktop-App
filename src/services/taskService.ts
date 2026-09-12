@@ -54,9 +54,7 @@ export class TaskService {
       description: t.description,
       category: t.category_tag || '',
       iconType: t.icon_type || 'default',
-      timeTag: t.time_tag || t.scheduled_start_time || undefined,
       scheduledDate: t.scheduled_date || null,
-      scheduledTime: t.scheduled_start_time,
       completed: t.status === 'done',
       completedAt: t.completed_at,
       orderIndex: parseInt(t.position_rank || '0', 10),
@@ -107,7 +105,6 @@ export class TaskService {
         title: 'Finalize API module contract',
         category: '',
         icon_type: 'flame',
-        time_tag: '11:30',
         scheduled_date: today,
         done: false,
         subtasks: [
@@ -120,7 +117,6 @@ export class TaskService {
         title: 'Prepare onboarding handoff',
         category: '',
         icon_type: 'chat',
-        time_tag: 'Today',
         scheduled_date: today,
         done: false,
         subtasks: [
@@ -133,7 +129,6 @@ export class TaskService {
         title: 'Respond to beta cohort feedback',
         category: '',
         icon_type: 'mail',
-        time_tag: 'Later',
         scheduled_date: today,
         done: false,
         subtasks: [],
@@ -143,7 +138,6 @@ export class TaskService {
         title: 'Explore offline CRDT algorithms for multi-device sync',
         category: '',
         icon_type: 'code',
-        time_tag: 'Backlog',
         scheduled_date: null,
         done: false,
         subtasks: [],
@@ -153,8 +147,8 @@ export class TaskService {
     for (let i = 0; i < defaultTasks.length; i++) {
       const t = defaultTasks[i];
       await db.execute(
-        `INSERT OR IGNORE INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, icon_type, time_tag, subtasks, completed_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR IGNORE INTO tasks (id, title, description, status, position_rank, scheduled_date, category_tag, icon_type, subtasks, completed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           t.id,
           t.title,
@@ -162,10 +156,8 @@ export class TaskService {
           t.done ? 'done' : 'todo',
           `${i}`,
           t.scheduled_date,
-          t.time_tag,
           t.category,
           t.icon_type,
-          t.time_tag,
           JSON.stringify(t.subtasks),
           t.done ? now : null,
           now,
@@ -179,7 +171,6 @@ export class TaskService {
     title: string;
     description?: string;
     category?: string;
-    timeTag?: string;
     iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
     scheduledDate?: string | null;
     sourceKanbanCardId?: string;
@@ -190,11 +181,10 @@ export class TaskService {
     const category = params.category || '';
     const scheduledDate = params.scheduledDate !== undefined ? params.scheduledDate : today;
     const iconType = params.iconType || 'default';
-    const timeTag = params.timeTag || (scheduledDate ? 'Today' : 'Backlog');
 
     await db.execute(
-      `INSERT INTO tasks (id, title, description, status, position_rank, scheduled_date, scheduled_start_time, category_tag, icon_type, time_tag, subtasks, kanban_card_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tasks (id, title, description, status, position_rank, scheduled_date, category_tag, icon_type, subtasks, kanban_card_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         params.title,
@@ -202,10 +192,8 @@ export class TaskService {
         'todo',
         '99',
         scheduledDate,
-        timeTag,
         category,
         iconType,
-        timeTag,
         '[]',
         params.sourceKanbanCardId || null,
         now,
@@ -219,9 +207,7 @@ export class TaskService {
       description: params.description,
       category,
       iconType,
-      timeTag,
       scheduledDate,
-      scheduledTime: timeTag,
       completed: false,
       orderIndex: 99,
       subtasks: [],
@@ -267,12 +253,11 @@ export class TaskService {
   async moveTaskToInbox(taskId: string): Promise<void> {
     const now = new Date().toISOString();
     await db.execute(
-      `UPDATE tasks SET scheduled_date = NULL, time_tag = 'Backlog', updated_at = ? WHERE id = ?`,
+      `UPDATE tasks SET scheduled_date = NULL, updated_at = ? WHERE id = ?`,
       [now, taskId]
     );
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       scheduled_date: null,
-      time_tag: 'Backlog',
       updated_at: now,
     });
   }
@@ -281,12 +266,11 @@ export class TaskService {
     const today = getTodayDateString();
     const now = new Date().toISOString();
     await db.execute(
-      `UPDATE tasks SET scheduled_date = ?, time_tag = 'Today', updated_at = ? WHERE id = ?`,
+      `UPDATE tasks SET scheduled_date = ?, updated_at = ? WHERE id = ?`,
       [today, now, taskId]
     );
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       scheduled_date: today,
-      time_tag: 'Today',
       updated_at: now,
     });
   }
