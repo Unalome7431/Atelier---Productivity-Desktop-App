@@ -146,7 +146,7 @@ export const KanbanView: React.FC = () => {
                           'text-xs px-1.5 py-0.5 rounded font-mono transition-all cursor-pointer flex items-center gap-1',
                           activeTaskId === card.id
                             ? 'bg-[#EBE7FF] text-primaryDark font-bold opacity-100'
-                            : 'opacity-0 group-hover:opacity-100 text-secondaryGray hover:text-accent-indigo hover:bg-surface'
+                            : 'opacity-0 group-hover:opacity-100 text-secondaryGray hover:text-primaryDark hover:bg-surface'
                         )}
                       >
                         <Sparkles className="w-3 h-3 text-accent-indigo shrink-0" />

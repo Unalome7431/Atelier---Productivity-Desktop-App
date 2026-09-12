@@ -24,7 +24,6 @@ import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { getTodayDateString, cn } from '@/lib/utils';
-import { Task } from '@/types';
 
 export const CockpitView: React.FC = () => {
   const {
@@ -189,50 +188,8 @@ export const CockpitView: React.FC = () => {
     setDragOverTaskId(null);
   };
 
-  // Icon component helper - default icon for all to-do items
-  const renderTaskIcon = () => {
-    return (
-      <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center text-secondaryGray flex-shrink-0">
-        <Sparkles className="w-4 h-4 text-accent-mauve" />
-      </div>
-    );
-  };
-
-  // Time / Deadline badge helper
-  const renderTimeBadge = (task: Task) => {
-    const tag = task.timeTag || task.scheduledTime;
-    if (!tag) return null;
-
-    if (tag === '11:30' || tag.includes(':')) {
-      return (
-        <span className="font-mono text-mono-xs font-semibold px-2.5 py-1 rounded-pill bg-rose-100/80 text-rose-900 border border-rose-200">
-          {tag}
-        </span>
-      );
-    }
-    if (tag === 'Today') {
-      return (
-        <span className="font-mono text-mono-xs font-semibold px-2.5 py-1 rounded-pill bg-sky-100/90 text-sky-950 border border-sky-200">
-          Today
-        </span>
-      );
-    }
-    if (tag === 'Later') {
-      return (
-        <span className="font-mono text-mono-xs font-semibold px-2.5 py-1 rounded-pill bg-indigo-100/80 text-indigo-950 border border-indigo-200">
-          Later
-        </span>
-      );
-    }
-    return (
-      <span className="font-mono text-mono-xs font-semibold px-2.5 py-1 rounded-pill bg-surface text-secondaryGray border border-border">
-        {tag}
-      </span>
-    );
-  };
-
   return (
-    <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-bg max-w-7xl mx-auto w-full">
+    <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-bg w-full">
       {/* Main Dual-Card Grid matching Figma ("Habit tracker" on Left, "To-do list" on Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================================= */}
@@ -256,14 +213,15 @@ export const CockpitView: React.FC = () => {
               >
                 View All
               </Button>
-              {/* Lavender rounded square add button */}
-              <button
+              <Button
+                variant="lavender"
+                size="xs"
                 onClick={() => setIsRoutineModalOpen(true)}
-                title="Add Routine Habit"
-                className="w-8 h-8 rounded-lg bg-accent-indigo hover:bg-accent-indigo/80 text-primaryDark border border-indigo-200 flex items-center justify-center transition-all cursor-pointer shadow-subtle active:scale-95"
+                className="gap-1 font-mono text-mono-xs"
               >
-                <Plus className="w-4 h-4" />
-              </button>
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Habit</span>
+              </Button>
             </div>
           </div>
 
@@ -435,14 +393,15 @@ export const CockpitView: React.FC = () => {
                 Complete the planned work for this session.
               </p>
             </div>
-            {/* Soft-mint rounded square add button */}
-            <button
+            <Button
+              variant="mint"
+              size="xs"
               onClick={() => setIsTaskModalOpen(true)}
-              title="Add Tactical Task"
-              className="w-8 h-8 rounded-lg bg-accent-green hover:bg-accent-green/80 text-emerald-950 border border-emerald-300 flex items-center justify-center transition-all cursor-pointer shadow-subtle active:scale-95"
+              className="gap-1 font-mono text-mono-xs"
             >
-              <Plus className="w-4 h-4" />
-            </button>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Task</span>
+            </Button>
           </div>
 
           {/* Tabs: Today's Tactical Queue vs Daily Inbox Backlog */}
@@ -452,7 +411,7 @@ export const CockpitView: React.FC = () => {
               className={cn(
                 'flex items-center gap-2 px-3.5 py-1.5 rounded-pill font-sans text-ui-rg-xs font-semibold transition-all cursor-pointer',
                 activeTaskTab === 'today'
-                  ? 'bg-primaryDark text-bg shadow-xs'
+                  ? 'bg-primaryDark text-white shadow-xs'
                   : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
               )}
             >
@@ -462,7 +421,7 @@ export const CockpitView: React.FC = () => {
                 className={cn(
                   'px-1.5 py-0.2 rounded-pill font-mono text-[10px]',
                   activeTaskTab === 'today'
-                    ? 'bg-white/20 text-bg'
+                    ? 'bg-white/20 text-white'
                     : 'bg-surface border border-border text-secondaryGray'
                 )}
               >
@@ -475,7 +434,7 @@ export const CockpitView: React.FC = () => {
               className={cn(
                 'flex items-center gap-2 px-3.5 py-1.5 rounded-pill font-sans text-ui-rg-xs font-semibold transition-all cursor-pointer',
                 activeTaskTab === 'inbox'
-                  ? 'bg-primaryDark text-bg shadow-xs'
+                  ? 'bg-primaryDark text-white shadow-xs'
                   : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
               )}
             >
@@ -485,7 +444,7 @@ export const CockpitView: React.FC = () => {
                 className={cn(
                   'px-1.5 py-0.2 rounded-pill font-mono text-[10px]',
                   activeTaskTab === 'inbox'
-                    ? 'bg-white/20 text-bg'
+                    ? 'bg-white/20 text-white'
                     : 'bg-surface border border-border text-secondaryGray'
                 )}
               >
@@ -579,15 +538,12 @@ export const CockpitView: React.FC = () => {
                         className={cn(
                           'w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer flex-shrink-0',
                           task.completed
-                            ? 'bg-primaryDark border-primaryDark text-bg'
+                            ? 'bg-primaryDark border-primaryDark text-white'
                             : 'border-border bg-surface hover:border-midGray'
                         )}
                       >
                         {task.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
                       </button>
-
-                      {/* Icon Circle */}
-                      {renderTaskIcon()}
 
                       {/* Title & Subtasks trigger */}
                       <div className="flex flex-col min-w-0 flex-1">
@@ -653,9 +609,6 @@ export const CockpitView: React.FC = () => {
                         </span>
                       ) : null}
 
-                      {/* Time chip (e.g. 11:30, Today, Later) */}
-                      {renderTimeBadge(task)}
-
                       {/* Context actions */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {/* Quick Focus Button if not current focus */}
@@ -670,7 +623,7 @@ export const CockpitView: React.FC = () => {
                               })
                             }
                             title="Bind to Pomodoro Focus Bar"
-                            className="text-xs text-secondaryGray hover:text-accent-indigo hover:bg-surface p-1 rounded transition-colors cursor-pointer flex items-center gap-1 font-mono"
+                            className="text-xs text-secondaryGray hover:text-primaryDark hover:bg-surface p-1 rounded transition-colors cursor-pointer flex items-center gap-1 font-mono"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Focus</span>
@@ -688,10 +641,10 @@ export const CockpitView: React.FC = () => {
                           <button
                             onClick={() => moveTaskToToday(task.id)}
                             title="Move to Today's Queue"
-                            className="text-xs text-emerald-800 bg-accent-green/80 hover:bg-accent-green px-2 py-0.5 rounded-pill font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+                            className="text-xs text-secondaryGray hover:text-primaryDark p-1 rounded hover:bg-surface transition-colors cursor-pointer flex items-center gap-1 font-mono"
                           >
-                            <Sun className="w-3 h-3" />
-                            <span>Today</span>
+                            <Sun className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Today</span>
                           </button>
                         )}
 

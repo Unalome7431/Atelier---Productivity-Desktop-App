@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Sparkles, CheckCircle2, Clock, Layers, ArrowRight } from 'lucide-react';
+import { Search, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { useKanbanStore } from '@/stores/useKanbanStore';
@@ -103,7 +103,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
             className={cn(
               'px-3 py-1 rounded-pill font-medium transition-all cursor-pointer',
               activeTab === 'today'
-                ? 'bg-primaryDark text-bg'
+                ? 'bg-primaryDark text-white'
                 : 'text-secondaryGray hover:text-primaryDark hover:bg-surface'
             )}
           >
@@ -115,7 +115,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
             className={cn(
               'px-3 py-1 rounded-pill font-medium transition-all cursor-pointer',
               activeTab === 'inbox'
-                ? 'bg-primaryDark text-bg'
+                ? 'bg-primaryDark text-white'
                 : 'text-secondaryGray hover:text-primaryDark hover:bg-surface'
             )}
           >
@@ -127,7 +127,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
             className={cn(
               'px-3 py-1 rounded-pill font-medium transition-all cursor-pointer',
               activeTab === 'kanban'
-                ? 'bg-primaryDark text-bg'
+                ? 'bg-primaryDark text-white'
                 : 'text-secondaryGray hover:text-primaryDark hover:bg-surface'
             )}
           >
@@ -165,26 +165,13 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                           : 'bg-surface border-border hover:border-[#DED7C9] hover:bg-bg'
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <Sparkles
-                          className={cn(
-                            'w-4 h-4 shrink-0',
-                            isCurrent
-                              ? 'text-accent-indigo fill-accent-indigo'
-                              : 'text-secondaryGray group-hover:text-primaryDark'
-                          )}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
-                            {t.title}
-                          </p>
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
+                          {t.title}
+                        </p>
+                        {(Boolean(t.subtasks?.length) ||
+                          Boolean(t.pomodoroCyclesCompleted)) && (
                           <div className="flex items-center gap-2 mt-0.5 text-mono-xs font-mono text-secondaryGray">
-                            {t.timeTag && (
-                              <span className="flex items-center gap-1 text-emerald-800">
-                                <Clock className="w-3 h-3" />
-                                {t.timeTag}
-                              </span>
-                            )}
                             {t.subtasks && t.subtasks.length > 0 && (
                               <span className="flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
@@ -199,7 +186,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                                 </span>
                               )}
                           </div>
-                        </div>
+                        )}
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
@@ -245,23 +232,13 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                           : 'bg-surface border-border hover:border-[#DED7C9] hover:bg-bg'
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <Sparkles
-                          className={cn(
-                            'w-4 h-4 shrink-0',
-                            isCurrent
-                              ? 'text-accent-indigo fill-accent-indigo'
-                              : 'text-secondaryGray group-hover:text-primaryDark'
-                          )}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
-                            {t.title}
-                          </p>
-                          <p className="text-mono-xs font-mono text-secondaryGray mt-0.5">
-                            Inbox Backlog
-                          </p>
-                        </div>
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
+                          {t.title}
+                        </p>
+                        <p className="text-mono-xs font-mono text-secondaryGray mt-0.5">
+                          Inbox Backlog
+                        </p>
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
@@ -308,23 +285,13 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                           : 'bg-surface border-border hover:border-[#DED7C9] hover:bg-bg'
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <Layers
-                          className={cn(
-                            'w-4 h-4 shrink-0',
-                            isCurrent
-                              ? 'text-accent-indigo'
-                              : 'text-secondaryGray group-hover:text-primaryDark'
-                          )}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
-                            {item.cardTitle}
-                          </p>
-                          <p className="text-mono-xs font-mono text-secondaryGray mt-0.5">
-                            {item.boardTitle} · {item.columnTitle}
-                          </p>
-                        </div>
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <p className="text-ui-bold-sm text-primaryDark font-medium truncate">
+                          {item.cardTitle}
+                        </p>
+                        <p className="text-mono-xs font-mono text-secondaryGray mt-0.5">
+                          {item.boardTitle} · {item.columnTitle}
+                        </p>
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (

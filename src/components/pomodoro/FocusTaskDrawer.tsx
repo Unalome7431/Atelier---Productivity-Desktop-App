@@ -217,8 +217,9 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
                     placeholder="Add step..."
                     className="flex-1 bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-xs text-primaryDark placeholder:text-midGray outline-none focus:border-[#C5BDAF]"
                   />
-                  <Button type="submit" variant="secondary" size="sm" className="px-2.5">
+                  <Button type="submit" variant="secondary" size="sm" className="gap-1 px-3">
                     <Plus className="w-3.5 h-3.5" />
+                    <span>Add</span>
                   </Button>
                 </form>
               </div>
