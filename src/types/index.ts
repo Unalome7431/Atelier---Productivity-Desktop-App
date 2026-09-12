@@ -50,14 +50,34 @@ export interface Task {
   updatedAt: string;
 }
 
-export interface PomodoroState {
+export interface ActiveFocusTarget {
+  id: string;
+  title: string;
+  type: 'task' | 'kanban';
+  boardTitle?: string;
+  columnTitle?: string;
+  timeTag?: string;
+}
+
+export interface PomodoroSettings {
+  focusMinutes: number;
+  shortBreakMinutes: number;
+  longBreakMinutes: number;
+  targetCyclesDaily: number;
+  soundEnabled: boolean;
+  notificationsEnabled: boolean;
+  autoStartBreaks: boolean;
+  autoStartFocus: boolean;
+}
+
+export interface PomodoroState extends PomodoroSettings {
   mode: 'focus' | 'shortBreak' | 'longBreak';
   durationSeconds: number;
   remainingSeconds: number;
   isRunning: boolean;
   activeTaskId?: string;
+  activeTarget?: ActiveFocusTarget | null;
   completedCyclesToday: number;
-  targetCyclesDaily: number;
 }
 
 export interface KanbanCard {

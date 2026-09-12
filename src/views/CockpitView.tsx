@@ -22,6 +22,7 @@ import { CreateTaskModal } from '@/components/cockpit/CreateTaskModal';
 import { AllRoutinesModal, getStreakBadgeStyle } from '@/components/cockpit/AllRoutinesModal';
 import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { useTasksStore } from '@/stores/useTasksStore';
+import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { getTodayDateString, cn } from '@/lib/utils';
 import { Task } from '@/types';
 
@@ -50,6 +51,8 @@ export const CockpitView: React.FC = () => {
     toggleSubtask,
     deleteTask,
   } = useTasksStore();
+
+  const { activeTaskId, bindTarget, unbindTarget } = usePomodoroStore();
 
   // Modals state
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
@@ -550,7 +553,10 @@ export const CockpitView: React.FC = () => {
                   onDrop={(e) => handleDrop(e, task.id)}
                   onDragEnd={handleDragEnd}
                   className={cn(
-                    'p-3.5 rounded-card bg-bg border border-border/80 transition-all flex flex-col gap-2.5 group relative shadow-subtle',
+                    'p-3.5 rounded-card bg-bg border transition-all flex flex-col gap-2.5 group relative shadow-subtle',
+                    activeTaskId === task.id
+                      ? 'border-[#C5BDAF] bg-[#EBE7FF]/15 ring-1 ring-accent-indigo/40'
+                      : 'border-border/80',
                     dragOverTaskId === task.id && 'border-primaryDark border-2 shadow-md',
                     task.completed && 'opacity-75 bg-bg/70'
                   )}
@@ -625,11 +631,51 @@ export const CockpitView: React.FC = () => {
 
                     {/* Right Chips & Action Controls */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Active Focus Pill or Cycle count */}
+                      {activeTaskId === task.id ? (
+                        <button
+                          onClick={() => unbindTarget()}
+                          title="Currently bound focus task. Click to unbind."
+                          className="flex items-center gap-1 px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-primaryDark font-mono text-[10px] font-bold cursor-pointer hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 transition-colors"
+                        >
+                          <Sparkles className="w-3 h-3 text-accent-indigo fill-accent-indigo shrink-0" />
+                          <span>Focusing</span>
+                        </button>
+                      ) : task.pomodoroCyclesCompleted && task.pomodoroCyclesCompleted > 0 ? (
+                        <span
+                          title={`${task.pomodoroCyclesCompleted} of ${task.pomodoroCyclesEstimated || 1} focus cycles completed`}
+                          className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-50 text-purple-900 border border-purple-200/80 flex items-center gap-1"
+                        >
+                          <Sparkles className="w-2.5 h-2.5 text-accent-indigo" />
+                          <span>
+                            {task.pomodoroCyclesCompleted}/{task.pomodoroCyclesEstimated || 1}
+                          </span>
+                        </span>
+                      ) : null}
+
                       {/* Time chip (e.g. 11:30, Today, Later) */}
                       {renderTimeBadge(task)}
 
                       {/* Context actions */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Quick Focus Button if not current focus */}
+                        {activeTaskId !== task.id && !task.completed && (
+                          <button
+                            onClick={() =>
+                              bindTarget({
+                                id: task.id,
+                                title: task.title,
+                                type: 'task',
+                                timeTag: task.timeTag || "Today's Queue",
+                              })
+                            }
+                            title="Bind to Pomodoro Focus Bar"
+                            className="text-xs text-secondaryGray hover:text-accent-indigo hover:bg-surface p-1 rounded transition-colors cursor-pointer flex items-center gap-1 font-mono"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Focus</span>
+                          </button>
+                        )}
                         {activeTaskTab === 'today' ? (
                           <button
                             onClick={() => moveTaskToInbox(task.id)}

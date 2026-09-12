@@ -61,6 +61,12 @@ export class TaskService {
       completedAt: t.completed_at,
       orderIndex: parseInt(t.position_rank || '0', 10),
       subtasks,
+      pomodoroCyclesCompleted: t.pomodoro_cycles_completed
+        ? Number(t.pomodoro_cycles_completed)
+        : 0,
+      pomodoroCyclesEstimated: t.pomodoro_cycles_estimated
+        ? Number(t.pomodoro_cycles_estimated)
+        : 1,
       sourceKanbanCardId: t.kanban_card_id,
       createdAt: t.created_at,
       updatedAt: t.updated_at,
@@ -346,6 +352,43 @@ export class TaskService {
     });
 
     return subtasks;
+  }
+
+  async incrementPomodoroCycle(taskId: string): Promise<number> {
+    await db.init();
+    const rows = await db.select<any>(`SELECT pomodoro_cycles_completed FROM tasks WHERE id = ?`, [
+      taskId,
+    ]);
+    const current = rows[0]?.pomodoro_cycles_completed
+      ? Number(rows[0].pomodoro_cycles_completed)
+      : 0;
+    const next = current + 1;
+    const now = new Date().toISOString();
+
+    await db.execute(
+      `UPDATE tasks SET pomodoro_cycles_completed = ?, updated_at = ? WHERE id = ?`,
+      [next, now, taskId]
+    );
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      pomodoro_cycles_completed: next,
+      updated_at: now,
+    });
+
+    return next;
+  }
+
+  async updatePomodoroEstimation(taskId: string, estimated: number): Promise<void> {
+    await db.init();
+    const now = new Date().toISOString();
+
+    await db.execute(
+      `UPDATE tasks SET pomodoro_cycles_estimated = ?, updated_at = ? WHERE id = ?`,
+      [estimated, now, taskId]
+    );
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      pomodoro_cycles_estimated: estimated,
+      updated_at: now,
+    });
   }
 
   async deleteTask(taskId: string): Promise<void> {

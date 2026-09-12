@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { useKanbanStore } from '@/stores/useKanbanStore';
 import { useTasksStore } from '@/stores/useTasksStore';
-import { getTodayDateString } from '@/lib/utils';
+import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { getTodayDateString, cn } from '@/lib/utils';
 
 export const KanbanView: React.FC = () => {
   const { boards, activeBoardId, loadBoards, moveCard, addCard } = useKanbanStore();
   const { addTask } = useTasksStore();
+  const { activeTaskId, bindTarget } = usePomodoroStore();
 
   const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
   const [targetColumnId, setTargetColumnId] = useState('planned');
@@ -119,9 +121,37 @@ export const KanbanView: React.FC = () => {
                 {colCards.map((card) => (
                   <div
                     key={card.id}
-                    className="p-4 rounded-card bg-bg border border-border shadow-subtle flex flex-col gap-2 group transition-all"
+                    className={cn(
+                      'p-4 rounded-card bg-bg border shadow-subtle flex flex-col gap-2 group transition-all',
+                      activeTaskId === card.id
+                        ? 'border-[#C5BDAF] bg-[#EBE7FF]/15 ring-1 ring-accent-indigo/40'
+                        : 'border-border'
+                    )}
                   >
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => {
+                          bindTarget({
+                            id: card.id,
+                            title: card.title,
+                            type: 'kanban',
+                            boardTitle: activeBoard.title,
+                            columnTitle: column.title,
+                          });
+                          setToastMessage(`Bound "${card.title}" to Pomodoro focus!`);
+                          setTimeout(() => setToastMessage(null), 3000);
+                        }}
+                        title="Set as Pomodoro Focus"
+                        className={cn(
+                          'text-xs px-1.5 py-0.5 rounded font-mono transition-all cursor-pointer flex items-center gap-1',
+                          activeTaskId === card.id
+                            ? 'bg-[#EBE7FF] text-primaryDark font-bold opacity-100'
+                            : 'opacity-0 group-hover:opacity-100 text-secondaryGray hover:text-accent-indigo hover:bg-surface'
+                        )}
+                      >
+                        <Sparkles className="w-3 h-3 text-accent-indigo shrink-0" />
+                        <span>{activeTaskId === card.id ? 'Focusing' : 'Focus'}</span>
+                      </button>
                       <button
                         onClick={() => handleSendToCockpit(card.id, card.title)}
                         title="Send to Today's Cockpit"

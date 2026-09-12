@@ -7,6 +7,10 @@ export const SQLITE_SCHEMA_QUERIES = [
     pairing_code TEXT,
     pairing_code_expires_at TEXT,
     theme TEXT DEFAULT 'parchment',
+    pomodoro_focus_mins INTEGER DEFAULT 25,
+    pomodoro_break_mins INTEGER DEFAULT 5,
+    pomodoro_long_break_mins INTEGER DEFAULT 15,
+    pomodoro_daily_target INTEGER DEFAULT 4,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -54,6 +58,8 @@ export const SQLITE_SCHEMA_QUERIES = [
     icon_type TEXT DEFAULT 'default',
     time_tag TEXT,
     subtasks TEXT DEFAULT '[]',
+    pomodoro_cycles_completed INTEGER DEFAULT 0,
+    pomodoro_cycles_estimated INTEGER DEFAULT 1,
     completed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
