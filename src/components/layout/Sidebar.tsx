@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useCanvasStore } from '@/stores/useCanvasStore';
+import { useKanbanStore } from '@/stores/useKanbanStore';
+import { NewBoardModal } from '@/components/kanban/NewBoardModal';
 import { NavigationTab } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -34,12 +36,27 @@ export const Sidebar: React.FC = () => {
     loadCanvases,
   } = useCanvasStore();
 
+  const {
+    boards,
+    activeBoardId,
+    setActiveBoardId,
+    createBoard,
+    renameBoard,
+    deleteBoard,
+    loadBoards,
+  } = useKanbanStore();
+
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
 
+  const [renamingBoardId, setRenamingBoardId] = useState<string | null>(null);
+  const [renameBoardInput, setRenameBoardInput] = useState('');
+  const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
+
   useEffect(() => {
     loadCanvases();
-  }, [loadCanvases]);
+    loadBoards();
+  }, [loadCanvases, loadBoards]);
 
   const menuItems: NavItem[] = [
     { id: 'cockpit', label: 'Daily Cockpit', icon: LayoutDashboard },
@@ -68,6 +85,24 @@ export const Sidebar: React.FC = () => {
       renameCanvas(id, renameInput.trim());
     }
     setRenamingId(null);
+  };
+
+  const startRenameBoard = (id: string, currentTitle: string) => {
+    setRenamingBoardId(id);
+    setRenameBoardInput(currentTitle);
+  };
+
+  const handleFinishRenameBoard = (id: string) => {
+    if (renameBoardInput.trim()) {
+      renameBoard(id, renameBoardInput.trim());
+    }
+    setRenamingBoardId(null);
+  };
+
+  const handleCreateBoardSubmit = async (title: string, colorTag: string) => {
+    const newId = await createBoard(title, colorTag);
+    setActiveBoardId(newId);
+    setActiveTab('kanban');
   };
 
   return (
@@ -154,101 +189,206 @@ export const Sidebar: React.FC = () => {
           </div>
 
           {/* Multi-Canvas Manager Shelf (Figma style) */}
-          <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
-            <div className="flex items-center justify-between px-2">
-              <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider">
-                Canvas
-              </span>
-              <button
-                onClick={handleCreateCanvas}
-                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
-                title="Create new canvas"
-              >
-                <Plus className="w-2.5 h-2.5" />
-                <span>+ New canvas</span>
-              </button>
-            </div>
+          {activeTab === 'canvas' && (
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between px-2">
+                <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider">
+                  Canvas
+                </span>
+                <button
+                  onClick={handleCreateCanvas}
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
+                  title="Create new canvas"
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                  <span>New canvas</span>
+                </button>
+              </div>
 
-            <div className="bg-[#F5EFE6]/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-44 overflow-y-auto">
-              {canvases.map((c, index) => {
-                const isCanvasActive = activeTab === 'canvas' && activeCanvasId === c.id;
-                const pastelColors = ['#EEEDFD', '#D0F8E3', '#D7E3FF', '#F5F0E6', '#FED7E8'];
-                const dotColors = ['#818CF8', '#34D399', '#60A5FA', '#FBBF24', '#F472B6'];
-                const bgTint = pastelColors[index % pastelColors.length];
-                const dotColor = dotColors[index % dotColors.length];
+              <div className="bg-[#F5EFE6]/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-44 overflow-y-auto">
+                {canvases.map((c, index) => {
+                  const isCanvasActive = activeTab === 'canvas' && activeCanvasId === c.id;
+                  const pastelColors = ['#EEEDFD', '#D0F8E3', '#D7E3FF', '#F5F0E6', '#FED7E8'];
+                  const dotColors = ['#818CF8', '#34D399', '#60A5FA', '#FBBF24', '#F472B6'];
+                  const bgTint = pastelColors[index % pastelColors.length];
+                  const dotColor = dotColors[index % dotColors.length];
 
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => {
-                      setActiveCanvasId(c.id);
-                      setActiveTab('canvas');
-                    }}
-                    style={{
-                      backgroundColor: isCanvasActive ? bgTint : 'transparent',
-                    }}
-                    className={cn(
-                      'group/canvas flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer select-none',
-                      isCanvasActive
-                        ? 'text-primaryDark font-semibold shadow-xs'
-                        : 'text-secondaryGray hover:text-primaryDark hover:bg-white/60'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div
-                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: dotColor }}
-                      />
-                      {renamingId === c.id ? (
-                        <input
-                          type="text"
-                          value={renameInput}
-                          onChange={(e) => setRenameInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleFinishRename(c.id);
-                            if (e.key === 'Escape') setRenamingId(null);
-                          }}
-                          onBlur={() => handleFinishRename(c.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-white px-1 py-0.5 rounded text-xs outline-none w-24 border border-border"
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="truncate">{c.title}</span>
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        setActiveCanvasId(c.id);
+                        setActiveTab('canvas');
+                      }}
+                      style={{
+                        backgroundColor: isCanvasActive ? bgTint : 'transparent',
+                      }}
+                      className={cn(
+                        'group/canvas flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer select-none',
+                        isCanvasActive
+                          ? 'text-primaryDark font-semibold shadow-xs'
+                          : 'text-secondaryGray hover:text-primaryDark hover:bg-white/60'
                       )}
-                    </div>
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: dotColor }}
+                        />
+                        {renamingId === c.id ? (
+                          <input
+                            type="text"
+                            value={renameInput}
+                            onChange={(e) => setRenameInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleFinishRename(c.id);
+                              if (e.key === 'Escape') setRenamingId(null);
+                            }}
+                            onBlur={() => handleFinishRename(c.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white px-1 py-0.5 rounded text-xs outline-none w-24 border border-border"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="truncate">{c.title}</span>
+                        )}
+                      </div>
 
-                    <div className="opacity-0 group-hover/canvas:opacity-100 flex items-center gap-0.5 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startRename(c.id, c.title);
-                        }}
-                        className="p-1 hover:text-primaryDark text-secondaryGray/70 rounded cursor-pointer"
-                        title="Rename"
-                      >
-                        <Edit2 className="w-2.5 h-2.5" />
-                      </button>
-                      {canvases.length > 1 && (
+                      <div className="opacity-0 group-hover/canvas:opacity-100 flex items-center gap-0.5 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteCanvas(c.id);
+                            startRename(c.id, c.title);
                           }}
-                          className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
-                          title="Delete"
+                          className="p-1 hover:text-primaryDark text-secondaryGray/70 rounded cursor-pointer"
+                          title="Rename"
                         >
-                          <Trash2 className="w-2.5 h-2.5" />
+                          <Edit2 className="w-2.5 h-2.5" />
                         </button>
-                      )}
+                        {canvases.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteCanvas(c.id);
+                            }}
+                            className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Kanban Board Manager Shelf (Figma style) */}
+          {(activeTab === 'kanban' || (activeTab !== 'canvas' && activeTab !== 'notes')) && (
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between px-2">
+                <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider">
+                  Kanban Board
+                </span>
+                <button
+                  onClick={() => setIsNewBoardModalOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
+                  title="Create new project board"
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                  <span>New board</span>
+                </button>
+              </div>
+
+              <div className="bg-[#F5EFE6]/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-44 overflow-y-auto">
+                {boards.map((b, index) => {
+                  const isBoardActive = activeTab === 'kanban' && activeBoardId === b.id;
+                  const pastelColors = ['#EEEDFD', '#D0F8E3', '#D7E3FF', '#F5F0E6', '#FED7E8'];
+                  const bgTint = pastelColors[index % pastelColors.length];
+                  const dotColor = b.colorTag || '#818CF8';
+
+                  return (
+                    <div
+                      key={b.id}
+                      onClick={() => {
+                        setActiveBoardId(b.id);
+                        setActiveTab('kanban');
+                      }}
+                      style={{
+                        backgroundColor: isBoardActive ? bgTint : 'transparent',
+                      }}
+                      className={cn(
+                        'group/board flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer select-none',
+                        isBoardActive
+                          ? 'text-primaryDark font-semibold shadow-xs'
+                          : 'text-secondaryGray hover:text-primaryDark hover:bg-white/60'
+                      )}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: dotColor }}
+                        />
+                        {renamingBoardId === b.id ? (
+                          <input
+                            type="text"
+                            value={renameBoardInput}
+                            onChange={(e) => setRenameBoardInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleFinishRenameBoard(b.id);
+                              if (e.key === 'Escape') setRenamingBoardId(null);
+                            }}
+                            onBlur={() => handleFinishRenameBoard(b.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white px-1 py-0.5 rounded text-xs outline-none w-24 border border-border"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="truncate">{b.title}</span>
+                        )}
+                      </div>
+
+                      <div className="opacity-0 group-hover/board:opacity-100 flex items-center gap-0.5 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startRenameBoard(b.id, b.title);
+                          }}
+                          className="p-1 hover:text-primaryDark text-secondaryGray/70 rounded cursor-pointer"
+                          title="Rename board"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                        </button>
+                        {boards.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteBoard(b.id);
+                            }}
+                            className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
+                            title="Delete board"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* New Board Modal */}
+      <NewBoardModal
+        isOpen={isNewBoardModalOpen}
+        onClose={() => setIsNewBoardModalOpen(false)}
+        onCreate={handleCreateBoardSubmit}
+      />
 
       {/* Footer Settings */}
       <div className="flex flex-col gap-2 pt-3 border-t border-border/80">

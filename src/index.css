@@ -59,6 +59,16 @@
     background: #d8d2c5;
   }
 
+  /* Utility to completely hide scrollbar while preserving scroll behavior */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   /* Direct draggable connector lines without visible dots */
   .react-flow__edges {
     z-index: 5 !important;

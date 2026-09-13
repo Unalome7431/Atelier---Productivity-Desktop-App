@@ -77,30 +77,56 @@ export interface PomodoroState extends PomodoroSettings {
   completedCyclesToday: number;
 }
 
+export interface DomainTagOption {
+  label: string;
+  color?: string;
+}
+
+export interface KanbanChecklistItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface KanbanCard {
   id: string;
-  columnId: string;
+  boardId?: string;
+  columnId: 'planned' | 'in_progress' | 'review' | 'done' | 'complete' | string;
   title: string;
   description?: string;
+  tagLabel?: string;
+  tagColor?: string;
   tags?: string[];
   dueDate?: string;
+  positionRank?: string;
   orderIndex: number;
+  checklist?: KanbanChecklistItem[];
+  commentsCount?: number;
+  completedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface KanbanColumn {
-  id: string;
+  id: 'planned' | 'in_progress' | 'review' | 'done' | 'complete' | string;
   title: string;
   colorAccent?: string;
+  dotColor?: string;
+  bgTint?: string;
   orderIndex: number;
 }
 
 export interface KanbanBoard {
   id: string;
   title: string;
+  colorTag?: string;
+  linkedCanvasId?: string;
+  linkedCanvasTitle?: string;
+  positionRank?: string;
   columns: KanbanColumn[];
   cards: KanbanCard[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CanvasNodeData {

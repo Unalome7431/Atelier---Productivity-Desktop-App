@@ -38,6 +38,16 @@ class DatabaseManager {
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_break_mins INTEGER DEFAULT 5;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_long_break_mins INTEGER DEFAULT 15;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_daily_target INTEGER DEFAULT 4;',
+          'ALTER TABLE kanban_cards ADD COLUMN checklist TEXT DEFAULT "[]";',
+          'ALTER TABLE kanban_cards ADD COLUMN due_date TEXT;',
+          'ALTER TABLE kanban_cards ADD COLUMN tag_label TEXT;',
+          'ALTER TABLE kanban_cards ADD COLUMN tag_color TEXT;',
+          'ALTER TABLE kanban_cards ADD COLUMN comments_count INTEGER DEFAULT 0;',
+          'ALTER TABLE kanban_cards ADD COLUMN completed_at TEXT;',
+          'ALTER TABLE kanban_boards ADD COLUMN color_tag TEXT;',
+          'ALTER TABLE kanban_boards ADD COLUMN linked_canvas_id TEXT;',
+          'ALTER TABLE kanban_boards ADD COLUMN linked_canvas_title TEXT;',
+          'ALTER TABLE kanban_boards ADD COLUMN columns_config TEXT DEFAULT "[]";',
         ];
         for (const migration of safeColumnMigrations) {
           try {
@@ -45,6 +55,15 @@ class DatabaseManager {
           } catch {
             // Column already exists, safe to ignore
           }
+        }
+
+        // Purge legacy system default tags so user has 100% custom tag control
+        try {
+          await this.db.execute(
+            `UPDATE kanban_cards SET tag_label = NULL, tag_color = NULL WHERE LOWER(tag_label) IN ('docs', 'design', 'engineering', 'research', 'qa', 'content', 'backend')`
+          );
+        } catch {
+          // ignore
         }
 
         this.isInitialized = true;
@@ -88,6 +107,29 @@ class DatabaseManager {
       } else {
         this.fallbackMemoryStore.set(table, []);
       }
+    }
+
+    // Clean up any legacy default tags from stored kanban cards in web fallback
+    const legacyDefaultTagNames = new Set([
+      'docs',
+      'design',
+      'engineering',
+      'research',
+      'qa',
+      'content',
+      'backend',
+    ]);
+    const kanbanCards = this.fallbackMemoryStore.get('kanban_cards') || [];
+    let cardsUpdated = false;
+    for (const c of kanbanCards) {
+      if (c.tag_label && legacyDefaultTagNames.has(String(c.tag_label).toLowerCase())) {
+        c.tag_label = null;
+        c.tag_color = null;
+        cardsUpdated = true;
+      }
+    }
+    if (cardsUpdated) {
+      this.persistFallbackTable('kanban_cards');
     }
   }
 
@@ -163,7 +205,7 @@ class DatabaseManager {
     }
 
     if (trimmed.startsWith('UPDATE')) {
-      const match = query.match(/UPDATE\s+([a-zA-Z0-9_]+)\s+SET\s+(.+?)\s+WHERE\s+(.+)/i);
+      const match = query.match(/UPDATE\s+([a-zA-Z0-9_]+)\s+SET\s+([\s\S]+?)\s+WHERE\s+([\s\S]+)/i);
       if (match) {
         const table = match[1].toLowerCase();
         const setClause = match[2];
@@ -185,10 +227,16 @@ class DatabaseManager {
           let matches = false;
           if (whereClause.includes('mutation_id =') || whereClause.includes('mutation_id=')) {
             matches = r.mutation_id === whereParams[0];
-          } else if (whereClause.includes('id =') || whereClause.includes('id=')) {
-            matches = r.id === whereParams[0];
           } else if (whereClause.includes('routine_id =') && whereClause.includes('date =')) {
             matches = r.routine_id === whereParams[0] && r.date === whereParams[1];
+          } else if (whereClause.includes('board_id =') && whereClause.includes('column_id =')) {
+            matches = r.board_id === whereParams[0] && r.column_id === whereParams[1];
+          } else if (whereClause.includes('board_id =') || whereClause.includes('board_id=')) {
+            matches = r.board_id === whereParams[0];
+          } else if (whereClause.includes('column_id =') || whereClause.includes('column_id=')) {
+            matches = r.column_id === whereParams[0];
+          } else if (/\bid\s*=/i.test(whereClause)) {
+            matches = r.id === whereParams[0];
           }
           if (matches) {
             setCols.forEach((col, idx) => {

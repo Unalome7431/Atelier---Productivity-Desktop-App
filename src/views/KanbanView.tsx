@@ -1,21 +1,45 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Check, Sparkles } from 'lucide-react';
-import { Button } from '@/components/common/Button';
-import { Modal } from '@/components/common/Modal';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Plus, Filter, Check, Layers, Search, X } from 'lucide-react';
 import { useKanbanStore } from '@/stores/useKanbanStore';
-import { useTasksStore } from '@/stores/useTasksStore';
-import { usePomodoroStore } from '@/stores/usePomodoroStore';
-import { getTodayDateString, cn } from '@/lib/utils';
+import { useCanvasStore } from '@/stores/useCanvasStore';
+import { useAppStore } from '@/stores/useAppStore';
+import { KanbanColumnLane } from '@/components/kanban/KanbanColumnLane';
+import { KanbanCardDrawer } from '@/components/kanban/KanbanCardDrawer';
+import { NewCardModal } from '@/components/kanban/NewCardModal';
+import { AddColumnModal } from '@/components/kanban/AddColumnModal';
+import { getTagStyle } from '@/lib/tagStyles';
+import { cn } from '@/lib/utils';
 
 export const KanbanView: React.FC = () => {
-  const { boards, activeBoardId, loadBoards, moveCard, addCard } = useKanbanStore();
-  const { addTask } = useTasksStore();
-  const { activeTaskId, bindTarget } = usePomodoroStore();
+  const {
+    boards,
+    activeBoardId,
+    loadBoards,
+    moveCard,
+    addCard,
+    addColumn,
+    renameColumn,
+    deleteColumn,
+    selectedCardId,
+    isDrawerOpen,
+    openCardDrawer,
+    closeCardDrawer,
+    sendToTodayQueue,
+    searchQuery,
+    setSearchQuery,
+    selectedTagFilter,
+    setSelectedTagFilter,
+    getAvailableTags,
+  } = useKanbanStore();
+
+  const { setActiveCanvasId } = useCanvasStore();
+  const { setActiveTab } = useAppStore();
 
   const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
+  const [isAddColumnModalOpen, setIsAddColumnModalOpen] = useState(false);
   const [targetColumnId, setTargetColumnId] = useState('planned');
-  const [cardTitle, setCardTitle] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     loadBoards();
@@ -28,213 +52,315 @@ export const KanbanView: React.FC = () => {
     setIsNewCardModalOpen(true);
   };
 
-  const handleCreateCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cardTitle.trim() || !activeBoard) return;
-    await addCard(activeBoard.id, targetColumnId, cardTitle.trim());
-    setCardTitle('');
-    setIsNewCardModalOpen(false);
-  };
-
-  const handleSendToCockpit = async (cardId: string, title: string) => {
-    await addTask({
-      title,
-      iconType: 'code',
-      scheduledDate: getTodayDateString(),
-      sourceKanbanCardId: cardId,
+  const handleCreateCardSubmit = async (data: {
+    boardId: string;
+    columnId: string;
+    title: string;
+    description: string;
+    tagLabel?: string;
+    dueDate?: string;
+  }) => {
+    await addCard({
+      boardId: data.boardId,
+      columnId: data.columnId,
+      title: data.title,
+      description: data.description,
+      tagLabel: data.tagLabel,
+      dueDate: data.dueDate,
     });
-    setToastMessage(`Sent "${title}" to Today's Queue!`);
+    setToastMessage(`Added card "${data.title}"`);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  const handleSendToToday = async (cardId: string, title: string) => {
+    try {
+      await sendToTodayQueue(cardId);
+      setToastMessage(`Sent "${title}" to Today's Queue!`);
+    } catch (err) {
+      console.error('Failed to send card to today queue:', err);
+    } finally {
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
+
+  const handleMoveCard = async (cardId: string, targetColumnId: string, newRank: string) => {
+    await moveCard(cardId, targetColumnId, newRank);
+  };
+
+  const handleAddColumnSubmit = async (title: string, themeId: string) => {
+    if (!activeBoard) return;
+    const newCol = await addColumn(activeBoard.id, title, themeId);
+    setToastMessage(`Created column "${newCol.title}"`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleRenameColumn = async (columnId: string, newTitle: string) => {
+    if (!activeBoard) return;
+    await renameColumn(activeBoard.id, columnId, newTitle);
+    setToastMessage(`Renamed column to "${newTitle}"`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleDeleteColumn = async (columnId: string) => {
+    if (!activeBoard) return;
+    const colToDelete = activeBoard.columns.find((c) => c.id === columnId);
+    await deleteColumn(activeBoard.id, columnId);
+    setToastMessage(`Deleted column "${colToDelete?.title || ''}"`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleJumpToCanvas = (canvasId?: string) => {
+    if (canvasId) {
+      setActiveCanvasId(canvasId);
+    }
+    setActiveTab('canvas');
+  };
+
+  // Filtered cards per column based on searchQuery & selectedTagFilter
+  const filteredCardsByColumn = useMemo(() => {
+    if (!activeBoard) return {};
+    const map: Record<string, typeof activeBoard.cards> = {};
+
+    activeBoard.columns.forEach((col) => {
+      let cards = activeBoard.cards.filter(
+        (c) => c.columnId === col.id || (col.id === 'done' && c.columnId === 'complete')
+      );
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        cards = cards.filter(
+          (c) =>
+            c.title.toLowerCase().includes(q) ||
+            (c.description && c.description.toLowerCase().includes(q)) ||
+            (c.tagLabel && c.tagLabel.toLowerCase().includes(q))
+        );
+      }
+
+      if (selectedTagFilter) {
+        cards = cards.filter(
+          (c) => c.tagLabel && c.tagLabel.toLowerCase() === selectedTagFilter.toLowerCase()
+        );
+      }
+
+      map[col.id] = cards;
+    });
+
+    return map;
+  }, [activeBoard, searchQuery, selectedTagFilter]);
 
   if (!activeBoard) return null;
 
   return (
-    <div className="flex-1 overflow-x-auto p-8 flex flex-col gap-6 bg-bg h-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="font-mono text-mono-uppercase text-midGray uppercase">
-            Execution Board
-          </span>
-          <h2 className="font-display font-bold text-display-2 text-primaryDark mt-1">
+    <div className="flex-1 overflow-x-auto p-8 flex flex-col gap-6 bg-bg h-full select-none">
+      {/* Workspace Header & Actions (Figma Style) */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        {/* Left: Project Title & Linked Canvas Chip */}
+        <div className="flex items-center gap-3.5">
+          <h1 className="font-display font-bold text-[28px] leading-tight text-primaryDark">
             {activeBoard.title}
-          </h2>
+          </h1>
+
+          {/* Linked Canvas Pill Badge */}
+          {activeBoard.linkedCanvasTitle && (
+            <button
+              onClick={() => handleJumpToCanvas(activeBoard.linkedCanvasId)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EEEDFD] hover:bg-[#E0DEFC] text-[#4338CA] border border-[#D5CEF5] font-mono text-[11px] font-bold tracking-wider transition-all cursor-pointer hover:scale-105 shadow-2xs"
+              title={`Jump to linked spatial canvas: ${activeBoard.linkedCanvasTitle}`}
+            >
+              <Layers className="w-3 h-3 text-[#4338CA]" />
+              <span>{activeBoard.linkedCanvasTitle}</span>
+            </button>
+          )}
         </div>
-        <Button
-          variant="primary"
-          size="md"
-          className="gap-2"
-          onClick={() => handleOpenAddCard('planned')}
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Card</span>
-        </Button>
+
+        {/* Right: Filter Button & New Card Button */}
+        <div className="flex items-center gap-3">
+          {/* Filter Popover Toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setIsFilterOpen((prev) => !prev)}
+              className={cn(
+                'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-sans text-xs font-semibold border transition-all cursor-pointer shadow-2xs',
+                selectedTagFilter || searchQuery || isFilterOpen
+                  ? 'bg-primaryDark text-white border-primaryDark'
+                  : 'bg-white hover:bg-surface text-primaryDark border-border'
+              )}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>Filter</span>
+              {(selectedTagFilter || searchQuery) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-green" />
+              )}
+            </button>
+
+            {/* Filter Dropdown Popover */}
+            {isFilterOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setIsFilterOpen(false)} />
+                <div className="absolute right-0 top-10 w-72 bg-white rounded-2xl shadow-modal border border-border p-4 z-40 animate-fade-in flex flex-col gap-3 font-sans text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <span className="font-mono text-mono-xs font-bold text-midGray uppercase">
+                      Filter Cards
+                    </span>
+                    {(selectedTagFilter || searchQuery) && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedTagFilter(null);
+                        }}
+                        className="text-[11px] font-mono text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Reset All
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-secondaryGray absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search title, notes, tags..."
+                      className="w-full bg-surface border border-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-primaryDark outline-none focus:border-primaryDark"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2.5 top-2.5 text-secondaryGray hover:text-primaryDark"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Domain Tag Filters */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-mono text-mono-xs text-secondaryGray">Domain Tag</span>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
+                      <button
+                        onClick={() => setSelectedTagFilter(null)}
+                        className={cn(
+                          'px-2 py-0.5 rounded-full text-[11px] border transition-colors cursor-pointer',
+                          !selectedTagFilter
+                            ? 'bg-primaryDark text-white border-primaryDark font-medium'
+                            : 'bg-surface text-secondaryGray hover:text-primaryDark border-border'
+                        )}
+                      >
+                        All
+                      </button>
+                      {getAvailableTags().map((tag) => {
+                        const isSelected =
+                          selectedTagFilter?.toLowerCase() === tag.label.toLowerCase();
+                        return (
+                          <button
+                            key={tag.label}
+                            onClick={() => setSelectedTagFilter(isSelected ? null : tag.label)}
+                            className={cn(
+                              'px-2 py-0.5 rounded-full text-[11px] border transition-colors cursor-pointer',
+                              isSelected
+                                ? cn('font-semibold shadow-2xs', getTagStyle(tag.label, tag.color))
+                                : 'bg-surface text-secondaryGray hover:text-primaryDark border-border'
+                            )}
+                          >
+                            {tag.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* + Add Column Button */}
+          <button
+            onClick={() => setIsAddColumnModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-surface text-primaryDark border border-border font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs"
+            title="Create custom workflow column"
+          >
+            <Plus className="w-3.5 h-3.5 text-secondaryGray" />
+            <span>Add column</span>
+          </button>
+
+          {/* + New Card Button (High-affordance Mint Pill) */}
+          <button
+            onClick={() => handleOpenAddCard(activeBoard.columns[0]?.id || 'planned')}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D1FAE5] hover:bg-[#bbf7d0] text-primaryDark border border-[#A7F3D0] font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs hover:scale-102"
+          >
+            <Plus className="w-4 h-4 text-primaryDark" />
+            <span>New card</span>
+          </button>
+        </div>
       </div>
 
+      {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="bg-[#D1FAE5] border border-emerald-300 text-emerald-950 px-4 py-2 rounded-xl text-ui-rg-xs font-mono font-semibold flex items-center gap-2 shadow-sm animate-fade-in">
-          <Check className="w-4 h-4 text-emerald-700" />
+        <div className="bg-[#D1FAE5] border border-emerald-300 text-emerald-950 px-4 py-2 rounded-xl text-ui-rg-xs font-mono font-semibold flex items-center gap-2 shadow-sm animate-fade-in self-start">
+          <Check className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      <div className="flex gap-6 items-start flex-1 min-h-0">
-        {activeBoard.columns.map((column) => {
-          const colCards = activeBoard.cards.filter((c) => c.columnId === column.id);
+      {/* Horizontal Columns Lane Grid */}
+      <div className="flex gap-6 items-start flex-1 min-h-0 overflow-x-auto pb-4">
+        {activeBoard.columns.map((column) => (
+          <KanbanColumnLane
+            key={column.id}
+            column={column}
+            cards={filteredCardsByColumn[column.id] || []}
+            boardTitle={activeBoard.title}
+            canDeleteColumn={activeBoard.columns.length > 1}
+            onOpenAddCard={handleOpenAddCard}
+            onOpenDrawer={openCardDrawer}
+            onSendToToday={handleSendToToday}
+            onMoveCard={handleMoveCard}
+            onRenameColumn={handleRenameColumn}
+            onDeleteColumn={handleDeleteColumn}
+          />
+        ))}
 
-          const dotColors: Record<string, string> = {
-            planned: 'bg-accent-mauve',
-            in_progress: 'bg-accent-blue',
-            review: 'bg-accent-purple',
-            done: 'bg-accent-green',
-          };
-
-          return (
-            <div
-              key={column.id}
-              className="w-80 bg-surface rounded-panel border border-border p-4 flex flex-col gap-3 shadow-card max-h-full"
-            >
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      dotColors[column.id] || 'bg-primaryDark'
-                    }`}
-                  />
-                  <span className="font-display font-bold text-display-6 text-primaryDark">
-                    {column.title}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-mono-xs text-midGray">{colCards.length}</span>
-                  <button
-                    onClick={() => handleOpenAddCard(column.id)}
-                    className="w-5 h-5 rounded-full text-secondaryGray hover:text-primaryDark hover:bg-bg flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2.5 overflow-y-auto pr-1">
-                {colCards.map((card) => (
-                  <div
-                    key={card.id}
-                    className={cn(
-                      'p-4 rounded-card bg-bg border shadow-subtle flex flex-col gap-2 group transition-all',
-                      activeTaskId === card.id
-                        ? 'border-[#C5BDAF] bg-[#EBE7FF]/15 ring-1 ring-accent-indigo/40'
-                        : 'border-border'
-                    )}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => {
-                          bindTarget({
-                            id: card.id,
-                            title: card.title,
-                            type: 'kanban',
-                            boardTitle: activeBoard.title,
-                            columnTitle: column.title,
-                          });
-                          setToastMessage(`Bound "${card.title}" to Pomodoro focus!`);
-                          setTimeout(() => setToastMessage(null), 3000);
-                        }}
-                        title="Set as Pomodoro Focus"
-                        className={cn(
-                          'text-xs px-2 py-0.5 rounded font-mono transition-all cursor-pointer flex items-center gap-1',
-                          activeTaskId === card.id
-                            ? 'bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 font-bold opacity-100'
-                            : 'opacity-0 group-hover:opacity-100 text-secondaryGray hover:text-primaryDark hover:bg-surface'
-                        )}
-                      >
-                        <Sparkles
-                          className={cn(
-                            'w-3 h-3 shrink-0',
-                            activeTaskId === card.id
-                              ? 'text-indigo-700 fill-indigo-700/20'
-                              : 'text-secondaryGray'
-                          )}
-                        />
-                        <span>{activeTaskId === card.id ? 'Focusing' : 'Focus'}</span>
-                      </button>
-                      <button
-                        onClick={() => handleSendToCockpit(card.id, card.title)}
-                        title="Send to Today's Cockpit"
-                        className="opacity-0 group-hover:opacity-100 text-xs text-secondaryGray hover:text-primaryDark transition-opacity cursor-pointer font-mono"
-                      >
-                        → Today
-                      </button>
-                    </div>
-                    <h4 className="font-sans font-semibold text-ui-bold-sm text-primaryDark">
-                      {card.title}
-                    </h4>
-                    {card.description && (
-                      <p className="text-ui-rg-xs text-secondaryGray">{card.description}</p>
-                    )}
-
-                    {/* Quick Move Row */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border/60 text-mono-tag font-mono text-midGray">
-                      <span>Move to:</span>
-                      <div className="flex gap-1">
-                        {activeBoard.columns
-                          .filter((c) => c.id !== column.id)
-                          .map((target) => (
-                            <button
-                              key={target.id}
-                              onClick={() => moveCard(card.id, target.id)}
-                              className="hover:text-primaryDark px-1 py-0.5 rounded bg-surface hover:bg-border transition-colors cursor-pointer"
-                            >
-                              {target.title.substring(0, 3)}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+        {/* Add Column Lane Placeholder Card */}
+        <button
+          onClick={() => setIsAddColumnModalOpen(true)}
+          className="w-[360px] min-w-[360px] max-w-[380px] h-36 rounded-3xl border-2 border-dashed border-border/80 hover:border-primaryDark/40 bg-surface/30 hover:bg-surface/70 p-5 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer group flex-shrink-0"
+        >
+          <div className="w-8 h-8 rounded-full bg-white group-hover:bg-primaryDark group-hover:text-white text-secondaryGray flex items-center justify-center border border-border shadow-2xs transition-colors">
+            <Plus className="w-4 h-4" />
+          </div>
+          <span className="font-display font-bold text-xs text-secondaryGray group-hover:text-primaryDark transition-colors">
+            Add New Column
+          </span>
+        </button>
       </div>
 
       {/* New Kanban Card Modal */}
-      <Modal
+      <NewCardModal
         isOpen={isNewCardModalOpen}
         onClose={() => setIsNewCardModalOpen(false)}
-        title="Add Kanban Card"
-        description={`Add a new roadmap item to column "${activeBoard.columns.find((c) => c.id === targetColumnId)?.title}".`}
-      >
-        <form onSubmit={handleCreateCard} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-              Card Title
-            </label>
-            <input
-              type="text"
-              autoFocus
-              value={cardTitle}
-              onChange={(e) => setCardTitle(e.target.value)}
-              placeholder="e.g. Design serverless webhook gateway..."
-              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
-            />
-          </div>
+        board={activeBoard}
+        targetColumnId={targetColumnId}
+        onCreate={handleCreateCardSubmit}
+      />
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-border">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsNewCardModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" size="sm">
-              Add Card
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* Add Custom Column Modal */}
+      <AddColumnModal
+        isOpen={isAddColumnModalOpen}
+        onClose={() => setIsAddColumnModalOpen(false)}
+        boardTitle={activeBoard.title}
+        onAddColumn={handleAddColumnSubmit}
+      />
+
+      {/* Slide-Over Card Detail Drawer */}
+      <KanbanCardDrawer
+        cardId={selectedCardId}
+        board={activeBoard}
+        isOpen={isDrawerOpen}
+        onClose={closeCardDrawer}
+        onSendToToday={handleSendToToday}
+      />
     </div>
   );
 };
