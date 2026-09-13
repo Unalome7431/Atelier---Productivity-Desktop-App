@@ -43,6 +43,7 @@ export const CustomEdge: React.FC<EdgeProps> = memo(
         <BaseEdge
           path={edgePath}
           markerEnd={markerEnd}
+          interactionWidth={35}
           style={{
             stroke: strokeColor,
             strokeWidth: selected ? 2.5 : 1.75,
@@ -56,6 +57,7 @@ export const CustomEdge: React.FC<EdgeProps> = memo(
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: 'all',
+              zIndex: 1000,
             }}
             className="nodrag nopan group/edge"
           >

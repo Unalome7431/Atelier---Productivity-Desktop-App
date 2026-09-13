@@ -67,7 +67,10 @@ export const SQLITE_SCHEMA_QUERIES = [
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     color_tag TEXT,
+    linked_canvas_id TEXT,
+    linked_canvas_title TEXT,
     position_rank TEXT NOT NULL DEFAULT '0',
+    columns_config TEXT DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -83,6 +86,8 @@ export const SQLITE_SCHEMA_QUERIES = [
     position_rank TEXT NOT NULL DEFAULT '0',
     checklist TEXT DEFAULT '[]',
     due_date TEXT,
+    comments_count INTEGER DEFAULT 0,
+    completed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(board_id) REFERENCES kanban_boards(id) ON DELETE CASCADE

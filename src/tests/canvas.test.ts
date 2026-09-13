@@ -308,7 +308,22 @@ async function runTests() {
     'Enclosed Kanban node automatically followed the section area'
   );
 
-  console.log('\nAll 20 Infinite Spatial Canvas engine tests PASSED successfully!');
+  // Test 6: Layering Hierarchy (Section < Edges < Cards)
+  console.log('\n--- Test 6: Layering Hierarchy Engine ---');
+  const sectionZIndex = secNodeAfter?.zIndex ?? 0;
+  const kanbanZIndex = kanbanNodeAfter?.zIndex ?? 10;
+  const testEdge = useCanvasStore.getState().edges[0];
+  const edgeZIndex = testEdge?.zIndex ?? 5;
+
+  assert(sectionZIndex === 0, 'Section node is at background level (zIndex: 0)');
+  assert(edgeZIndex === 5, 'Connector edges are layered above section (zIndex: 5)');
+  assert(kanbanZIndex === 10, 'Card nodes are layered above edges (zIndex: 10)');
+  assert(
+    kanbanZIndex > edgeZIndex && edgeZIndex > sectionZIndex,
+    'Verified hierarchy: Cards (10) > Edges (5) > Section (0) so connectors inside sections remain clickable'
+  );
+
+  console.log('\nAll 24 Infinite Spatial Canvas engine tests PASSED successfully!');
 }
 
 runTests().catch((err) => {

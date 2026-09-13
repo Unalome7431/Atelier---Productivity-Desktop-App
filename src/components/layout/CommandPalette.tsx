@@ -17,13 +17,14 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { useNotesStore } from '@/stores/useNotesStore';
 import { NavigationTab } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface CommandItem {
   id: string;
   title: string;
-  category: 'Navigation' | 'Actions' | 'Focus' | 'Settings';
+  category: 'Navigation' | 'Actions' | 'Focus' | 'Settings' | 'Notes';
   icon: React.ElementType;
   shortcut?: string;
   perform: () => void;
@@ -33,6 +34,7 @@ export const CommandPalette: React.FC = () => {
   const { isCommandPaletteOpen, setCommandPaletteOpen, setActiveTab } = useAppStore();
   const { isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget } =
     usePomodoroStore();
+  const { notes, setActiveNoteId, createNote } = useNotesStore();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -160,8 +162,34 @@ export const CommandPalette: React.FC = () => {
         icon: CheckCircle2,
         perform: () => {},
       },
+      {
+        id: 'action-new-note',
+        title: 'Create New Knowledge Note',
+        category: 'Actions',
+        icon: Plus,
+        shortcut: 'N',
+        perform: async () => {
+          const newNote = await createNote({
+            title: 'New Note',
+            folder: 'General',
+          });
+          setActiveNoteId(newNote.id);
+          setActiveTab('notes' as NavigationTab);
+        },
+      },
+      ...notes.map((n) => ({
+        id: `note-${n.id}`,
+        title: `Open Note: ${n.title}`,
+        category: 'Notes' as const,
+        icon: FileText,
+        shortcut: n.folder || 'Note',
+        perform: () => {
+          setActiveNoteId(n.id);
+          setActiveTab('notes' as NavigationTab);
+        },
+      })),
     ],
-    [setActiveTab, isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget]
+    [setActiveTab, isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget, notes, setActiveNoteId, createNote]
   );
 
   const filteredCommands = useMemo(() => {

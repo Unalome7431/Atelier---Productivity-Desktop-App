@@ -6,8 +6,8 @@ import { getTodayDateString } from '@/lib/utils';
 export class TaskService {
   private seedingPromise: Promise<void> | null = null;
 
-  async getTodayTasks(): Promise<Task[]> {
-    const today = getTodayDateString();
+  async getTodayTasks(date?: string): Promise<Task[]> {
+    const targetDate = date || getTodayDateString();
 
     const allRows = await db.select<any>('SELECT id FROM tasks');
     if (allRows.length === 0) {
@@ -21,7 +21,7 @@ export class TaskService {
 
     const rows = await db.select<any>(
       `SELECT * FROM tasks WHERE scheduled_date = ? ORDER BY position_rank ASC`,
-      [today]
+      [targetDate]
     );
 
     const cleanedRows = await this.deduplicateTasks(rows);
@@ -174,6 +174,7 @@ export class TaskService {
     iconType?: 'flame' | 'chat' | 'mail' | 'code' | 'default';
     scheduledDate?: string | null;
     sourceKanbanCardId?: string;
+    subtasks?: TaskSubtask[];
   }): Promise<Task> {
     const today = getTodayDateString();
     const id = `tsk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -181,6 +182,8 @@ export class TaskService {
     const category = params.category || '';
     const scheduledDate = params.scheduledDate !== undefined ? params.scheduledDate : today;
     const iconType = params.iconType || 'default';
+    const subtasks = params.subtasks || [];
+    const subtasksJson = JSON.stringify(subtasks);
 
     await db.execute(
       `INSERT INTO tasks (id, title, description, status, position_rank, scheduled_date, category_tag, icon_type, subtasks, kanban_card_id, created_at, updated_at)
@@ -194,7 +197,7 @@ export class TaskService {
         scheduledDate,
         category,
         iconType,
-        '[]',
+        subtasksJson,
         params.sourceKanbanCardId || null,
         now,
         now,
@@ -210,7 +213,7 @@ export class TaskService {
       scheduledDate,
       completed: false,
       orderIndex: 99,
-      subtasks: [],
+      subtasks,
       sourceKanbanCardId: params.sourceKanbanCardId,
       createdAt: now,
       updatedAt: now,
@@ -272,6 +275,20 @@ export class TaskService {
     ]);
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       scheduled_date: today,
+      updated_at: now,
+    });
+  }
+
+  async updateTaskScheduledDate(taskId: string, scheduledDate: string | null): Promise<void> {
+    const now = new Date().toISOString();
+    await db.execute(`UPDATE tasks SET scheduled_date = ?, updated_at = ? WHERE id = ?`, [
+      scheduledDate,
+      now,
+      taskId,
+    ]);
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      id: taskId,
+      scheduled_date: scheduledDate,
       updated_at: now,
     });
   }

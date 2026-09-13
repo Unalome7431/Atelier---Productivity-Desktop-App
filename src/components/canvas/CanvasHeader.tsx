@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import {
-  Maximize2,
-  ZoomIn,
-  ZoomOut,
-  Grid,
-  Edit2,
-  Check,
-  Maximize,
-  Minimize,
-} from 'lucide-react';
+import { Maximize2, ZoomIn, ZoomOut, Grid, Edit2, Check, Maximize, Minimize } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { cn } from '@/lib/utils';
 

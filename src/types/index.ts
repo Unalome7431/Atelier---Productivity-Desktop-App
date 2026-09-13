@@ -77,30 +77,56 @@ export interface PomodoroState extends PomodoroSettings {
   completedCyclesToday: number;
 }
 
+export interface DomainTagOption {
+  label: string;
+  color?: string;
+}
+
+export interface KanbanChecklistItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface KanbanCard {
   id: string;
-  columnId: string;
+  boardId?: string;
+  columnId: 'planned' | 'in_progress' | 'review' | 'done' | 'complete' | string;
   title: string;
   description?: string;
+  tagLabel?: string;
+  tagColor?: string;
   tags?: string[];
   dueDate?: string;
+  positionRank?: string;
   orderIndex: number;
+  checklist?: KanbanChecklistItem[];
+  commentsCount?: number;
+  completedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface KanbanColumn {
-  id: string;
+  id: 'planned' | 'in_progress' | 'review' | 'done' | 'complete' | string;
   title: string;
   colorAccent?: string;
+  dotColor?: string;
+  bgTint?: string;
   orderIndex: number;
 }
 
 export interface KanbanBoard {
   id: string;
   title: string;
+  colorTag?: string;
+  linkedCanvasId?: string;
+  linkedCanvasTitle?: string;
+  positionRank?: string;
   columns: KanbanColumn[];
   cards: KanbanCard[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CanvasNodeData {
@@ -166,12 +192,34 @@ export interface CanvasDocument {
 export interface NoteDocument {
   id: string;
   title: string;
-  content: string; // HTML or Markdown
+  content: string; // HTML or JSON string
+  folder?: string;
   category?: string;
+  categoryColor?: string;
+  canvasId?: string;
+  canvasTitle?: string;
   tags?: string[];
   isPinned?: boolean;
   updatedAt: string;
   createdAt: string;
+}
+
+export interface BacklinkItem {
+  id: string;
+  type: 'canvas' | 'note' | 'kanban' | 'task';
+  title: string;
+  subtitle?: string;
+  targetId: string;
+  containerId?: string;
+}
+
+export interface MentionItem {
+  id: string;
+  type: 'card' | 'task' | 'canvas' | 'note';
+  title: string;
+  subtitle?: string;
+  color?: string;
+  containerId?: string;
 }
 
 export interface CalendarEvent {
@@ -183,18 +231,21 @@ export interface CalendarEvent {
   date: string; // YYYY-MM-DD
   description?: string;
   location?: string;
-  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue';
+  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve';
+  taskId?: string;
+  isFixed?: boolean;
 }
 
 export interface RecurringWeeklyBlock {
   id: string;
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  timeSlot: string; // e.g. "09:00", "10:00", "11:00", "14:00", "16:00"
+  timeSlot?: string; // e.g. "09:00"
   title: string;
   startFormatted: string; // e.g. "09:00"
   endFormatted: string; // e.g. "09:45"
-  category: 'meeting' | 'focus' | 'review' | 'build' | 'planning';
-  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue';
+  category: 'meeting' | 'focus' | 'review' | 'build' | 'planning' | 'class' | 'work';
+  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve';
+  description?: string;
 }
 
 export interface SyncStatus {
