@@ -48,6 +48,9 @@ class DatabaseManager {
           'ALTER TABLE kanban_boards ADD COLUMN linked_canvas_id TEXT;',
           'ALTER TABLE kanban_boards ADD COLUMN linked_canvas_title TEXT;',
           'ALTER TABLE kanban_boards ADD COLUMN columns_config TEXT DEFAULT "[]";',
+          'ALTER TABLE notes ADD COLUMN canvas_id TEXT;',
+          'ALTER TABLE notes ADD COLUMN canvas_title TEXT;',
+          'ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;',
         ];
         for (const migration of safeColumnMigrations) {
           try {
@@ -61,6 +64,9 @@ class DatabaseManager {
         try {
           await this.db.execute(
             `UPDATE kanban_cards SET tag_label = NULL, tag_color = NULL WHERE LOWER(tag_label) IN ('docs', 'design', 'engineering', 'research', 'qa', 'content', 'backend')`
+          );
+          await this.db.execute(
+            `UPDATE notes SET folder = NULL WHERE LOWER(folder) IN ('architecture', 'engineering', 'guides', 'studio logs', 'general', 'pinned')`
           );
         } catch {
           // ignore
@@ -130,6 +136,27 @@ class DatabaseManager {
     }
     if (cardsUpdated) {
       this.persistFallbackTable('kanban_cards');
+    }
+
+    // Clean up any legacy default folders from stored notes in web fallback
+    const legacyFolderNames = new Set([
+      'architecture',
+      'engineering',
+      'guides',
+      'studio logs',
+      'general',
+      'pinned',
+    ]);
+    const storedNotes = this.fallbackMemoryStore.get('notes') || [];
+    let notesUpdated = false;
+    for (const n of storedNotes) {
+      if (n.folder && legacyFolderNames.has(String(n.folder).toLowerCase())) {
+        n.folder = null;
+        notesUpdated = true;
+      }
+    }
+    if (notesUpdated) {
+      this.persistFallbackTable('notes');
     }
   }
 

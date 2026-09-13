@@ -10,10 +10,14 @@ import {
   Plus,
   Edit2,
   Trash2,
+  Pin,
+  FolderPlus,
+  X,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useKanbanStore } from '@/stores/useKanbanStore';
+import { useNotesStore } from '@/stores/useNotesStore';
 import { NewBoardModal } from '@/components/kanban/NewBoardModal';
 import { NavigationTab } from '@/types';
 import { cn } from '@/lib/utils';
@@ -46,6 +50,21 @@ export const Sidebar: React.FC = () => {
     loadBoards,
   } = useKanbanStore();
 
+  const {
+    notes,
+    activeNoteId,
+    setActiveNoteId,
+    createNote,
+    updateNote,
+    deleteNote,
+    loadNotes,
+    activeFolder,
+    setActiveFolder,
+    getFolders,
+    createFolder,
+    deleteFolder,
+  } = useNotesStore();
+
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
 
@@ -53,10 +72,16 @@ export const Sidebar: React.FC = () => {
   const [renameBoardInput, setRenameBoardInput] = useState('');
   const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
 
+  const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
+  const [renameNoteInput, setRenameNoteInput] = useState('');
+  const [isCreatingSidebarFolder, setIsCreatingSidebarFolder] = useState(false);
+  const [sidebarFolderName, setSidebarFolderName] = useState('');
+
   useEffect(() => {
     loadCanvases();
     loadBoards();
-  }, [loadCanvases, loadBoards]);
+    loadNotes();
+  }, [loadCanvases, loadBoards, loadNotes]);
 
   const menuItems: NavItem[] = [
     { id: 'cockpit', label: 'Daily Cockpit', icon: LayoutDashboard },
@@ -103,6 +128,39 @@ export const Sidebar: React.FC = () => {
     const newId = await createBoard(title, colorTag);
     setActiveBoardId(newId);
     setActiveTab('kanban');
+  };
+
+  const handleCreateNote = async () => {
+    const newNote = await createNote({
+      title: 'New Note',
+      folder: activeFolder || 'General',
+      categoryColor: '#EEEDFD',
+    });
+    setActiveNoteId(newNote.id);
+    setActiveTab('notes');
+  };
+
+  const startRenameNote = (id: string, currentTitle: string) => {
+    setRenamingNoteId(id);
+    setRenameNoteInput(currentTitle);
+  };
+
+  const handleFinishRenameNote = (id: string) => {
+    if (renameNoteInput.trim()) {
+      updateNote(id, { title: renameNoteInput.trim() });
+    }
+    setRenamingNoteId(null);
+  };
+
+  const handleCreateSidebarFolder = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = sidebarFolderName.trim();
+    if (trimmed) {
+      createFolder(trimmed);
+      setActiveFolder(trimmed);
+      setSidebarFolderName('');
+      setIsCreatingSidebarFolder(false);
+    }
   };
 
   return (
@@ -377,6 +435,199 @@ export const Sidebar: React.FC = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Notes Manager Shelf (matching Figma Notes screen) */}
+          {activeTab === 'notes' && (
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between px-2">
+                <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider">
+                  Notes
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setIsCreatingSidebarFolder(!isCreatingSidebarFolder)}
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
+                    title="Create new folder"
+                  >
+                    <FolderPlus className="w-2.5 h-2.5" />
+                    <span>Folder</span>
+                  </button>
+                  <button
+                    onClick={handleCreateNote}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
+                    title="Create new note"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                    <span>Note</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Inline Folder Creation Form in Sidebar */}
+              {isCreatingSidebarFolder && (
+                <form
+                  onSubmit={handleCreateSidebarFolder}
+                  className="px-1 py-1 flex items-center gap-1 bg-white/90 border border-border rounded-xl mx-1 shadow-2xs"
+                >
+                  <input
+                    type="text"
+                    autoFocus
+                    value={sidebarFolderName}
+                    onChange={(e) => setSidebarFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateSidebarFolder();
+                      }
+                      if (e.key === 'Escape') {
+                        setIsCreatingSidebarFolder(false);
+                      }
+                    }}
+                    placeholder="Folder name..."
+                    className="bg-transparent px-1.5 py-0.5 text-xs text-primaryDark outline-none w-full"
+                  />
+                  <button
+                    type="submit"
+                    className="px-2 py-0.5 rounded-lg bg-accent-indigo text-indigo-950 text-[10px] font-bold cursor-pointer shrink-0"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingSidebarFolder(false)}
+                    className="p-0.5 rounded text-secondaryGray hover:text-primaryDark cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </form>
+              )}
+
+              {/* Folder filter pills */}
+              {getFolders().length > 0 && (
+                <div className="flex items-center gap-1 px-1 overflow-x-auto no-scrollbar py-0.5">
+                  <button
+                    onClick={() => setActiveFolder(undefined)}
+                    className={cn(
+                      'px-2 py-0.5 rounded-full text-[9px] font-mono whitespace-nowrap transition-colors cursor-pointer',
+                      !activeFolder
+                        ? 'bg-white text-primaryDark font-bold shadow-xs'
+                        : 'text-secondaryGray hover:text-primaryDark'
+                    )}
+                  >
+                    ALL
+                  </button>
+                  {getFolders().map((f) => (
+                    <div
+                      key={f}
+                      className={cn(
+                        'group/f flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono whitespace-nowrap transition-colors cursor-pointer',
+                        activeFolder === f
+                          ? 'bg-white text-primaryDark font-bold shadow-xs'
+                          : 'text-secondaryGray hover:text-primaryDark bg-surface/50'
+                      )}
+                      onClick={() => setActiveFolder(f)}
+                    >
+                      <span>{f.toUpperCase()}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteFolder(f);
+                        }}
+                        className="opacity-0 group-hover/f:opacity-100 hover:text-rose-600 transition-opacity p-0.5 cursor-pointer"
+                        title="Delete folder"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Notes List with Figma Pastel Pills */}
+              <div className="bg-[#F5EFE6]/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-48 overflow-y-auto">
+                {notes
+                  .filter((n) => !activeFolder || n.folder === activeFolder)
+                  .map((n) => {
+                    const isNoteActive = activeTab === 'notes' && activeNoteId === n.id;
+                    const bgTint = n.categoryColor || '#EEEDFD';
+
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          setActiveNoteId(n.id);
+                          setActiveTab('notes');
+                        }}
+                        style={{
+                          backgroundColor: isNoteActive ? bgTint : 'transparent',
+                        }}
+                        className={cn(
+                          'group/note flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer select-none',
+                          isNoteActive
+                            ? 'text-primaryDark font-semibold shadow-xs'
+                            : 'text-secondaryGray hover:text-primaryDark hover:bg-white/60'
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: isNoteActive ? '#818CF8' : '#A8A29E' }}
+                          />
+                          {renamingNoteId === n.id ? (
+                            <input
+                              type="text"
+                              value={renameNoteInput}
+                              onChange={(e) => setRenameNoteInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleFinishRenameNote(n.id);
+                                if (e.key === 'Escape') setRenamingNoteId(null);
+                              }}
+                              onBlur={() => handleFinishRenameNote(n.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-white px-1 py-0.5 rounded text-xs outline-none w-24 border border-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="truncate">{n.title}</span>
+                              {n.isPinned && (
+                                <Pin className="w-2.5 h-2.5 text-indigo-700 fill-indigo-700 shrink-0" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="opacity-0 group-hover/note:opacity-100 flex items-center gap-0.5 transition-opacity">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startRenameNote(n.id, n.title);
+                            }}
+                            className="p-1 hover:text-primaryDark text-secondaryGray/70 rounded cursor-pointer"
+                            title="Rename"
+                          >
+                            <Edit2 className="w-2.5 h-2.5" />
+                          </button>
+                          {notes.length > 1 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNote(n.id);
+                              }}
+                              className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}

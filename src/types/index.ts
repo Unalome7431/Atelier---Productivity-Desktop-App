@@ -192,12 +192,34 @@ export interface CanvasDocument {
 export interface NoteDocument {
   id: string;
   title: string;
-  content: string; // HTML or Markdown
+  content: string; // HTML or JSON string
+  folder?: string;
   category?: string;
+  categoryColor?: string;
+  canvasId?: string;
+  canvasTitle?: string;
   tags?: string[];
   isPinned?: boolean;
   updatedAt: string;
   createdAt: string;
+}
+
+export interface BacklinkItem {
+  id: string;
+  type: 'canvas' | 'note' | 'kanban' | 'task';
+  title: string;
+  subtitle?: string;
+  targetId: string;
+  containerId?: string;
+}
+
+export interface MentionItem {
+  id: string;
+  type: 'card' | 'task' | 'canvas' | 'note';
+  title: string;
+  subtitle?: string;
+  color?: string;
+  containerId?: string;
 }
 
 export interface CalendarEvent {
