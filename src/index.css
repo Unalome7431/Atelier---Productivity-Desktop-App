@@ -60,6 +60,14 @@
   }
 
   /* Direct draggable connector lines without visible dots */
+  .react-flow__edges {
+    z-index: 5 !important;
+  }
+
+  .react-flow__edgelabel-renderer {
+    z-index: 6 !important;
+  }
+
   .react-flow__edge {
     cursor: grab;
   }

@@ -47,6 +47,7 @@ export function formatCanvasEdges(rawEdges: any[]): Edge[] {
     targetHandle: e.targetHandle || null,
     label: e.label,
     type: 'custom',
+    zIndex: 5,
     data: e.data || {},
     markerEnd: {
       type: MarkerType.ArrowClosed,
@@ -314,6 +315,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       targetHandle: connection.targetHandle,
       label: 'depends on',
       type: 'custom',
+      zIndex: 5,
       data: { stroke: '#A5B4FC' },
       markerEnd: {
         type: MarkerType.ArrowClosed,
@@ -420,17 +422,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const { activeCanvasId, canvases, nodes } = get();
     if (!activeCanvasId) return;
 
+    const isSec = node.type === 'section' || node.type === 'group';
     const formattedNode: Node = {
       id: node.id || `node_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       type: node.type || 'simple_text',
       position: node.position || { x: 300, y: 200 },
       width: node.width,
       height: node.height,
+      zIndex: isSec ? 0 : 10,
       data: node.data || {},
       style: node.style,
     };
 
-    const updatedNodes = [...nodes, formattedNode];
+    const updatedNodes = isSec ? [formattedNode, ...nodes] : [...nodes, formattedNode];
 
     set({
       nodes: updatedNodes,
@@ -493,6 +497,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       targetHandle: edge.targetHandle || null,
       label: edge.label,
       type: 'custom',
+      zIndex: 5,
       data: edge.data || { stroke: '#A5B4FC' },
       markerEnd: {
         type: MarkerType.ArrowClosed,
