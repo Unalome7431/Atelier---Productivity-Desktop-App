@@ -231,18 +231,21 @@ export interface CalendarEvent {
   date: string; // YYYY-MM-DD
   description?: string;
   location?: string;
-  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue';
+  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve';
+  taskId?: string;
+  isFixed?: boolean;
 }
 
 export interface RecurringWeeklyBlock {
   id: string;
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  timeSlot: string; // e.g. "09:00", "10:00", "11:00", "14:00", "16:00"
+  timeSlot?: string; // e.g. "09:00"
   title: string;
   startFormatted: string; // e.g. "09:00"
   endFormatted: string; // e.g. "09:45"
-  category: 'meeting' | 'focus' | 'review' | 'build' | 'planning';
-  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue';
+  category: 'meeting' | 'focus' | 'review' | 'build' | 'planning' | 'class' | 'work';
+  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve';
+  description?: string;
 }
 
 export interface SyncStatus {

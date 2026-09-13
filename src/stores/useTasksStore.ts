@@ -18,6 +18,7 @@ interface TasksState {
   reorderTasks: (reorderedTasks: Task[]) => Promise<void>;
   moveTaskToInbox: (taskId: string) => Promise<void>;
   moveTaskToToday: (taskId: string) => Promise<void>;
+  setTaskScheduledDate: (taskId: string, scheduledDate: string | null) => Promise<void>;
   addSubtask: (taskId: string, title: string) => Promise<void>;
   toggleSubtask: (taskId: string, subtaskId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -117,6 +118,11 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     }));
 
     await taskService.moveTaskToToday(taskId);
+  },
+
+  setTaskScheduledDate: async (taskId: string, scheduledDate: string | null) => {
+    await taskService.updateTaskScheduledDate(taskId, scheduledDate);
+    await get().loadTasks();
   },
 
   addSubtask: async (taskId: string, title: string) => {

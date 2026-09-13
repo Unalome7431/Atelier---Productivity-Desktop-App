@@ -6,8 +6,8 @@ import { getTodayDateString } from '@/lib/utils';
 export class TaskService {
   private seedingPromise: Promise<void> | null = null;
 
-  async getTodayTasks(): Promise<Task[]> {
-    const today = getTodayDateString();
+  async getTodayTasks(date?: string): Promise<Task[]> {
+    const targetDate = date || getTodayDateString();
 
     const allRows = await db.select<any>('SELECT id FROM tasks');
     if (allRows.length === 0) {
@@ -21,7 +21,7 @@ export class TaskService {
 
     const rows = await db.select<any>(
       `SELECT * FROM tasks WHERE scheduled_date = ? ORDER BY position_rank ASC`,
-      [today]
+      [targetDate]
     );
 
     const cleanedRows = await this.deduplicateTasks(rows);
@@ -275,6 +275,20 @@ export class TaskService {
     ]);
     await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
       scheduled_date: today,
+      updated_at: now,
+    });
+  }
+
+  async updateTaskScheduledDate(taskId: string, scheduledDate: string | null): Promise<void> {
+    const now = new Date().toISOString();
+    await db.execute(`UPDATE tasks SET scheduled_date = ?, updated_at = ? WHERE id = ?`, [
+      scheduledDate,
+      now,
+      taskId,
+    ]);
+    await syncService.enqueueMutation('tasks', taskId, 'UPDATE', {
+      id: taskId,
+      scheduled_date: scheduledDate,
       updated_at: now,
     });
   }
