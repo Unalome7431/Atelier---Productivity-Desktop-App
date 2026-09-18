@@ -38,6 +38,13 @@ export class TaskService {
     return cleanedRows.map((t) => this.mapTask(t));
   }
 
+  async getAllTasks(): Promise<Task[]> {
+    await db.init();
+    const rows = await db.select<any>(`SELECT * FROM tasks ORDER BY position_rank ASC`);
+    const cleanedRows = await this.deduplicateTasks(rows);
+    return cleanedRows.map((t) => this.mapTask(t));
+  }
+
   private mapTask(t: any): Task {
     let subtasks: TaskSubtask[] = [];
     if (t.subtasks) {

@@ -5,6 +5,8 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   CheckSquare,
+  X,
+  Check,
 } from 'lucide-react';
 import { Eyebrow } from '@/components/common/Badge';
 import { CalendarEvent, Task } from '@/types';
@@ -13,19 +15,29 @@ import { cn } from '@/lib/utils';
 interface SelectedDateAgendaProps {
   selectedDate: string; // YYYY-MM-DD
   events: CalendarEvent[];
+  tasks?: Task[];
   onOpenAddAgenda: (date?: string) => void;
   onDeleteEvent: (id: string) => void;
   onDropTask: (task: Task, date: string) => void;
+  onToggleTask?: (taskId: string) => void;
+  onUnscheduleTask?: (taskId: string) => void;
+  onQuickAddTask?: (title: string, date: string) => void;
 }
 
 export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
   selectedDate,
   events,
+  tasks = [],
   onOpenAddAgenda,
   onDeleteEvent,
   onDropTask,
+  onToggleTask,
+  onUnscheduleTask,
+  onQuickAddTask,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isQuickAddingTask, setIsQuickAddingTask] = useState(false);
+  const [quickTaskTitle, setQuickTaskTitle] = useState('');
 
   // Selected date events sorted by startTime
   const selectedDateEvents = useMemo(() => {
@@ -33,6 +45,11 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
       .filter((e) => e.date === selectedDate)
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [events, selectedDate]);
+
+  // Selected date scheduled tasks
+  const selectedDateTasks = useMemo(() => {
+    return tasks.filter((t) => t.scheduledDate === selectedDate);
+  }, [tasks, selectedDate]);
 
   // Formatted date string, e.g. "Wednesday, Sep 9"
   const formattedSelectedDateHeading = useMemo(() => {
@@ -69,6 +86,16 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
     } catch (err) {
       console.error('Failed to parse dropped task on agenda:', err);
     }
+  };
+
+  const handleQuickAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTaskTitle.trim()) return;
+    if (onQuickAddTask) {
+      onQuickAddTask(quickTaskTitle.trim(), selectedDate);
+    }
+    setQuickTaskTitle('');
+    setIsQuickAddingTask(false);
   };
 
   const getEventCardStyle = (item: CalendarEvent) => {
@@ -113,78 +140,203 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
 
         {/* Drop zone alert when dragging */}
         {isDragOver && (
-          <div className="p-3 rounded-md bg-accent-green/60 border border-emerald-400 text-center select-none">
+          <div className="p-2.5 rounded-xl bg-accent-green/60 border border-emerald-400 text-center select-none animate-in fade-in duration-100">
             <span className="font-mono text-mono-xs font-bold text-emerald-950">
-              Drop task to schedule on {formattedSelectedDateHeading}
+              Drop task to schedule for {formattedSelectedDateHeading}
             </span>
           </div>
         )}
 
-        {/* Agenda Items List — Fills remaining height with clean scroll */}
-        <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto pr-1">
-          {selectedDateEvents.length === 0 ? (
-            <div className="p-6 rounded-card bg-bg border border-dashed border-border text-center flex flex-col items-center justify-center gap-2 text-secondaryGray h-full min-h-[180px]">
-              <CalendarIcon className="w-6 h-6 text-midGray" />
-              <span className="text-ui-rg-xs">No events scheduled for this date.</span>
+        {/* Part 1: Setting up Events */}
+        <div className="flex flex-col gap-2.5 bg-bg/50 border border-border/80 rounded-2xl p-3.5 flex-1 min-h-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon className="w-3.5 h-3.5 text-secondaryGray" />
+              <span className="font-mono text-mono-xs font-bold text-primaryDark uppercase tracking-wider">
+                Events
+              </span>
+              <span className="font-mono text-[10px] text-secondaryGray bg-surface px-1.5 py-0.2 rounded-full border border-border/60">
+                {selectedDateEvents.length}
+              </span>
             </div>
-          ) : (
-            selectedDateEvents.map((item) => (
-              <div
-                key={item.id}
-                className={cn(
-                  'p-4 rounded-card border shadow-subtle flex flex-col gap-2 transition-all group select-none',
-                  getEventCardStyle(item)
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-wrap">
+
+            <button
+              type="button"
+              onClick={() => onOpenAddAgenda(selectedDate)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EFE9DC] hover:bg-[#E7E0D1] border border-border text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
+              title="Add event on this date"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Add Event</span>
+            </button>
+          </div>
+
+          {/* Events List */}
+          <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-0.5">
+            {selectedDateEvents.length === 0 ? (
+              <div className="py-4 px-2 rounded-xl bg-surface/60 border border-dashed border-border text-center flex flex-col items-center justify-center gap-1.5 text-secondaryGray flex-1 min-h-[90px]">
+                <CalendarIcon className="w-4 h-4 text-midGray" />
+                <span className="text-[11px] font-sans">No events scheduled for this day</span>
+              </div>
+            ) : (
+              selectedDateEvents.map((item) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    'p-2.5 rounded-xl border shadow-subtle flex flex-col gap-1 transition-all group select-none',
+                    getEventCardStyle(item)
+                  )}
+                >
+                  <div className="flex items-center justify-between">
                     <span className="font-mono font-bold text-mono-xs text-primaryDark">
                       {item.startTime} – {item.endTime}
                     </span>
 
-                    {item.taskId && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-950 px-2 py-0.5 rounded-pill bg-white/85 border border-emerald-200/80">
-                        <CheckSquare className="w-2.5 h-2.5" />
-                        <span>Task Linked</span>
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => onDeleteEvent(item.id)}
+                      className="opacity-0 group-hover:opacity-100 w-4 h-4 rounded text-secondaryGray hover:text-rose-700 transition-all flex items-center justify-center cursor-pointer"
+                      title="Delete event"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onDeleteEvent(item.id)}
-                    className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded text-secondaryGray hover:text-rose-700 hover:bg-rose-50 transition-all flex items-center justify-center cursor-pointer"
-                    title="Delete event"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div>
+                    <h4 className="font-sans font-bold text-xs text-primaryDark leading-snug">
+                      {item.title}
+                    </h4>
+                    {item.description && (
+                      <p className="text-[11px] text-secondaryGray mt-0.5 leading-tight line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
+              ))
+            )}
+          </div>
+        </div>
 
-                <div>
-                  <h4 className="font-sans font-bold text-ui-bold-sm text-primaryDark">
-                    {item.title}
-                  </h4>
-                  {item.description && (
-                    <p className="text-ui-rg-xs text-secondaryGray mt-0.5 leading-snug">
-                      {item.description}
-                    </p>
+        {/* Part 2: Schedule Tasks */}
+        <div className="flex flex-col gap-2.5 bg-bg/50 border border-border/80 rounded-2xl p-3.5 flex-1 min-h-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <CheckSquare className="w-3.5 h-3.5 text-secondaryGray" />
+              <span className="font-mono text-mono-xs font-bold text-primaryDark uppercase tracking-wider">
+                Scheduled Tasks
+              </span>
+              <span className="font-mono text-[10px] text-secondaryGray bg-surface px-1.5 py-0.2 rounded-full border border-border/60">
+                {selectedDateTasks.length}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsQuickAddingTask(!isQuickAddingTask)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-surface border border-border text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
+              title="Quick schedule task for this date"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Schedule Task</span>
+            </button>
+          </div>
+
+          {/* Inline Quick Add Task Form */}
+          {isQuickAddingTask && (
+            <form onSubmit={handleQuickAddSubmit} className="flex items-center gap-1.5">
+              <input
+                type="text"
+                autoFocus
+                value={quickTaskTitle}
+                onChange={(e) => setQuickTaskTitle(e.target.value)}
+                placeholder="Task title..."
+                className="flex-1 bg-white border border-border rounded-xl px-2.5 py-1 text-xs text-primaryDark outline-none focus:border-primaryDark"
+              />
+              <button
+                type="submit"
+                disabled={!quickTaskTitle.trim()}
+                className="px-2.5 py-1 rounded-xl bg-primaryDark text-white text-xs font-semibold disabled:opacity-40 cursor-pointer shrink-0"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsQuickAddingTask(false)}
+                className="p-1 text-secondaryGray hover:text-primaryDark cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </form>
+          )}
+
+          {/* Tasks List */}
+          <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
+            {selectedDateTasks.length === 0 ? (
+              <div className="py-4 px-2 rounded-xl bg-surface/60 border border-dashed border-border text-center flex flex-col items-center justify-center gap-1 text-secondaryGray flex-1 min-h-[90px]">
+                <CheckSquare className="w-4 h-4 text-midGray" />
+                <span className="text-[11px] font-sans">No tasks scheduled for this date</span>
+                <span className="text-[10px] font-mono text-midGray">
+                  Drag tasks from the queue to schedule
+                </span>
+              </div>
+            ) : (
+              selectedDateTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="p-2.5 bg-white border border-border/80 rounded-xl shadow-2xs flex items-center justify-between gap-2 group hover:border-[#D0C8BA] transition-all"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {/* Checkbox */}
+                    <button
+                      type="button"
+                      onClick={() => onToggleTask && onToggleTask(task.id)}
+                      className={cn(
+                        'w-4 h-4 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0',
+                        task.completed
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'border-border/80 hover:border-primaryDark bg-bg'
+                      )}
+                      title={task.completed ? 'Mark incomplete' : 'Mark complete'}
+                    >
+                      {task.completed && <Check className="w-3 h-3 stroke-[2.5]" />}
+                    </button>
+
+                    <div className="min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          'font-sans text-xs font-medium block truncate',
+                          task.completed ? 'line-through text-secondaryGray' : 'text-primaryDark'
+                        )}
+                      >
+                        {task.title}
+                      </span>
+                      {task.subtasks && task.subtasks.length > 0 && (
+                        <span className="text-[10px] font-mono text-secondaryGray">
+                          {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}{' '}
+                          subtasks
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unschedule button */}
+                  {onUnscheduleTask && (
+                    <button
+                      type="button"
+                      onClick={() => onUnscheduleTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface text-secondaryGray hover:text-rose-600 transition-opacity cursor-pointer shrink-0"
+                      title="Unschedule (move back to inbox)"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Full-width Add Event button */}
-      <button
-        type="button"
-        onClick={() => onOpenAddAgenda(selectedDate)}
-        className="w-full py-2.5 rounded-pill bg-[#EFE9DC] hover:bg-[#E7E0D1] border border-border text-primaryDark font-sans text-ui-md-sm font-semibold transition-all shadow-subtle cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-      >
-        <Plus className="w-4 h-4" />
-        <span>Add Event</span>
-      </button>
     </div>
   );
 };

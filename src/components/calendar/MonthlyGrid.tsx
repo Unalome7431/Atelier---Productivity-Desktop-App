@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { CheckSquare } from 'lucide-react';
 import { CalendarEvent, Task } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -7,6 +8,7 @@ interface MonthlyGridProps {
   month: number; // 0-indexed (0 = Jan, 8 = Sep)
   selectedDate: string; // YYYY-MM-DD
   events: CalendarEvent[];
+  tasks?: Task[];
   onSelectDate: (date: string) => void;
   onDropTask: (task: Task, date: string) => void;
 }
@@ -16,6 +18,7 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
   month,
   selectedDate,
   events,
+  tasks = [],
   onSelectDate,
   onDropTask,
 }) => {
@@ -149,6 +152,8 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
           const isToday = cell.dateStr === todayDateStr;
           const isDragTarget = dragOverDate === cell.dateStr;
           const cellEvents = events.filter((e) => e.date === cell.dateStr);
+          const cellTasks = tasks.filter((t) => t.scheduledDate === cell.dateStr);
+          const totalItems = cellEvents.length + cellTasks.length;
 
           return (
             <div
@@ -199,8 +204,9 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                 </div>
               </div>
 
-              {/* Event Pills List */}
+              {/* Event & Task Items List */}
               <div className="flex flex-col gap-1 mt-1 overflow-hidden">
+                {/* Events (with timeline start time) */}
                 {cellEvents.slice(0, 2).map((ev) => (
                   <div
                     key={ev.id}
@@ -214,9 +220,33 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                     <span className="truncate">{ev.title}</span>
                   </div>
                 ))}
-                {cellEvents.length > 2 && (
+
+                {/* Scheduled Tasks (no timeline, pure date allocation) */}
+                {cellEvents.length < 2 &&
+                  cellTasks.slice(0, 2 - cellEvents.length).map((task) => (
+                    <div
+                      key={task.id}
+                      className={cn(
+                        'px-1.5 py-0.5 rounded text-[10px] font-sans font-medium truncate leading-tight flex items-center gap-1 border transition-transform',
+                        task.completed
+                          ? 'bg-surface/80 border-border/70 text-secondaryGray line-through'
+                          : 'bg-white/95 border-border/90 text-primaryDark shadow-2xs'
+                      )}
+                      title={`Scheduled Task: ${task.title}${task.completed ? ' (Done)' : ''}`}
+                    >
+                      <CheckSquare
+                        className={cn(
+                          'w-2.5 h-2.5 shrink-0',
+                          task.completed ? 'text-emerald-600' : 'text-secondaryGray'
+                        )}
+                      />
+                      <span className="truncate">{task.title}</span>
+                    </div>
+                  ))}
+
+                {totalItems > 2 && (
                   <span className="text-[9px] font-mono text-midGray px-1">
-                    +{cellEvents.length - 2} more
+                    +{totalItems - 2} more
                   </span>
                 )}
               </div>
@@ -225,7 +255,7 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
               {isDragTarget && (
                 <div className="absolute inset-0 bg-accent-green/80 rounded-lg flex items-center justify-center pointer-events-none z-10 border border-emerald-400">
                   <span className="text-[10px] font-sans font-bold text-emerald-950">
-                    Drop to schedule
+                    Schedule for this date
                   </span>
                 </div>
               )}
