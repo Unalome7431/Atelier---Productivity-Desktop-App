@@ -261,18 +261,24 @@ export const TopHeader: React.FC = () => {
             className="flex items-center gap-1.5 pl-1.5 border-l border-border/80"
             title={`${completedCyclesToday} of ${targetCyclesDaily} daily cycles completed`}
           >
-            {Array.from({ length: targetCyclesDaily }).map((_, i) => {
-              const isCompleted = i < completedCyclesToday;
-              return (
-                <span
-                  key={i}
-                  className={cn(
-                    'w-3.5 h-1.5 rounded-full transition-colors',
-                    isCompleted ? 'bg-primaryDark' : 'bg-border'
-                  )}
-                />
-              );
-            })}
+            {targetCyclesDaily <= 8 ? (
+              Array.from({ length: Math.max(1, targetCyclesDaily) }).map((_, i) => {
+                const isCompleted = i < completedCyclesToday;
+                return (
+                  <span
+                    key={i}
+                    className={cn(
+                      'w-3.5 h-1.5 rounded-full transition-colors',
+                      isCompleted ? 'bg-primaryDark' : 'bg-border'
+                    )}
+                  />
+                );
+              })
+            ) : (
+              <span className="font-mono text-[11px] font-bold text-primaryDark px-1.5 py-0.5 rounded bg-surface border border-border/80">
+                {completedCyclesToday}/{targetCyclesDaily}
+              </span>
+            )}
           </div>
 
           {/* Hairline Divider */}

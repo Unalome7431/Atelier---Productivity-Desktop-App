@@ -12,7 +12,7 @@ import {
   Inbox,
   Sun,
   Minus,
-  LayoutDashboard,
+  KanbanSquare,
 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { SegmentedBar } from '@/components/common/SegmentedBar';
@@ -20,9 +20,13 @@ import { CircularProgress } from '@/components/cockpit/CircularProgress';
 import { CreateRoutineModal } from '@/components/cockpit/CreateRoutineModal';
 import { CreateTaskModal } from '@/components/cockpit/CreateTaskModal';
 import { AllRoutinesModal, getStreakBadgeStyle } from '@/components/cockpit/AllRoutinesModal';
+import { Modal } from '@/components/common/Modal';
 import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { useKanbanStore } from '@/stores/useKanbanStore';
+import { useAppStore } from '@/stores/useAppStore';
+import { Task, KanbanBoard, KanbanCard } from '@/types';
 import { getTodayDateString, cn } from '@/lib/utils';
 
 export const CockpitView: React.FC = () => {
@@ -52,12 +56,23 @@ export const CockpitView: React.FC = () => {
   } = useTasksStore();
 
   const { activeTaskId, bindTarget, unbindTarget } = usePomodoroStore();
+  const { setActiveTab } = useAppStore();
+  const { boards, loadBoards, updateCard, setActiveBoardId } = useKanbanStore();
 
   // Modals state
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isAllRoutinesModalOpen, setIsAllRoutinesModalOpen] = useState(false);
   const [activeTaskTab, setActiveTaskTab] = useState<'today' | 'inbox'>('today');
+
+  // Kanban task completion prompt modal state
+  interface KanbanMoveModalData {
+    task: Task;
+    card: KanbanCard;
+    board: KanbanBoard;
+  }
+  const [kanbanMoveModal, setKanbanMoveModal] = useState<KanbanMoveModalData | null>(null);
+  const [selectedTargetColId, setSelectedTargetColId] = useState<string>('');
 
   // Subtasks expansion state
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
@@ -73,7 +88,8 @@ export const CockpitView: React.FC = () => {
   useEffect(() => {
     loadRoutines();
     loadTasks();
-  }, [loadRoutines, loadTasks]);
+    loadBoards();
+  }, [loadRoutines, loadTasks, loadBoards]);
 
   // Live clock interval & Midnight date change detection
   useEffect(() => {
@@ -186,6 +202,54 @@ export const CockpitView: React.FC = () => {
   const handleDragEnd = () => {
     setDraggedTaskId(null);
     setDragOverTaskId(null);
+  };
+
+  // Completion handler that prompts to move Kanban card if task is linked to Kanban
+  const handleToggleTask = async (task: Task) => {
+    const isCompleting = !task.completed;
+    await toggleTask(task.id);
+
+    if (isCompleting && task.sourceKanbanCardId) {
+      if (boards.length === 0) {
+        await loadBoards();
+      }
+      const allBoards = useKanbanStore.getState().boards;
+      const board = allBoards.find((b) =>
+        (b.cards || []).some((c) => c.id === task.sourceKanbanCardId)
+      );
+      const card = board?.cards.find((c) => c.id === task.sourceKanbanCardId);
+
+      if (board && card) {
+        // Prefer 'done' or 'complete' column as default, otherwise choose any column different from current
+        const doneCol = board.columns.find((c) => c.id === 'done' || c.id === 'complete');
+        const defaultCol =
+          doneCol && doneCol.id !== card.columnId
+            ? doneCol.id
+            : board.columns.find((c) => c.id !== card.columnId)?.id || board.columns[0]?.id || '';
+        setSelectedTargetColId(defaultCol);
+        setKanbanMoveModal({ task, card, board });
+      }
+    }
+  };
+
+  const handleConfirmMoveToKanban = async () => {
+    if (!kanbanMoveModal) return;
+    const { card, board } = kanbanMoveModal;
+    const targetCol = selectedTargetColId || card.columnId;
+    const isDone = targetCol === 'done' || targetCol === 'complete';
+
+    await updateCard(card.id, {
+      columnId: targetCol,
+      completedAt: isDone ? 'Completed today' : undefined,
+    });
+
+    setActiveBoardId(board.id);
+    setActiveTab('kanban');
+    setKanbanMoveModal(null);
+  };
+
+  const handleCancelMove = () => {
+    setKanbanMoveModal(null);
   };
 
   return (
@@ -534,7 +598,7 @@ export const CockpitView: React.FC = () => {
 
                       {/* Checkbox */}
                       <button
-                        onClick={() => toggleTask(task.id)}
+                        onClick={() => handleToggleTask(task)}
                         className={cn(
                           'w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer flex-shrink-0',
                           task.completed
@@ -560,7 +624,7 @@ export const CockpitView: React.FC = () => {
                           {/* Source Kanban Badge if linked */}
                           {task.sourceKanbanCardId && (
                             <span className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-100 text-purple-900 border border-purple-200 flex-shrink-0 flex items-center gap-1">
-                              <LayoutDashboard className="w-3 h-3" />
+                              <KanbanSquare className="w-3 h-3" />
                               <span>Kanban</span>
                             </span>
                           )}
@@ -751,6 +815,79 @@ export const CockpitView: React.FC = () => {
         onClose={() => setIsTaskModalOpen(false)}
         defaultDestination={activeTaskTab}
       />
+
+      {/* Kanban Task Completion: Move Card to Column Modal */}
+      {kanbanMoveModal && (
+        <Modal
+          isOpen={Boolean(kanbanMoveModal)}
+          onClose={handleCancelMove}
+          title="Move Kanban Card"
+          description={`"${kanbanMoveModal.task.title}" is completed! Choose a column to update its card on "${kanbanMoveModal.board.title}".`}
+          maxWidth="md"
+        >
+          <div className="flex flex-col gap-4 font-sans text-xs">
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
+                Destination Column
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {kanbanMoveModal.board.columns.map((col) => {
+                  const isSelected = selectedTargetColId === col.id;
+                  const isCurrent = kanbanMoveModal.card.columnId === col.id;
+                  return (
+                    <button
+                      key={col.id}
+                      type="button"
+                      onClick={() => setSelectedTargetColId(col.id)}
+                      className={cn(
+                        'flex items-center justify-between p-3 rounded-2xl border text-left transition-all cursor-pointer',
+                        isSelected
+                          ? 'border-primaryDark bg-white shadow-xs font-semibold ring-1 ring-primaryDark'
+                          : 'border-border/80 bg-surface/50 hover:bg-surface text-secondaryGray'
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: col.dotColor || '#9CA3AF' }}
+                        />
+                        <span className="text-xs text-primaryDark truncate">{col.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isCurrent && (
+                          <span className="text-[10px] font-mono text-secondaryGray bg-border/40 px-1.5 py-0.5 rounded">
+                            Current
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="w-4 h-4 rounded-full bg-primaryDark text-white flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-1">
+              <Button type="button" variant="ghost" size="sm" onClick={handleCancelMove}>
+                Stay in Cockpit
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmMoveToKanban}
+                leftIcon={<KanbanSquare className="w-3.5 h-3.5" />}
+              >
+                Move & Go to Kanban
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -238,7 +238,23 @@ async function runTests() {
     'resetDailyCycles resets completed cycle count to 0'
   );
 
-  console.log('\nAll 12 Pomodoro focus bar engine tests PASSED successfully!');
+  // Test 13: Customizable Cycles Before Long Break
+  usePomodoroStore.getState().updateSettings({
+    cyclesBeforeLongBreak: 2,
+  });
+  usePomodoroStore.setState({
+    mode: 'focus',
+    remainingSeconds: 1,
+    isRunning: true,
+    completedCyclesToday: 1, // Next cycle is 2, which matches cyclesBeforeLongBreak (2)
+  });
+  usePomodoroStore.getState().tick();
+  assert(
+    usePomodoroStore.getState().mode === 'longBreak',
+    'Custom cyclesBeforeLongBreak=2 triggers longBreak on 2nd cycle'
+  );
+
+  console.log('\nAll 13 Pomodoro focus bar engine tests PASSED successfully!');
 }
 
 runTests().catch((err) => {

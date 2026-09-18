@@ -196,14 +196,6 @@ export const NoteNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
       <p className="font-sans text-[12px] text-primaryDark/75 line-clamp-3 leading-relaxed mt-1.5">
         {previewSnippet}
       </p>
-
-      {/* Footer hint */}
-      <div className="mt-3 pt-2 border-t border-black/5 flex items-center justify-between text-[10px] font-mono text-secondaryGray">
-        <span>Linked Note</span>
-        <span className="text-secondaryGray/80 group-hover:text-primaryDark transition-colors">
-          Click to inspect →
-        </span>
-      </div>
     </div>
   );
 });

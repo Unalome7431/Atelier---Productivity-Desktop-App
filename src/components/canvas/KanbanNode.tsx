@@ -46,12 +46,7 @@ export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => 
 
   const boardCards = useMemo(() => linkedBoard?.cards || [], [linkedBoard?.cards]);
 
-  const totalCardsCount = useMemo(() => {
-    if (boardCards.length > 0) return boardCards.length;
-    return typeof nodeData.totalCount === 'number' ? nodeData.totalCount : 0;
-  }, [boardCards.length, nodeData.totalCount]);
-
-  // Compute progress bar metrics for each column
+  // Compute card counts for each column
   const columnStats = useMemo(() => {
     return columns.map((col) => {
       const isDoneCol = col.id === 'done' || col.id === 'complete';
@@ -74,26 +69,14 @@ export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => 
             );
       }
 
-      const percent = totalCardsCount > 0 ? Math.round((count / totalCardsCount) * 100) : 0;
-
       return {
         id: col.id,
         title: col.title,
         dotColor: col.dotColor || '#818CF8',
         count,
-        percent,
       };
     });
-  }, [columns, boardCards, nodeData.totalCount, nodeData.completedCount, totalCardsCount]);
-
-  const completedCardsCount = useMemo(() => {
-    if (boardCards.length > 0) {
-      return boardCards.filter(
-        (c) => Boolean(c.completedAt) || c.columnId === 'complete' || c.columnId === 'done'
-      ).length;
-    }
-    return typeof nodeData.completedCount === 'number' ? nodeData.completedCount : 0;
-  }, [boardCards, nodeData.completedCount]);
+  }, [columns, boardCards, nodeData.totalCount, nodeData.completedCount]);
 
   const handleOpenSidebar = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -171,12 +154,8 @@ export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => 
             <KanbanSquare className="w-2.5 h-2.5 text-secondaryGray" />
             {nodeData.badge || 'KANBAN'}
           </span>
-          {linkedBoard && (
-            <span className="text-[10px] font-mono text-secondaryGray/80 truncate max-w-[100px]">
-              {linkedBoard.title}
-            </span>
-          )}
           <span className="text-[10px] font-mono text-secondaryGray/70 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span>view</span>
             <ArrowUpRight className="w-2.5 h-2.5" />
           </span>
         </div>
@@ -249,49 +228,25 @@ export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => 
         {displayTitle}
       </h3>
 
-      {/* Column Progress Bars */}
-      <div className="flex flex-col gap-2 mb-3 nodrag select-none">
+      {/* Column Information (Card Counts per Column, No Progress Bar) */}
+      <div className="flex flex-col gap-1.5 mb-3 nodrag select-none">
         {columnStats.map((col) => (
-          <div key={col.id} className="flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[11px] font-sans">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: col.dotColor }}
-                />
-                <span className="font-medium text-primaryDark truncate">{col.title}</span>
-              </div>
-              <div className="flex items-center gap-1 font-mono text-[10px] text-secondaryGray shrink-0">
-                <span>{col.count}</span>
-                <span className="text-secondaryGray/60">({col.percent}%)</span>
-              </div>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-black/5 overflow-hidden">
+          <div
+            key={col.id}
+            className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/70 border border-black/5 text-xs font-sans shadow-2xs"
+          >
+            <div className="flex items-center gap-2 min-w-0">
               <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${col.percent}%`,
-                  backgroundColor: col.dotColor,
-                }}
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: col.dotColor }}
               />
+              <span className="font-medium text-primaryDark truncate">{col.title}</span>
             </div>
+            <span className="font-mono text-[10px] font-semibold text-secondaryGray shrink-0 bg-white px-2 py-0.5 rounded-full border border-border/60">
+              {col.count} {col.count === 1 ? 'card' : 'cards'}
+            </span>
           </div>
         ))}
-      </div>
-
-      {/* Footer Overall Progress Tracker */}
-      <div className="flex items-center justify-between pt-2.5 border-t border-black/5 text-[11px] font-sans text-secondaryGray select-none">
-        <span className="font-mono text-[10px]">
-          {completedCardsCount}/{totalCardsCount} completed
-        </span>
-        <div className="w-20 h-1.5 rounded-full bg-black/10 overflow-hidden">
-          <div
-            className="h-full bg-primaryDark transition-all duration-300 rounded-full"
-            style={{
-              width: `${totalCardsCount > 0 ? (completedCardsCount / totalCardsCount) * 100 : 0}%`,
-            }}
-          />
-        </div>
       </div>
     </div>
   );
