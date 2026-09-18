@@ -176,7 +176,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     const newCol = await kanbanService.addColumn(boardId, title, themeId);
     set((state) => ({
       boards: state.boards.map((b) =>
-        b.id === boardId ? { ...b, columns: [...b.columns, newCol] } : b
+        b.id === boardId ? { ...b, columns: [...(b.columns || []), newCol] } : b
       ),
     }));
     return newCol;
@@ -188,7 +188,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         b.id === boardId
           ? {
               ...b,
-              columns: b.columns.map((c) =>
+              columns: (b.columns || []).map((c) =>
                 c.id === columnId ? { ...c, title: newTitle.trim() } : c
               ),
             }
@@ -200,23 +200,23 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
   deleteColumn: async (boardId: string, columnId: string, fallbackColumnId?: string) => {
     const activeBoard = get().boards.find((b) => b.id === boardId);
-    if (!activeBoard || activeBoard.columns.length <= 1) {
+    if (!activeBoard || (activeBoard.columns || []).length <= 1) {
       throw new Error('A board must have at least one column.');
     }
 
-    const remainingCols = activeBoard.columns.filter((c) => c.id !== columnId);
+    const remainingCols = (activeBoard.columns || []).filter((c) => c.id !== columnId);
     const targetFallback =
       fallbackColumnId && remainingCols.some((c) => c.id === fallbackColumnId)
         ? fallbackColumnId
-        : remainingCols[0].id;
+        : remainingCols[0]?.id || 'planned';
 
     set((state) => ({
       boards: state.boards.map((b) => {
         if (b.id !== boardId) return b;
         return {
           ...b,
-          columns: b.columns.filter((c) => c.id !== columnId),
-          cards: b.cards.map((card) =>
+          columns: (b.columns || []).filter((c) => c.id !== columnId),
+          cards: (b.cards || []).map((card) =>
             card.columnId === columnId ? { ...card, columnId: targetFallback } : card
           ),
         };
@@ -233,7 +233,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
     set((state) => ({
       boards: state.boards.map((b) =>
-        b.id === targetBoardId ? { ...b, cards: [...b.cards, newCard] } : b
+        b.id === targetBoardId ? { ...b, cards: [...(b.cards || []), newCard] } : b
       ),
     }));
     return newCard;

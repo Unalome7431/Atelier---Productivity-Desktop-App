@@ -316,6 +316,19 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
             </div>
           ))
         )}
+
+        {/* Bottom Add Card Button when cards exist */}
+        {sortedCards.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onOpenAddCard(column.id)}
+            className="w-full py-2 px-3 rounded-2xl border border-dashed border-border/80 hover:border-primaryDark/40 bg-surface/30 hover:bg-surface text-secondaryGray hover:text-primaryDark text-xs font-sans font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer mt-1 shrink-0"
+            title={`Add new card to ${column.title}`}
+          >
+            <Plus className="w-3.5 h-3.5 text-secondaryGray" />
+            <span>Add card</span>
+          </button>
+        )}
       </div>
     </div>
   );

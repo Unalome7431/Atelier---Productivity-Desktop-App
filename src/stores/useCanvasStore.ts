@@ -26,16 +26,46 @@ export function formatCanvasNodes(rawNodes: any[]): Node[] {
     return 0;
   });
 
-  return sorted.map((n) => ({
-    id: n.id,
-    type: n.type || 'simple_text',
-    position: n.position || { x: 0, y: 0 },
-    width: n.width,
-    height: n.height,
-    zIndex: n.type === 'section' || n.type === 'group' ? 0 : 10,
-    data: n.data || {},
-    style: n.style,
-  }));
+  const sections = sorted.filter((n) => n.type === 'section' || n.type === 'group');
+
+  return sorted.map((n) => {
+    const isSec = n.type === 'section' || n.type === 'group';
+    const pos = n.position || { x: 0, y: 0 };
+    let sectionId = (n.data as any)?.sectionId || (n.data as any)?.parentId || n.parentId;
+
+    if (!isSec && !sectionId) {
+      for (const sec of sections) {
+        const secPos = sec.position || { x: 0, y: 0 };
+        const secW = sec.width || (sec as any).measured?.width || (sec.data as any)?.width || 1040;
+        const secH =
+          sec.height || (sec as any).measured?.height || (sec.data as any)?.height || 600;
+
+        if (
+          pos.x >= secPos.x &&
+          pos.x <= secPos.x + secW &&
+          pos.y >= secPos.y &&
+          pos.y <= secPos.y + secH
+        ) {
+          sectionId = sec.id;
+          break;
+        }
+      }
+    }
+
+    return {
+      id: n.id,
+      type: n.type || 'simple_text',
+      position: pos,
+      width: n.width,
+      height: n.height,
+      zIndex: isSec ? 0 : 10,
+      data: {
+        ...(n.data || {}),
+        ...(sectionId ? { sectionId, parentId: sectionId } : {}),
+      },
+      style: n.style,
+    };
+  });
 }
 
 export function formatCanvasEdges(rawEdges: any[]): Edge[] {
@@ -67,6 +97,7 @@ interface CanvasState {
   activeTool: CanvasToolType;
   isFullscreen: boolean;
   isConnecting: boolean;
+  activeSidebarNode: { type: 'note' | 'kanban'; nodeId: string } | null;
 
   // Live nodes & edges for the active canvas
   nodes: Node[];
@@ -79,6 +110,7 @@ interface CanvasState {
   setActiveTool: (tool: CanvasToolType) => void;
   setIsFullscreen: (fullscreen: boolean) => void;
   setIsConnecting: (isConnecting: boolean) => void;
+  setActiveSidebarNode: (sidebar: { type: 'note' | 'kanban'; nodeId: string } | null) => void;
 
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -117,6 +149,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   activeTool: 'select',
   isFullscreen: false,
   isConnecting: false,
+  activeSidebarNode: null,
   nodes: [],
   edges: [],
 
@@ -160,11 +193,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
     set({
       activeCanvasId: id,
+      activeSidebarNode: null,
       canvases: updatedCanvases,
       nodes: formatCanvasNodes(target.nodes),
       edges: formatCanvasEdges(target.edges),
       zoomLevel: target.viewport?.zoom || 0.95,
     });
+  },
+
+  setActiveSidebarNode: (sidebar) => {
+    set({ activeSidebarNode: sidebar });
   },
 
   setGridEnabled: (enabled: boolean) => {
@@ -198,7 +236,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   onNodesChange: (changes: NodeChange[]) => {
     const { nodes, activeCanvasId, canvases } = get();
 
-    // When dragging a section area, dynamically propagate the movement delta to all enclosed/child nodes
+    // When dragging a section area, dynamically propagate the movement delta to its explicit child nodes only
     const expandedChanges: NodeChange[] = [...changes];
     const movedChildIds = new Set<string>();
 
@@ -213,21 +251,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           const dy = change.position.y - secNode.position.y;
 
           if (dx !== 0 || dy !== 0) {
-            const secLeft = secNode.position.x;
-            const secTop = secNode.position.y;
-            const secWidth =
-              secNode.width ||
-              (secNode as any).measured?.width ||
-              (secNode.data as any)?.width ||
-              1040;
-            const secHeight =
-              secNode.height ||
-              (secNode as any).measured?.height ||
-              (secNode.data as any)?.height ||
-              600;
-            const secRight = secLeft + secWidth;
-            const secBottom = secTop + secHeight;
-
             for (const child of nodes) {
               if (
                 child.id !== secNode.id &&
@@ -237,15 +260,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
                 !changes.some((c) => 'id' in c && c.id === child.id)
               ) {
                 const isExplicitChild =
-                  (child as any).parentId === secNode.id ||
-                  (child.data as any)?.parentId === secNode.id;
-                const isInsideBounds =
-                  child.position.x >= secLeft - 20 &&
-                  child.position.x <= secRight + 20 &&
-                  child.position.y >= secTop - 20 &&
-                  child.position.y <= secBottom + 20;
+                  (child.data as any)?.sectionId === secNode.id ||
+                  (child.data as any)?.parentId === secNode.id ||
+                  child.parentId === secNode.id;
 
-                if (isExplicitChild || isInsideBounds) {
+                // ONLY propagate movement if the node is already an explicit child of this section
+                // Do NOT pick up stranger nodes touched by the moving section!
+                if (isExplicitChild) {
                   movedChildIds.add(child.id);
                   expandedChanges.push({
                     id: child.id,
@@ -263,7 +284,71 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }
     }
 
-    const updatedNodes = applyNodeChanges(expandedChanges, nodes);
+    let updatedNodes = applyNodeChanges(expandedChanges, nodes);
+
+    // When a non-section node is dragged and dropped (drag ends / dragging=false),
+    // check if it was dragged into or out of a section
+    for (const change of changes) {
+      if (change.type === 'position' && (change as any).dragging === false) {
+        const movedNode = updatedNodes.find((n) => n.id === change.id);
+        if (movedNode && movedNode.type !== 'section' && movedNode.type !== 'group') {
+          const sections = updatedNodes.filter((n) => n.type === 'section' || n.type === 'group');
+          let targetSectionId: string | undefined = undefined;
+
+          for (const sec of sections) {
+            const secLeft = sec.position.x;
+            const secTop = sec.position.y;
+            const secWidth =
+              sec.width || (sec as any).measured?.width || (sec.data as any)?.width || 1040;
+            const secHeight =
+              sec.height || (sec as any).measured?.height || (sec.data as any)?.height || 600;
+
+            const nodeW = movedNode.width || (movedNode as any).measured?.width || 260;
+            const nodeH = movedNode.height || (movedNode as any).measured?.height || 160;
+            const centerX = movedNode.position.x + nodeW / 2;
+            const centerY = movedNode.position.y + nodeH / 2;
+
+            const isInside =
+              (movedNode.position.x >= secLeft &&
+                movedNode.position.x <= secLeft + secWidth &&
+                movedNode.position.y >= secTop &&
+                movedNode.position.y <= secTop + secHeight) ||
+              (centerX >= secLeft &&
+                centerX <= secLeft + secWidth &&
+                centerY >= secTop &&
+                centerY <= secTop + secHeight);
+
+            if (isInside) {
+              targetSectionId = sec.id;
+              break;
+            }
+          }
+
+          const currentSectionId =
+            (movedNode.data as any)?.sectionId || (movedNode.data as any)?.parentId;
+
+          if (currentSectionId !== targetSectionId) {
+            updatedNodes = updatedNodes.map((n) => {
+              if (n.id === movedNode.id) {
+                const nextData = { ...n.data };
+                if (targetSectionId) {
+                  nextData.sectionId = targetSectionId;
+                  nextData.parentId = targetSectionId;
+                } else {
+                  delete nextData.sectionId;
+                  delete nextData.parentId;
+                }
+                return {
+                  ...n,
+                  data: nextData,
+                };
+              }
+              return n;
+            });
+          }
+        }
+      }
+    }
 
     set({
       nodes: updatedNodes,
@@ -450,9 +535,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const { activeCanvasId, canvases, nodes } = get();
     if (!activeCanvasId) return;
 
-    const updatedNodes = nodes.map((n) =>
-      n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
-    );
+    const updatedNodes = nodes.map((n) => {
+      if (n.id === nodeId) {
+        const nextData = { ...n.data, ...patch };
+        return {
+          ...n,
+          data: nextData,
+        };
+      }
+      return n;
+    });
 
     set({
       nodes: updatedNodes,
@@ -474,6 +566,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({
       nodes: updatedNodes,
       edges: updatedEdges,
+      activeSidebarNode:
+        get().activeSidebarNode?.nodeId === nodeId ? null : get().activeSidebarNode,
       canvases: canvases.map((c) =>
         c.id === activeCanvasId
           ? { ...c, nodes: updatedNodes as any, edges: updatedEdges as any }

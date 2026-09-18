@@ -1,88 +1,121 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import {
   GripVertical,
   Trash2,
-  CheckCircle2,
-  Circle,
-  Plus,
   Palette,
+  KanbanSquare,
+  ArrowUpRight,
+  Check,
   ExternalLink,
 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
+import { useKanbanStore } from '@/stores/useKanbanStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { CanvasNodeData } from '@/types';
 import { cn } from '@/lib/utils';
 
 export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
   const nodeData = (data || {}) as CanvasNodeData;
-  const { updateNodeData, deleteNode, isConnecting } = useCanvasStore();
+  const { updateNodeData, deleteNode, isConnecting, setActiveSidebarNode } = useCanvasStore();
+  const { boards } = useKanbanStore();
   const { setActiveTab } = useAppStore();
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [title, setTitle] = useState<string>(
-    nodeData.title || nodeData.label || 'Release readiness'
-  );
-  const [newItemText, setNewItemText] = useState('');
-  const [isAddingItem, setIsAddingItem] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
-  const currentColor = nodeData.color || '#DEE5FD';
-  const items: Array<{ id: string; title: string; completed: boolean }> = Array.isArray(
-    nodeData.items
-  )
-    ? nodeData.items
-    : [
-        { id: '1', title: 'Stabilize API responses', completed: true },
-        { id: '2', title: 'Prepare beta cohort update', completed: false },
-      ];
+  // Link directly to the referenced Kanban board
+  const linkedBoard =
+    boards.find((b) => b.id === nodeData.boardId) ||
+    boards.find((b) => b.id === 'board_default') ||
+    boards[0];
 
-  const completedCount = items.filter((i) => i.completed).length;
-  const totalCount = typeof nodeData.totalCount === 'number' ? nodeData.totalCount : items.length;
+  const currentColor = nodeData.color || linkedBoard?.colorTag || '#DEE5FD';
+  const displayTitle = nodeData.title || linkedBoard?.title || 'Project Board';
 
-  const handleToggleItem = (itemId: string) => {
-    const updated = items.map((it) =>
-      it.id === itemId ? { ...it, completed: !it.completed } : it
+  // Resolve columns and cards from linked board
+  const columns = useMemo(() => {
+    return (
+      linkedBoard?.columns || [
+        { id: 'planned', title: 'Planned', dotColor: '#D4C5A9', orderIndex: 0 },
+        { id: 'in_progress', title: 'In progress', dotColor: '#818CF8', orderIndex: 1 },
+        { id: 'review', title: 'Review', dotColor: '#C084FC', orderIndex: 2 },
+        { id: 'done', title: 'Complete', dotColor: '#34D399', orderIndex: 3 },
+      ]
     );
-    updateNodeData(id, {
-      items: updated,
-      completedCount: updated.filter((i) => i.completed).length,
+  }, [linkedBoard?.columns]);
+
+  const boardCards = useMemo(() => linkedBoard?.cards || [], [linkedBoard?.cards]);
+
+  const totalCardsCount = useMemo(() => {
+    if (boardCards.length > 0) return boardCards.length;
+    return typeof nodeData.totalCount === 'number' ? nodeData.totalCount : 0;
+  }, [boardCards.length, nodeData.totalCount]);
+
+  // Compute progress bar metrics for each column
+  const columnStats = useMemo(() => {
+    return columns.map((col) => {
+      const isDoneCol = col.id === 'done' || col.id === 'complete';
+      const colCards = boardCards.filter(
+        (c) =>
+          c.columnId === col.id ||
+          (isDoneCol && (c.columnId === 'complete' || c.columnId === 'done'))
+      );
+
+      let count = colCards.length;
+      if (boardCards.length === 0 && typeof nodeData.totalCount === 'number') {
+        count = isDoneCol
+          ? (nodeData.completedCount ?? 0)
+          : Math.max(
+              0,
+              Math.round(
+                ((nodeData.totalCount ?? 0) - (nodeData.completedCount ?? 0)) /
+                  Math.max(1, columns.length - 1)
+              )
+            );
+      }
+
+      const percent = totalCardsCount > 0 ? Math.round((count / totalCardsCount) * 100) : 0;
+
+      return {
+        id: col.id,
+        title: col.title,
+        dotColor: col.dotColor || '#818CF8',
+        count,
+        percent,
+      };
     });
+  }, [columns, boardCards, nodeData.totalCount, nodeData.completedCount, totalCardsCount]);
+
+  const completedCardsCount = useMemo(() => {
+    if (boardCards.length > 0) {
+      return boardCards.filter(
+        (c) => Boolean(c.completedAt) || c.columnId === 'complete' || c.columnId === 'done'
+      ).length;
+    }
+    return typeof nodeData.completedCount === 'number' ? nodeData.completedCount : 0;
+  }, [boardCards, nodeData.completedCount]);
+
+  const handleOpenSidebar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveSidebarNode({ type: 'kanban', nodeId: id });
   };
 
-  const handleAddItem = () => {
-    if (!newItemText.trim()) return;
-    const newItem = {
-      id: `item_${Date.now()}`,
-      title: newItemText.trim(),
-      completed: false,
-    };
-    const updated = [...items, newItem];
-    updateNodeData(id, {
-      items: updated,
-      totalCount: updated.length,
-      completedCount: updated.filter((i) => i.completed).length,
-    });
-    setNewItemText('');
-    setIsAddingItem(false);
-  };
-
-  const handleSaveTitle = () => {
-    setIsEditingTitle(false);
-    updateNodeData(id, { title });
-  };
-
-  const handleJumpToBoard = () => {
+  const handleMoveToBoardPage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (linkedBoard) {
+      useKanbanStore.getState().setActiveBoardId(linkedBoard.id);
+    }
     setActiveTab('kanban');
   };
 
   return (
     <div
+      onClick={handleOpenSidebar}
       style={{ backgroundColor: currentColor }}
       className={cn(
-        'group relative min-w-[270px] max-w-[340px] rounded-2xl p-5 transition-all duration-150',
+        'group relative min-w-[270px] max-w-[340px] rounded-2xl p-4 transition-all duration-150 cursor-pointer',
         'border border-border/80 shadow-subtle hover:shadow-float',
-        selected && 'ring-2 ring-primaryDark/30'
+        selected && 'ring-2 ring-primaryDark/40'
       )}
     >
       {/* 4 Directional Connection Handles */}
@@ -132,155 +165,130 @@ export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => 
       />
 
       {/* Header with KANBAN Badge & Controls */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/95 text-primaryDark font-mono text-[10px] font-bold tracking-wider uppercase shadow-xs">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/95 text-primaryDark font-mono text-[9px] font-bold tracking-wider uppercase shadow-xs">
+            <KanbanSquare className="w-2.5 h-2.5 text-secondaryGray" />
             {nodeData.badge || 'KANBAN'}
           </span>
-          {nodeData.boardId && (
-            <button
-              onClick={handleJumpToBoard}
-              title="Open full Kanban Board"
-              className="nodrag p-1 text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
+          {linkedBoard && (
+            <span className="text-[10px] font-mono text-secondaryGray/80 truncate max-w-[100px]">
+              {linkedBoard.title}
+            </span>
           )}
+          <span className="text-[10px] font-mono text-secondaryGray/70 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ArrowUpRight className="w-2.5 h-2.5" />
+          </span>
         </div>
 
         <div className="flex items-center gap-1 text-secondaryGray/70">
           <button
-            onClick={() => setShowColorPicker(!showColorPicker)}
+            type="button"
+            onClick={handleMoveToBoardPage}
+            title="Open full Kanban Board page"
+            className="p-1 hover:text-primaryDark hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowColorPicker(!showColorPicker);
+            }}
             title="Color"
             className="p-1 hover:text-primaryDark hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
           >
-            <Palette className="w-3.5 h-3.5" />
+            <Palette className="w-3 h-3" />
           </button>
           <button
-            onClick={() => deleteNode(id)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteNode(id);
+            }}
             title="Delete card"
             className="p-1 hover:text-rose-600 hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3" />
           </button>
-          <div className="p-1 text-secondaryGray/60 cursor-grab active:cursor-grabbing">
-            <GripVertical className="w-4 h-4" />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 text-secondaryGray/60 cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
 
       {/* Color Palette Popover */}
       {showColorPicker && (
-        <div className="absolute top-10 right-2 z-20 flex items-center gap-1 bg-white p-1.5 rounded-full shadow-float border border-border">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-10 right-2 z-20 flex items-center gap-1 bg-white p-1.5 rounded-full shadow-float border border-border"
+        >
           {['#DEE5FD', '#EEEDFD', '#D1FBE3', '#F5F0E6', '#FED7E8'].map((bg) => (
             <button
               key={bg}
+              type="button"
               onClick={() => {
                 updateNodeData(id, { color: bg });
                 setShowColorPicker(false);
               }}
               style={{ backgroundColor: bg }}
-              className="w-5 h-5 rounded-full border border-black/10 hover:scale-110 transition-transform cursor-pointer"
-            />
+              className="w-5 h-5 rounded-full border border-black/10 hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+            >
+              {currentColor === bg && <Check className="w-3 h-3 text-primaryDark/70" />}
+            </button>
           ))}
         </div>
       )}
 
       {/* Card Title */}
-      {isEditingTitle ? (
-        <div className="flex items-center gap-1 mb-3 nodrag">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full font-display font-bold text-[16px] text-primaryDark bg-white/80 px-2.5 py-1 rounded-md border border-border/80 outline-none"
-            autoFocus
-          />
-          <button
-            onClick={handleSaveTitle}
-            className="px-2.5 py-1 bg-primaryDark text-bg rounded-md text-xs font-semibold"
-          >
-            Save
-          </button>
-        </div>
-      ) : (
-        <h3
-          onDoubleClick={() => setIsEditingTitle(true)}
-          className="font-display font-bold text-[17px] text-primaryDark tracking-tight mb-3 cursor-text select-none"
-        >
-          {nodeData.title || nodeData.label || 'Release readiness'}
-        </h3>
-      )}
+      <h3 className="font-display font-bold text-[16px] text-primaryDark tracking-tight mb-3 select-none leading-snug">
+        {displayTitle}
+      </h3>
 
-      {/* Checklist Items */}
-      <div className="flex flex-col gap-2 mb-3.5 nodrag">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => handleToggleItem(item.id)}
-            className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/40 transition-colors cursor-pointer group/item select-none"
-          >
-            {item.completed ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 fill-emerald-100 flex-shrink-0" />
-            ) : (
-              <Circle className="w-4 h-4 text-secondaryGray/60 flex-shrink-0" />
-            )}
-            <span
-              className={cn(
-                'font-sans text-[13px] leading-tight select-none',
-                item.completed ? 'text-secondaryGray line-through' : 'text-primaryDark font-medium'
-              )}
-            >
-              {item.title}
-            </span>
+      {/* Column Progress Bars */}
+      <div className="flex flex-col gap-2 mb-3 nodrag select-none">
+        {columnStats.map((col) => (
+          <div key={col.id} className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[11px] font-sans">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: col.dotColor }}
+                />
+                <span className="font-medium text-primaryDark truncate">{col.title}</span>
+              </div>
+              <div className="flex items-center gap-1 font-mono text-[10px] text-secondaryGray shrink-0">
+                <span>{col.count}</span>
+                <span className="text-secondaryGray/60">({col.percent}%)</span>
+              </div>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-black/5 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${col.percent}%`,
+                  backgroundColor: col.dotColor,
+                }}
+              />
+            </div>
           </div>
         ))}
-
-        {isAddingItem ? (
-          <div className="flex items-center gap-1.5 mt-1">
-            <input
-              type="text"
-              value={newItemText}
-              onChange={(e) => setNewItemText(e.target.value)}
-              placeholder="New checklist item..."
-              onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
-              className="flex-1 text-[12px] bg-white/80 px-2 py-1 rounded border border-border outline-none font-sans"
-              autoFocus
-            />
-            <button
-              onClick={handleAddItem}
-              className="px-2 py-1 bg-primaryDark text-bg text-[11px] font-semibold rounded cursor-pointer"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => setIsAddingItem(false)}
-              className="px-2 py-1 text-[11px] text-secondaryGray cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsAddingItem(true)}
-            className="flex items-center gap-1.5 text-left text-[12px] text-secondaryGray hover:text-primaryDark p-1 rounded hover:bg-white/30 transition-colors font-medium cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add item</span>
-          </button>
-        )}
       </div>
 
-      {/* Footer Progress Tracker */}
-      <div className="flex items-center justify-between pt-2 border-t border-black/5 text-[12px] font-sans text-secondaryGray">
-        <span>
-          {completedCount}/{totalCount} complete
+      {/* Footer Overall Progress Tracker */}
+      <div className="flex items-center justify-between pt-2.5 border-t border-black/5 text-[11px] font-sans text-secondaryGray select-none">
+        <span className="font-mono text-[10px]">
+          {completedCardsCount}/{totalCardsCount} completed
         </span>
         <div className="w-20 h-1.5 rounded-full bg-black/10 overflow-hidden">
           <div
             className="h-full bg-primaryDark transition-all duration-300 rounded-full"
             style={{
-              width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%`,
+              width: `${totalCardsCount > 0 ? (completedCardsCount / totalCardsCount) * 100 : 0}%`,
             }}
           />
         </div>

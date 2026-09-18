@@ -6,7 +6,7 @@ import {
   BackgroundVariant,
   ConnectionMode,
   Viewport,
-  useReactFlow,
+  Node,
 } from '@xyflow/react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { SimpleTextNode } from '@/components/canvas/SimpleTextNode';
@@ -17,6 +17,9 @@ import { SectionNode } from '@/components/canvas/SectionNode';
 import { CustomEdge } from '@/components/canvas/CustomEdge';
 import { CanvasHeader } from '@/components/canvas/CanvasHeader';
 import { CanvasToolbar } from '@/components/canvas/CanvasToolbar';
+import { CanvasLinkedDrawer } from '@/components/canvas/CanvasLinkedDrawer';
+import { useNotesStore } from '@/stores/useNotesStore';
+import { useKanbanStore } from '@/stores/useKanbanStore';
 import { cn } from '@/lib/utils';
 
 const CanvasFlowInner: React.FC = () => {
@@ -35,19 +38,18 @@ const CanvasFlowInner: React.FC = () => {
     updateViewport,
     isFullscreen,
     activeTool,
-    setActiveTool,
-    addNode,
+    setActiveSidebarNode,
   } = useCanvasStore();
-
-  const { screenToFlowPosition } = useReactFlow();
 
   const activeCanvas = useMemo(() => {
     return canvases.find((c) => c.id === activeCanvasId) || canvases[0];
   }, [canvases, activeCanvasId]);
 
-  // Initial load
+  // Initial load: ensure canvases, notes, and boards are ready in memory
   useEffect(() => {
     loadCanvases();
+    useNotesStore.getState().loadNotes();
+    useKanbanStore.getState().loadBoards();
   }, [loadCanvases]);
 
   // Viewport pan/zoom change listener
@@ -58,101 +60,61 @@ const CanvasFlowInner: React.FC = () => {
     [updateViewport]
   );
 
-  // Click directly on canvas pane when a tool is active to place a node
+  // Pane click: deselect and close sidebars without spawning nodes
   const onPaneClick = useCallback(
-    (event: React.MouseEvent) => {
-      if (activeTool === 'select') return;
-
-      let pos = { x: 300, y: 200 };
-      try {
-        if (typeof screenToFlowPosition === 'function') {
-          pos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-        }
-      } catch {
-        pos = { x: 300, y: 200 };
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.classList.contains('react-flow__pane')) {
+        setActiveSidebarNode(null);
       }
-
-      const nodeId = `node_${Date.now()}`;
-
-      if (activeTool === 'text') {
-        addNode({
-          id: nodeId,
-          type: 'simple_text',
-          position: pos,
-          data: {
-            title: 'New Idea',
-            content: 'Add your thoughts or diagram notes here.',
-            color: '#EEEDFD',
-          },
-        });
-      } else if (activeTool === 'kanban') {
-        addNode({
-          id: nodeId,
-          type: 'kanban',
-          position: pos,
-          data: {
-            title: 'Sprint Deliverables',
-            badge: 'KANBAN',
-            color: '#DEE5FD',
-            items: [
-              { id: '1', title: 'Define interface contract', completed: false },
-              { id: '2', title: 'Implement local repository', completed: false },
-            ],
-            completedCount: 0,
-            totalCount: 2,
-          },
-        });
-      } else if (activeTool === 'note') {
-        addNode({
-          id: nodeId,
-          type: 'note',
-          position: pos,
-          data: {
-            title: 'Document Reference',
-            content: 'Links directly to a Knowledge Note document in Atelier.',
-            badge: 'DOC',
-            color: '#D1FBE3',
-          },
-        });
-      } else if (activeTool === 'media') {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (uploadEvent) => {
-              const result = uploadEvent.target?.result as string;
-              addNode({
-                id: nodeId,
-                type: 'media',
-                position: pos,
-                data: { imageUrl: result },
-              });
-            };
-            reader.readAsDataURL(file);
-          }
-        };
-        input.click();
-      } else if (activeTool === 'section') {
-        addNode({
-          id: nodeId,
-          type: 'section',
-          position: pos,
-          width: 550,
-          height: 360,
-          data: {
-            sectionTitle: 'New Area',
-            bgColor: 'rgba(245, 241, 232, 0.5)',
-          },
-        });
-      }
-
-      setActiveTool('select');
     },
-    [activeTool, screenToFlowPosition, setActiveTool, addNode]
+    [setActiveSidebarNode]
   );
+
+  // Node drag stop: when a non-section node is dragged into or out of a section, update its section attachment
+  const onNodeDragStop = useCallback((_event: MouseEvent | TouchEvent, node: Node) => {
+    if (node.type === 'section' || node.type === 'group') return;
+    const { nodes, updateNodeData } = useCanvasStore.getState();
+    const sections = nodes.filter((n) => n.type === 'section' || n.type === 'group');
+    let targetSectionId: string | undefined = undefined;
+
+    for (const sec of sections) {
+      const secLeft = sec.position.x;
+      const secTop = sec.position.y;
+      const secWidth =
+        sec.width || (sec as any).measured?.width || (sec.data as any)?.width || 1040;
+      const secHeight =
+        sec.height || (sec as any).measured?.height || (sec.data as any)?.height || 600;
+
+      const nodeW = node.width || (node as any).measured?.width || 260;
+      const nodeH = node.height || (node as any).measured?.height || 160;
+      const centerX = node.position.x + nodeW / 2;
+      const centerY = node.position.y + nodeH / 2;
+
+      const isInside =
+        (node.position.x >= secLeft &&
+          node.position.x <= secLeft + secWidth &&
+          node.position.y >= secTop &&
+          node.position.y <= secTop + secHeight) ||
+        (centerX >= secLeft &&
+          centerX <= secLeft + secWidth &&
+          centerY >= secTop &&
+          centerY <= secTop + secHeight);
+
+      if (isInside) {
+        targetSectionId = sec.id;
+        break;
+      }
+    }
+
+    const currentSectionId = (node.data as any)?.sectionId || (node.data as any)?.parentId;
+    if (currentSectionId !== targetSectionId) {
+      updateNodeData(node.id, {
+        sectionId: targetSectionId,
+        parentId: targetSectionId,
+      });
+    }
+  }, []);
 
   // Memoized custom node types map
   const nodeTypes = useMemo(
@@ -209,6 +171,14 @@ const CanvasFlowInner: React.FC = () => {
             reconnectRadius={40}
             onMoveEnd={onMoveEnd}
             onPaneClick={onPaneClick}
+            onNodeDragStop={onNodeDragStop}
+            onNodeClick={(_event, node) => {
+              if (node.type === 'note') {
+                setActiveSidebarNode({ type: 'note', nodeId: node.id });
+              } else if (node.type === 'kanban') {
+                setActiveSidebarNode({ type: 'kanban', nodeId: node.id });
+              }
+            }}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             connectionMode={ConnectionMode.Loose}
@@ -230,6 +200,9 @@ const CanvasFlowInner: React.FC = () => {
             )}
           </ReactFlow>
         </div>
+
+        {/* Linked Node Inspector Drawer (for Note & Kanban) */}
+        <CanvasLinkedDrawer />
       </div>
     </div>
   );

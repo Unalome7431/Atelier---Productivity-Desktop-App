@@ -23,7 +23,11 @@ class DatabaseManager {
       try {
         this.db = await Database.load('sqlite:atelier.db');
         for (const query of SQLITE_SCHEMA_QUERIES) {
-          await this.db.execute(query);
+          try {
+            await this.db.execute(query);
+          } catch (qErr) {
+            console.warn('[Atelier DB] Schema creation query warning:', qErr);
+          }
         }
 
         // Safe column additions for existing local SQLite databases
@@ -77,6 +81,7 @@ class DatabaseManager {
         return;
       } catch (err) {
         console.warn('[Atelier DB] Failed to load Tauri SQLite plugin, using local fallback:', err);
+        this.db = null;
       }
     }
 
@@ -161,16 +166,24 @@ class DatabaseManager {
   }
 
   private persistFallbackTable(table: string): void {
-    const data = this.fallbackMemoryStore.get(table) || [];
-    localStorage.setItem(`atelier_db_${table}`, JSON.stringify(data));
+    try {
+      const data = this.fallbackMemoryStore.get(table) || [];
+      localStorage.setItem(`atelier_db_${table}`, JSON.stringify(data));
+    } catch (storageErr) {
+      console.warn(`[Atelier DB] Failed to persist table "${table}" to localStorage:`, storageErr);
+    }
   }
 
   async execute(query: string, params: any[] = []): Promise<QueryResult> {
     await this.init();
 
     if (this.db) {
-      const res = await this.db.execute(query, params);
-      return { rowsAffected: res.rowsAffected, lastInsertId: res.lastInsertId };
+      try {
+        const res = await this.db.execute(query, params);
+        return { rowsAffected: res.rowsAffected, lastInsertId: res.lastInsertId };
+      } catch (sqlErr) {
+        console.warn('[Atelier DB] SQLite execute failed, running memory fallback:', sqlErr, query);
+      }
     }
 
     // Fallback simple query parser for INSERT/UPDATE/DELETE
@@ -181,7 +194,11 @@ class DatabaseManager {
     await this.init();
 
     if (this.db) {
-      return await this.db.select<T[]>(query, params);
+      try {
+        return await this.db.select<T[]>(query, params);
+      } catch (sqlErr) {
+        console.warn('[Atelier DB] SQLite select failed, running memory fallback:', sqlErr, query);
+      }
     }
 
     return this.fallbackSelect<T>(query, params);
@@ -347,6 +364,12 @@ class DatabaseManager {
       ) {
         records = records.filter((r: any) => r.mutation_id === params[0]);
       } else if (
+        query.includes('board_id =') &&
+        query.includes('column_id =') &&
+        params.length >= 2
+      ) {
+        records = records.filter((r: any) => r.board_id === params[0] && r.column_id === params[1]);
+      } else if (
         (query.includes('board_id =') || query.includes('board_id=')) &&
         params.length > 0
       ) {
@@ -397,6 +420,17 @@ class DatabaseManager {
           if (av > bv) return dir === 'ASC' ? 1 : -1;
           return 0;
         });
+      }
+    }
+
+    // Apply LIMIT (e.g. LIMIT 1)
+    if (upper.includes('LIMIT')) {
+      const limitMatch = query.match(/LIMIT\s+(\d+)/i);
+      if (limitMatch) {
+        const lim = parseInt(limitMatch[1], 10);
+        if (!isNaN(lim) && lim >= 0) {
+          records = records.slice(0, lim);
+        }
       }
     }
 

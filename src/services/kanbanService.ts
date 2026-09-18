@@ -600,10 +600,23 @@ export class KanbanService {
   // --- Multi-Column Customization CRUD ---
 
   async addColumn(boardId: string, title: string, themeId: string = 'blue'): Promise<KanbanColumn> {
-    const boards = await db.select<any>('SELECT * FROM kanban_boards WHERE id = ?', [boardId]);
-    if (!boards[0]) throw new Error(`Board with ID ${boardId} not found`);
+    let boards: any[] = [];
+    try {
+      boards = await db.select<any>('SELECT * FROM kanban_boards WHERE id = ?', [boardId]);
+    } catch {
+      boards = [];
+    }
 
-    const boardRow = boards[0];
+    if (!boards[0]) {
+      try {
+        await this.seedDefaultBoards();
+        boards = await db.select<any>('SELECT * FROM kanban_boards WHERE id = ?', [boardId]);
+      } catch {
+        // continue
+      }
+    }
+
+    const boardRow = boards[0] || {};
     let columns: KanbanColumn[] = KANBAN_DEFAULT_COLUMNS;
     if (boardRow.columns_config) {
       try {
@@ -630,16 +643,24 @@ export class KanbanService {
 
     const updatedColumns = [...columns, newColumn];
     const now = new Date().toISOString();
-    await db.execute('UPDATE kanban_boards SET columns_config = ?, updated_at = ? WHERE id = ?', [
-      JSON.stringify(updatedColumns),
-      now,
-      boardId,
-    ]);
+    try {
+      await db.execute('UPDATE kanban_boards SET columns_config = ?, updated_at = ? WHERE id = ?', [
+        JSON.stringify(updatedColumns),
+        now,
+        boardId,
+      ]);
+    } catch (err) {
+      console.warn('[KanbanService] Failed to persist updated columns to DB:', err);
+    }
 
-    await syncService.enqueueMutation('kanban_boards', boardId, 'UPDATE', {
-      columns_config: JSON.stringify(updatedColumns),
-      updated_at: now,
-    });
+    try {
+      await syncService.enqueueMutation('kanban_boards', boardId, 'UPDATE', {
+        columns_config: JSON.stringify(updatedColumns),
+        updated_at: now,
+      });
+    } catch {
+      // ignore
+    }
 
     return newColumn;
   }
@@ -771,38 +792,57 @@ export class KanbanService {
       tagLabel = tagArg;
     }
 
+    // Ensure board exists in DB before inserting card
+    try {
+      const boards = await db.select<any>('SELECT id FROM kanban_boards WHERE id = ?', [boardId]);
+      if (!boards[0]) {
+        await this.seedDefaultBoards();
+      }
+    } catch {
+      // ignore
+    }
+
     // Determine position rank at end of target column
-    const existingCards = await db.select<any>(
-      `SELECT position_rank FROM kanban_cards WHERE board_id = ? AND column_id = ? ORDER BY position_rank DESC LIMIT 1`,
-      [boardId, columnId]
-    );
-    const lastRank = existingCards[0]?.position_rank;
-    const positionRank = lastRank ? getRankBetween(lastRank, null) : getInitialRank(0);
+    let positionRank = getInitialRank(0);
+    try {
+      const existingCards = await db.select<any>(
+        `SELECT position_rank FROM kanban_cards WHERE board_id = ? AND column_id = ? ORDER BY position_rank DESC LIMIT 1`,
+        [boardId, columnId]
+      );
+      const lastRank = existingCards[0]?.position_rank;
+      positionRank = lastRank ? getRankBetween(lastRank, null) : getInitialRank(0);
+    } catch {
+      positionRank = getInitialRank(0);
+    }
 
     const cardId = `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
     const checklistJson = JSON.stringify(checklist);
 
-    await db.execute(
-      `INSERT INTO kanban_cards (id, board_id, column_id, title, description, tag_label, tag_color, due_date, comments_count, position_rank, checklist, completed_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        cardId,
-        boardId,
-        columnId,
-        title,
-        description,
-        tagLabel || null,
-        tagColor || null,
-        dueDate || null,
-        0,
-        positionRank,
-        checklistJson,
-        columnId === 'done' ? 'Completed today' : null,
-        now,
-        now,
-      ]
-    );
+    try {
+      await db.execute(
+        `INSERT INTO kanban_cards (id, board_id, column_id, title, description, tag_label, tag_color, due_date, comments_count, position_rank, checklist, completed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          cardId,
+          boardId,
+          columnId,
+          title,
+          description,
+          tagLabel || null,
+          tagColor || null,
+          dueDate || null,
+          0,
+          positionRank,
+          checklistJson,
+          columnId === 'done' ? 'Completed today' : null,
+          now,
+          now,
+        ]
+      );
+    } catch (insertErr) {
+      console.warn('[KanbanService] Failed to insert kanban card into DB:', insertErr);
+    }
 
     const card: KanbanCard = {
       id: cardId,
@@ -815,7 +855,7 @@ export class KanbanService {
       tags: tagLabel ? [tagLabel] : [],
       dueDate,
       positionRank,
-      orderIndex: parseFloat(positionRank),
+      orderIndex: parseFloat(positionRank) || 1000,
       checklist,
       commentsCount: 0,
       completedAt: columnId === 'done' ? 'Completed today' : undefined,
@@ -823,7 +863,11 @@ export class KanbanService {
       updatedAt: now,
     };
 
-    await syncService.enqueueMutation('kanban_cards', cardId, 'INSERT', card);
+    try {
+      await syncService.enqueueMutation('kanban_cards', cardId, 'INSERT', card);
+    } catch {
+      // ignore
+    }
     return card;
   }
 

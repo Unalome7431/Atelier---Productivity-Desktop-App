@@ -344,7 +344,7 @@ export const Sidebar: React.FC = () => {
           )}
 
           {/* Kanban Board Manager Shelf (Figma style) */}
-          {(activeTab === 'kanban' || (activeTab !== 'canvas' && activeTab !== 'notes')) && (
+          {activeTab === 'kanban' && (
             <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
               <div className="flex items-center justify-between px-2">
                 <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider">
