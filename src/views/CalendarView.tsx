@@ -34,14 +34,12 @@ export const CalendarView: React.FC = () => {
     setTaskDrawerOpen,
     addEvent,
     deleteEvent,
-    scheduleTask,
     addWeeklyBlock,
     updateWeeklyBlock,
     deleteWeeklyBlock,
   } = useCalendarStore();
 
-  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask } =
-    useTasksStore();
+  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask } = useTasksStore();
 
   // Navigation state (Defaulting to September 2026 matching Figma design)
   const [currentYear, setCurrentYear] = useState(2026);
@@ -155,13 +153,8 @@ export const CalendarView: React.FC = () => {
     await setTaskScheduledDate(task.id, date);
   };
 
-  const handleConfirmModalSchedule = async (
-    task: Task,
-    date: string,
-    startTime: string,
-    durationMinutes: number
-  ) => {
-    await scheduleTask(task, date, startTime, durationMinutes);
+  const handleConfirmModalSchedule = async (task: Task, date: string) => {
+    await setTaskScheduledDate(task.id, date);
     setSelectedTaskForModal(null);
   };
 

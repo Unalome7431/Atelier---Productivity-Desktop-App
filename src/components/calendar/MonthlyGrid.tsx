@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { CheckSquare } from 'lucide-react';
 import { CalendarEvent, Task } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -89,13 +88,16 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
 
   const handleDragOver = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
     if (dragOverDate !== dateStr) {
       setDragOverDate(dateStr);
     }
   };
 
-  const handleDragLeave = (_e: React.DragEvent, dateStr: string) => {
+  const handleDragLeave = (e: React.DragEvent, dateStr: string) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     if (dragOverDate === dateStr) {
       setDragOverDate(null);
     }
@@ -103,12 +105,18 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverDate(null);
     try {
-      const raw = e.dataTransfer.getData('application/json');
+      const raw =
+        e.dataTransfer.getData('application/json') ||
+        e.dataTransfer.getData('text/plain') ||
+        e.dataTransfer.getData('text');
       if (raw) {
         const task: Task = JSON.parse(raw);
-        onDropTask(task, dateStr);
+        if (task && task.id) {
+          onDropTask(task, dateStr);
+        }
       }
     } catch (err) {
       console.error('Failed to parse dropped task on date cell:', err);
@@ -221,25 +229,14 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                   </div>
                 ))}
 
-                {/* Scheduled Tasks (no timeline, pure date allocation) */}
+                {/* Scheduled Tasks (no timeline, pure date allocation, no checklist) */}
                 {cellEvents.length < 2 &&
                   cellTasks.slice(0, 2 - cellEvents.length).map((task) => (
                     <div
                       key={task.id}
-                      className={cn(
-                        'px-1.5 py-0.5 rounded text-[10px] font-sans font-medium truncate leading-tight flex items-center gap-1 border transition-transform',
-                        task.completed
-                          ? 'bg-surface/80 border-border/70 text-secondaryGray line-through'
-                          : 'bg-white/95 border-border/90 text-primaryDark shadow-2xs'
-                      )}
-                      title={`Scheduled Task: ${task.title}${task.completed ? ' (Done)' : ''}`}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-sans font-medium truncate leading-tight border transition-transform bg-white/95 border-border/90 text-primaryDark shadow-2xs"
+                      title={`Scheduled Task: ${task.title}`}
                     >
-                      <CheckSquare
-                        className={cn(
-                          'w-2.5 h-2.5 shrink-0',
-                          task.completed ? 'text-emerald-600' : 'text-secondaryGray'
-                        )}
-                      />
                       <span className="truncate">{task.title}</span>
                     </div>
                   ))}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ListFilter, Plus, Trash2, Calendar as CalendarIcon, CheckSquare, X } from 'lucide-react';
+import { ListFilter, Plus, Trash2, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Eyebrow } from '@/components/common/Badge';
 import { CalendarEvent, Task } from '@/types';
 import { cn } from '@/lib/utils';
@@ -55,23 +55,31 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
     if (!isDragOver) setIsDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setIsDragOver(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     try {
-      const raw = e.dataTransfer.getData('application/json');
+      const raw =
+        e.dataTransfer.getData('application/json') ||
+        e.dataTransfer.getData('text/plain') ||
+        e.dataTransfer.getData('text');
       if (raw) {
         const task: Task = JSON.parse(raw);
-        onDropTask(task, selectedDate);
+        if (task && task.id) {
+          onDropTask(task, selectedDate);
+        }
       }
     } catch (err) {
       console.error('Failed to parse dropped task on agenda:', err);
@@ -212,7 +220,7 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
         <div className="flex flex-col gap-2.5 bg-bg/50 border border-border/80 rounded-2xl p-3.5 flex-1 min-h-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <CheckSquare className="w-3.5 h-3.5 text-secondaryGray" />
+              <CalendarIcon className="w-3.5 h-3.5 text-secondaryGray" />
               <span className="font-mono text-mono-xs font-bold text-primaryDark uppercase tracking-wider">
                 Scheduled Tasks
               </span>
@@ -260,11 +268,11 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
             </form>
           )}
 
-          {/* Tasks List */}
+          {/* Tasks List — Non-interactable, task name only */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
             {selectedDateTasks.length === 0 ? (
               <div className="py-4 px-2 rounded-xl bg-surface/60 border border-dashed border-border text-center flex flex-col items-center justify-center gap-1 text-secondaryGray flex-1 min-h-[90px]">
-                <CheckSquare className="w-4 h-4 text-midGray" />
+                <CalendarIcon className="w-4 h-4 text-midGray" />
                 <span className="text-[11px] font-sans">No tasks scheduled for this date</span>
                 <span className="text-[10px] font-mono text-midGray">
                   Drag tasks from the queue to schedule
@@ -274,24 +282,11 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               selectedDateTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="p-2.5 bg-white border border-border/80 rounded-xl shadow-2xs flex items-center justify-between gap-2 group select-none hover:border-[#D0C8BA] transition-all"
+                  className="px-3 py-2 bg-white border border-border/80 rounded-xl shadow-2xs flex items-center justify-between gap-2 group select-none hover:border-[#D0C8BA] transition-all"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-4 h-4 rounded-md bg-surface border border-border/70 flex items-center justify-center shrink-0">
-                      <CheckSquare className="w-2.5 h-2.5 text-secondaryGray" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <span className="font-sans text-xs font-medium text-primaryDark block truncate">
-                        {task.title}
-                      </span>
-                      {task.subtasks && task.subtasks.length > 0 && (
-                        <span className="text-[10px] font-mono text-secondaryGray">
-                          {task.subtasks.length} subtasks
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <span className="font-sans text-xs font-medium text-primaryDark block truncate flex-1 min-w-0">
+                    {task.title}
+                  </span>
 
                   {/* Unschedule button so user can manage date assignment */}
                   {onUnscheduleTask && (
