@@ -19,6 +19,9 @@ export class TaskService {
       await this.seedingPromise;
     }
 
+    // Automatically rollover incomplete tasks from past dates back to Inbox
+    await this.rolloverIncompleteTasks(targetDate);
+
     const rows = await db.select<any>(
       `SELECT * FROM tasks WHERE scheduled_date = ? ORDER BY position_rank ASC`,
       [targetDate]
@@ -43,6 +46,18 @@ export class TaskService {
     const rows = await db.select<any>(`SELECT * FROM tasks ORDER BY position_rank ASC`);
     const cleanedRows = await this.deduplicateTasks(rows);
     return cleanedRows.map((t) => this.mapTask(t));
+  }
+
+  async rolloverIncompleteTasks(todayDate?: string): Promise<void> {
+    const today = todayDate || getTodayDateString();
+    await db.init();
+    const allRows = await db.select<any>('SELECT * FROM tasks WHERE scheduled_date IS NOT NULL');
+    const pastIncomplete = allRows.filter(
+      (r: any) => r.scheduled_date && r.scheduled_date < today && r.status !== 'done'
+    );
+    for (const task of pastIncomplete) {
+      await this.updateTaskScheduledDate(task.id, null);
+    }
   }
 
   private mapTask(t: any): Task {

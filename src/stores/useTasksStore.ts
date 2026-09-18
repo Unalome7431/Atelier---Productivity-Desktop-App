@@ -37,6 +37,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     if (get().isLoading) return;
     set({ isLoading: true });
     try {
+      await taskService.rolloverIncompleteTasks();
       const [todayTasks, inboxTasks, allTasks] = await Promise.all([
         taskService.getTodayTasks(),
         taskService.getInboxTasks(),

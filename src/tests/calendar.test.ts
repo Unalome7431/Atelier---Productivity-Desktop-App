@@ -229,13 +229,13 @@ async function runCalendarTests() {
   assert(mockTask.scheduledDate === null, 'Task starts unscheduled in inbox');
 
   // Schedule task via time-boxing
-  const scheduledTimeBox = await store.scheduleTask(mockTask, '2026-09-16', '10:00', 90);
+  const scheduledTimeBox = await store.scheduleTask(mockTask, '2026-09-26', '10:00', 90);
   assert(Boolean(scheduledTimeBox.id), 'scheduleTask created calendar event');
   assert(
     scheduledTimeBox.title === 'Profile Settings Redesign',
     'Calendar event title matches task'
   );
-  assert(scheduledTimeBox.date === '2026-09-16', 'Event date is 2026-09-16');
+  assert(scheduledTimeBox.date === '2026-09-26', 'Event date is 2026-09-26');
   assert(scheduledTimeBox.startTime === '10:00', 'Event start time is 10:00');
   assert(scheduledTimeBox.endTime === '11:30', 'Event end time computed for 90m is 11:30');
   assert(
@@ -249,9 +249,20 @@ async function runCalendarTests() {
   assert(scheduledTimeBox.isFixed === false, 'Time-boxed task is marked as flexible work block');
 
   // Verify task was updated in database
-  const todayTasks = await taskService.getTodayTasks('2026-09-16');
-  const matchingTask = todayTasks.find((t) => t.id === mockTask.id);
-  assert(Boolean(matchingTask), 'Task now scheduled in database for 2026-09-16');
+  const targetTasks = await taskService.getTodayTasks('2026-09-26');
+  const matchingTask = targetTasks.find((t) => t.id === mockTask.id);
+  assert(Boolean(matchingTask), 'Task now scheduled in database for 2026-09-26');
+
+  // Verify past incomplete task rollover to Inbox
+  const pastTask = await taskService.createTask({
+    title: 'Past Unfinished Task',
+    scheduledDate: '2026-09-01',
+  });
+  assert(pastTask.scheduledDate === '2026-09-01', 'Task created with past date');
+  await taskService.rolloverIncompleteTasks();
+  const inboxAfterRollover = await taskService.getInboxTasks();
+  const rolledOver = inboxAfterRollover.find((t) => t.id === pastTask.id);
+  assert(Boolean(rolledOver), 'Incomplete task from past date automatically rolled over to Inbox');
 
   // -------------------------------------------------------------
   // Test 6: 6×7 Monthly Grid (42 Cells) & Tan Highlight Engine

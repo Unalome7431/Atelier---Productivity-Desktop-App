@@ -1,13 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  ListFilter,
-  Plus,
-  Trash2,
-  Calendar as CalendarIcon,
-  CheckSquare,
-  X,
-  Check,
-} from 'lucide-react';
+import { ListFilter, Plus, Trash2, Calendar as CalendarIcon, CheckSquare, X } from 'lucide-react';
 import { Eyebrow } from '@/components/common/Badge';
 import { CalendarEvent, Task } from '@/types';
 import { cn } from '@/lib/utils';
@@ -19,7 +11,6 @@ interface SelectedDateAgendaProps {
   onOpenAddAgenda: (date?: string) => void;
   onDeleteEvent: (id: string) => void;
   onDropTask: (task: Task, date: string) => void;
-  onToggleTask?: (taskId: string) => void;
   onUnscheduleTask?: (taskId: string) => void;
   onQuickAddTask?: (title: string, date: string) => void;
 }
@@ -31,7 +22,6 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
   onOpenAddAgenda,
   onDeleteEvent,
   onDropTask,
-  onToggleTask,
   onUnscheduleTask,
   onQuickAddTask,
 }) => {
@@ -284,49 +274,32 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               selectedDateTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="p-2.5 bg-white border border-border/80 rounded-xl shadow-2xs flex items-center justify-between gap-2 group hover:border-[#D0C8BA] transition-all"
+                  className="p-2.5 bg-white border border-border/80 rounded-xl shadow-2xs flex items-center justify-between gap-2 group select-none hover:border-[#D0C8BA] transition-all"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {/* Checkbox */}
-                    <button
-                      type="button"
-                      onClick={() => onToggleTask && onToggleTask(task.id)}
-                      className={cn(
-                        'w-4 h-4 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0',
-                        task.completed
-                          ? 'bg-emerald-600 border-emerald-600 text-white'
-                          : 'border-border/80 hover:border-primaryDark bg-bg'
-                      )}
-                      title={task.completed ? 'Mark incomplete' : 'Mark complete'}
-                    >
-                      {task.completed && <Check className="w-3 h-3 stroke-[2.5]" />}
-                    </button>
+                    <div className="w-4 h-4 rounded-md bg-surface border border-border/70 flex items-center justify-center shrink-0">
+                      <CheckSquare className="w-2.5 h-2.5 text-secondaryGray" />
+                    </div>
 
                     <div className="min-w-0 flex-1">
-                      <span
-                        className={cn(
-                          'font-sans text-xs font-medium block truncate',
-                          task.completed ? 'line-through text-secondaryGray' : 'text-primaryDark'
-                        )}
-                      >
+                      <span className="font-sans text-xs font-medium text-primaryDark block truncate">
                         {task.title}
                       </span>
                       {task.subtasks && task.subtasks.length > 0 && (
                         <span className="text-[10px] font-mono text-secondaryGray">
-                          {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length}{' '}
-                          subtasks
+                          {task.subtasks.length} subtasks
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Unschedule button */}
+                  {/* Unschedule button so user can manage date assignment */}
                   {onUnscheduleTask && (
                     <button
                       type="button"
                       onClick={() => onUnscheduleTask(task.id)}
                       className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface text-secondaryGray hover:text-rose-600 transition-opacity cursor-pointer shrink-0"
-                      title="Unschedule (move back to inbox)"
+                      title="Remove from this date (move back to inbox)"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -335,6 +308,11 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               ))
             )}
           </div>
+
+          <p className="text-[10px] font-mono text-secondaryGray/75 px-1 pt-1 leading-tight">
+            Tasks scheduled for today automatically move to your Daily To Do List. Incomplete tasks
+            return to Inbox.
+          </p>
         </div>
       </div>
     </div>

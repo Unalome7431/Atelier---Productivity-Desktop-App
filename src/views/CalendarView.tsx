@@ -40,7 +40,7 @@ export const CalendarView: React.FC = () => {
     deleteWeeklyBlock,
   } = useCalendarStore();
 
-  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, toggleTask, addTask } =
+  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask } =
     useTasksStore();
 
   // Navigation state (Defaulting to September 2026 matching Figma design)
@@ -381,7 +381,6 @@ export const CalendarView: React.FC = () => {
             onOpenAddAgenda={handleOpenAddAgenda}
             onDeleteEvent={deleteEvent}
             onDropTask={handleDropTaskOnDate}
-            onToggleTask={(taskId) => toggleTask(taskId)}
             onUnscheduleTask={(taskId) => setTaskScheduledDate(taskId, null)}
             onQuickAddTask={(title, date) => addTask({ title, scheduledDate: date })}
           />
