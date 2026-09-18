@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Share2, Download, Pin, Trash2, ChevronDown, Check, Plus, Folder, Network, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Download, Pin, Trash2, ChevronDown, Check, Plus, Folder, X, Search } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { ExportModal } from './ExportModal';
-import { NoteDocument, NavigationTab } from '@/types';
+import { NoteDocument } from '@/types';
 import { useNotesStore } from '@/stores/useNotesStore';
-import { useCanvasStore } from '@/stores/useCanvasStore';
-import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
 
 interface NoteHeaderProps {
@@ -23,24 +21,26 @@ const PASTEL_COLORS = [
 
 export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
   const { updateNote, deleteNote, togglePinNote, getFolders, createFolder } = useNotesStore();
-  const { canvases, setActiveCanvasId } = useCanvasStore();
-  const { setActiveTab } = useAppStore();
 
   const [titleInput, setTitleInput] = useState(note.title);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
-  const [isCanvasMenuOpen, setIsCanvasMenuOpen] = useState(false);
+  const [folderSearch, setFolderSearch] = useState('');
   const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
     setTitleInput(note.title);
   }, [note.title]);
 
   const folders = getFolders();
+  const filteredFolders = useMemo(() => {
+    if (!folderSearch.trim()) return folders;
+    const q = folderSearch.toLowerCase().trim();
+    return folders.filter((f) => f.toLowerCase().includes(q));
+  }, [folders, folderSearch]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -48,24 +48,10 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
     updateNote(note.id, { title: val });
   };
 
-  const handleJumpToCanvas = () => {
-    if (note.canvasId) {
-      setActiveCanvasId(note.canvasId);
-      setActiveTab('canvas' as NavigationTab);
-    }
-  };
-
-  const handleSelectCanvas = (canvasId?: string, canvasTitle?: string) => {
-    updateNote(note.id, {
-      canvasId: canvasId || undefined,
-      canvasTitle: canvasTitle || undefined,
-    });
-    setIsCanvasMenuOpen(false);
-  };
-
   const handleSelectFolder = (folderName?: string) => {
     updateNote(note.id, { folder: folderName, category: folderName });
     setIsFolderMenuOpen(false);
+    setFolderSearch('');
   };
 
   const handleCreateFolder = (e?: React.FormEvent) => {
@@ -73,11 +59,12 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    const trimmed = newFolderName.trim();
+    const trimmed = (newFolderName || folderSearch).trim();
     if (!trimmed) return;
     createFolder(trimmed);
     updateNote(note.id, { folder: trimmed, category: trimmed });
     setNewFolderName('');
+    setFolderSearch('');
     setIsCreatingFolder(false);
     setIsFolderMenuOpen(false);
   };
@@ -87,69 +74,19 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
     setIsColorMenuOpen(false);
   };
 
-  const handleShare = async () => {
-    const textToCopy = `# ${note.title}\n\n${note.content?.replace(/<[^>]+>/g, '') || ''}`;
-    await navigator.clipboard.writeText(textToCopy);
-    setCopiedShare(true);
-    setTimeout(() => setCopiedShare(false), 2000);
-  };
-
   return (
     <div className="flex flex-col gap-4 select-none pb-4 border-b border-border/60">
       {/* Top Meta & Action Row */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Linked Canvas Pill Badge (matching Figma CANVAS A) */}
-          {note.canvasTitle ? (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleJumpToCanvas}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-indigo hover:bg-indigo-200/80 text-indigo-950 font-mono text-xs font-bold tracking-wider shadow-xs transition-colors cursor-pointer"
-                title={`Open tethered ${note.canvasTitle} canvas`}
-              >
-                <Network className="w-3 h-3 text-indigo-700" />
-                <span>{note.canvasTitle}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsCanvasMenuOpen(!isCanvasMenuOpen)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface hover:bg-white text-secondaryGray hover:text-primaryDark border border-border font-mono text-[11px] font-medium transition-colors cursor-pointer"
-              >
-                <Network className="w-3 h-3" />
-                <span>Link Canvas</span>
-                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
-              </button>
-
-              {isCanvasMenuOpen && (
-                <div className="absolute left-0 top-full mt-1 w-44 bg-white border border-border shadow-float rounded-2xl p-1 z-30 flex flex-col gap-0.5">
-                  <div className="px-2 py-1 text-[10px] font-mono font-bold text-midGray uppercase">
-                    Select Canvas
-                  </div>
-                  {canvases.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => handleSelectCanvas(c.id, c.title)}
-                      className="flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans text-left hover:bg-surface text-primaryDark cursor-pointer"
-                    >
-                      <span className="truncate">{c.title}</span>
-                      {note.canvasId === c.id && <Check className="w-3 h-3 text-indigo-700" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Folder Pill Selector */}
           <div className="relative">
             <button
               type="button"
-              onClick={() => setIsFolderMenuOpen(!isFolderMenuOpen)}
+              onClick={() => {
+                setIsFolderMenuOpen(!isFolderMenuOpen);
+                setFolderSearch('');
+              }}
               className={cn(
                 'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-sans font-medium transition-colors cursor-pointer',
                 note.folder
@@ -163,7 +100,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
             </button>
 
             {isFolderMenuOpen && (
-              <div className="absolute left-0 top-full mt-1 w-52 bg-white border border-border shadow-float rounded-2xl p-2 z-40 flex flex-col gap-1.5">
+              <div className="absolute left-0 top-full mt-1 w-56 bg-white border border-border shadow-float rounded-2xl p-2 z-40 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between px-1 border-b border-border/50 pb-1">
                   <span className="text-[10px] font-mono font-bold text-midGray uppercase">
                     Folder
@@ -173,20 +110,41 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
                   </span>
                 </div>
 
+                {/* Folder Search input */}
+                {folders.length > 2 && (
+                  <div className="relative">
+                    <Search className="w-3 h-3 text-secondaryGray absolute left-2 top-2" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={folderSearch}
+                      onChange={(e) => setFolderSearch(e.target.value)}
+                      placeholder="Search folders..."
+                      className="w-full bg-surface border border-border rounded-lg pl-6 pr-2 py-1 text-xs text-primaryDark outline-none focus:border-primaryDark"
+                    />
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-0.5 max-h-44 overflow-y-auto">
                   {folders.length === 0 ? (
                     <div className="px-2 py-2 text-center text-[11px] font-sans text-secondaryGray">
                       No custom folders yet. Create one below.
                     </div>
+                  ) : filteredFolders.length === 0 ? (
+                    <div className="px-2 py-2 text-center text-[11px] font-sans text-secondaryGray">
+                      No matching folders.
+                    </div>
                   ) : (
-                    folders.map((f) => (
+                    filteredFolders.map((f) => (
                       <button
                         key={f}
                         type="button"
                         onClick={() => handleSelectFolder(f)}
                         className={cn(
                           'flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans text-left transition-colors cursor-pointer',
-                          note.folder === f ? 'bg-surface font-semibold text-primaryDark' : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
+                          note.folder === f
+                            ? 'bg-surface font-semibold text-primaryDark'
+                            : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
                         )}
                       >
                         <span className="truncate">{f}</span>
@@ -208,7 +166,10 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
                 </div>
 
                 {isCreatingFolder ? (
-                  <form onSubmit={handleCreateFolder} className="p-1 flex items-center gap-1 border-t border-border/50 mt-1">
+                  <form
+                    onSubmit={handleCreateFolder}
+                    className="p-1 flex items-center gap-1 border-t border-border/50 mt-1"
+                  >
                     <input
                       type="text"
                       autoFocus
@@ -281,10 +242,15 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
                     onClick={() => handleSelectColor(c.value)}
                     className={cn(
                       'flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-sans text-left transition-colors cursor-pointer',
-                      note.categoryColor === c.value ? 'bg-surface font-semibold text-primaryDark' : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
+                      note.categoryColor === c.value
+                        ? 'bg-surface font-semibold text-primaryDark'
+                        : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
                     )}
                   >
-                    <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: c.value }} />
+                    <div
+                      className="w-3 h-3 rounded-full border border-black/10"
+                      style={{ backgroundColor: c.value }}
+                    />
                     <span>{c.label}</span>
                   </button>
                 ))}
@@ -308,29 +274,8 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({ note }) => {
           </button>
         </div>
 
-        {/* Right Actions: Share, Export, Delete */}
+        {/* Right Actions: Export, Delete */}
         <div className="flex items-center gap-2">
-          {/* Share Pill Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleShare}
-            className="font-sans text-xs font-medium gap-1.5"
-            title="Copy note markdown to clipboard"
-          >
-            {copiedShare ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Copied</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Share</span>
-              </>
-            )}
-          </Button>
-
           {/* Export Pill Button (Filled Lavender per Figma) */}
           <Button
             variant="primary"

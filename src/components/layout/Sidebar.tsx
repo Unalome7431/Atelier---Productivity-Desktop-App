@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Sparkles,
   LayoutDashboard,
@@ -11,7 +11,9 @@ import {
   Edit2,
   Trash2,
   Pin,
-  FolderPlus,
+  Folder,
+  ChevronDown,
+  Search,
   X,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
@@ -76,12 +78,26 @@ export const Sidebar: React.FC = () => {
   const [renameNoteInput, setRenameNoteInput] = useState('');
   const [isCreatingSidebarFolder, setIsCreatingSidebarFolder] = useState(false);
   const [sidebarFolderName, setSidebarFolderName] = useState('');
+  const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
+  const [folderSearchQuery, setFolderSearchQuery] = useState('');
 
   useEffect(() => {
     loadCanvases();
     loadBoards();
     loadNotes();
   }, [loadCanvases, loadBoards, loadNotes]);
+
+  const sidebarFolders = getFolders();
+  const filteredSidebarFolders = useMemo(() => {
+    if (!folderSearchQuery.trim()) return sidebarFolders;
+    const q = folderSearchQuery.toLowerCase().trim();
+    return sidebarFolders.filter((f) => f.toLowerCase().includes(q));
+  }, [sidebarFolders, folderSearchQuery]);
+
+  const activeFolderCount = useMemo(() => {
+    if (!activeFolder) return notes.length;
+    return notes.filter((n) => n.folder?.toLowerCase() === activeFolder.toLowerCase()).length;
+  }, [notes, activeFolder]);
 
   const menuItems: NavItem[] = [
     { id: 'cockpit', label: 'Daily Cockpit', icon: LayoutDashboard },
@@ -441,111 +457,245 @@ export const Sidebar: React.FC = () => {
 
           {/* Notes Manager Shelf (matching Figma Notes screen) */}
           {activeTab === 'notes' && (
-            <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
+            <div className="flex flex-col gap-2 pt-3 border-t border-border/60">
               <div className="flex items-center justify-between px-2">
                 <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider">
                   Notes
                 </span>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => setIsCreatingSidebarFolder(!isCreatingSidebarFolder)}
-                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
-                    title="Create new folder"
-                  >
-                    <FolderPlus className="w-2.5 h-2.5" />
-                    <span>Folder</span>
-                  </button>
-                  <button
                     onClick={handleCreateNote}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white hover:bg-white/80 text-primaryDark border border-border shadow-xs text-[10px] font-semibold transition-colors cursor-pointer"
                     title="Create new note"
                   >
                     <Plus className="w-2.5 h-2.5" />
-                    <span>Note</span>
+                    <span>New note</span>
                   </button>
                 </div>
               </div>
 
-              {/* Inline Folder Creation Form in Sidebar */}
-              {isCreatingSidebarFolder && (
-                <form
-                  onSubmit={handleCreateSidebarFolder}
-                  className="px-1 py-1 flex items-center gap-1 bg-white/90 border border-border rounded-xl mx-1 shadow-2xs"
+              {/* Folder Selector Dropdown with Search */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFolderDropdownOpen(!isFolderDropdownOpen);
+                    setFolderSearchQuery('');
+                    setIsCreatingSidebarFolder(false);
+                  }}
+                  className={cn(
+                    'w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-xs font-sans transition-all cursor-pointer shadow-2xs group',
+                    activeFolder
+                      ? 'bg-white border-primaryDark/30 text-primaryDark font-medium'
+                      : 'bg-white/70 hover:bg-white border-border/80 text-secondaryGray hover:text-primaryDark'
+                  )}
+                  title="Filter notes by folder"
                 >
-                  <input
-                    type="text"
-                    autoFocus
-                    value={sidebarFolderName}
-                    onChange={(e) => setSidebarFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleCreateSidebarFolder();
-                      }
-                      if (e.key === 'Escape') {
-                        setIsCreatingSidebarFolder(false);
-                      }
-                    }}
-                    placeholder="Folder name..."
-                    className="bg-transparent px-1.5 py-0.5 text-xs text-primaryDark outline-none w-full"
-                  />
-                  <button
-                    type="submit"
-                    className="px-2 py-0.5 rounded-lg bg-accent-indigo text-indigo-950 text-[10px] font-bold cursor-pointer shrink-0"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreatingSidebarFolder(false)}
-                    className="p-0.5 rounded text-secondaryGray hover:text-primaryDark cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </form>
-              )}
-
-              {/* Folder filter pills */}
-              {getFolders().length > 0 && (
-                <div className="flex items-center gap-1 px-1 overflow-x-auto no-scrollbar py-0.5">
-                  <button
-                    onClick={() => setActiveFolder(undefined)}
-                    className={cn(
-                      'px-2 py-0.5 rounded-full text-[9px] font-mono whitespace-nowrap transition-colors cursor-pointer',
-                      !activeFolder
-                        ? 'bg-white text-primaryDark font-bold shadow-xs'
-                        : 'text-secondaryGray hover:text-primaryDark'
-                    )}
-                  >
-                    ALL
-                  </button>
-                  {getFolders().map((f) => (
-                    <div
-                      key={f}
-                      className={cn(
-                        'group/f flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono whitespace-nowrap transition-colors cursor-pointer',
-                        activeFolder === f
-                          ? 'bg-white text-primaryDark font-bold shadow-xs'
-                          : 'text-secondaryGray hover:text-primaryDark bg-surface/50'
-                      )}
-                      onClick={() => setActiveFolder(f)}
-                    >
-                      <span>{f.toUpperCase()}</span>
-                      <button
-                        type="button"
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Folder className="w-3.5 h-3.5 text-secondaryGray group-hover:text-primaryDark shrink-0" />
+                    <span className="truncate max-w-[100px]">{activeFolder || 'All Folders'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {activeFolder && (
+                      <span
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteFolder(f);
+                          setActiveFolder(undefined);
                         }}
-                        className="opacity-0 group-hover/f:opacity-100 hover:text-rose-600 transition-opacity p-0.5 cursor-pointer"
-                        title="Delete folder"
+                        className="p-0.5 rounded-full hover:bg-black/5 text-secondaryGray hover:text-primaryDark"
+                        title="Clear folder filter"
                       >
                         <X className="w-2.5 h-2.5" />
-                      </button>
+                      </span>
+                    )}
+                    <span className="font-mono text-[9px] text-secondaryGray bg-surface px-1.5 py-0.2 rounded-full border border-border/60">
+                      {activeFolderCount}
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        'w-3 h-3 text-secondaryGray transition-transform',
+                        isFolderDropdownOpen && 'rotate-180'
+                      )}
+                    />
+                  </div>
+                </button>
+
+                {/* Dropdown Popover */}
+                {isFolderDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => {
+                        setIsFolderDropdownOpen(false);
+                        setIsCreatingSidebarFolder(false);
+                        setFolderSearchQuery('');
+                      }}
+                    />
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border shadow-float rounded-2xl p-2 z-40 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-100 font-sans text-xs">
+                      {/* Search Mechanic */}
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-secondaryGray absolute left-2.5 top-2" />
+                        <input
+                          type="text"
+                          autoFocus
+                          value={folderSearchQuery}
+                          onChange={(e) => setFolderSearchQuery(e.target.value)}
+                          placeholder="Search folders..."
+                          className="w-full bg-surface border border-border rounded-xl pl-7 pr-6 py-1 text-xs text-primaryDark outline-none focus:border-primaryDark"
+                        />
+                        {folderSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setFolderSearchQuery('')}
+                            className="absolute right-2 top-2 text-secondaryGray hover:text-primaryDark"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Folders List */}
+                      <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto pr-0.5">
+                        {/* All Notes Option */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveFolder(undefined);
+                            setIsFolderDropdownOpen(false);
+                            setFolderSearchQuery('');
+                          }}
+                          className={cn(
+                            'flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans text-left transition-colors cursor-pointer',
+                            !activeFolder
+                              ? 'bg-surface font-semibold text-primaryDark'
+                              : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Folder className="w-3.5 h-3.5 text-secondaryGray shrink-0" />
+                            <span className="truncate">All Notes</span>
+                          </div>
+                          <span className="font-mono text-[10px] text-secondaryGray">
+                            {notes.length}
+                          </span>
+                        </button>
+
+                        {/* Filtered Folders */}
+                        {filteredSidebarFolders.map((f) => {
+                          const count = notes.filter(
+                            (n) => n.folder?.toLowerCase() === f.toLowerCase()
+                          ).length;
+                          const isSelected = activeFolder?.toLowerCase() === f.toLowerCase();
+                          return (
+                            <div
+                              key={f}
+                              onClick={() => {
+                                setActiveFolder(f);
+                                setIsFolderDropdownOpen(false);
+                                setFolderSearchQuery('');
+                              }}
+                              className={cn(
+                                'group/item flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-sans transition-colors cursor-pointer',
+                                isSelected
+                                  ? 'bg-surface font-semibold text-primaryDark'
+                                  : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
+                              )}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <Folder className="w-3.5 h-3.5 text-secondaryGray shrink-0" />
+                                <span className="truncate">{f}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="font-mono text-[10px] text-secondaryGray">
+                                  {count}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteFolder(f);
+                                  }}
+                                  className="opacity-0 group-hover/item:opacity-100 p-0.5 hover:text-rose-600 rounded text-secondaryGray transition-opacity cursor-pointer"
+                                  title={`Delete folder "${f}"`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Empty search results & create folder button */}
+                        {folderSearchQuery.trim() &&
+                          !filteredSidebarFolders.some(
+                            (f) => f.toLowerCase() === folderSearchQuery.trim().toLowerCase()
+                          ) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                createFolder(folderSearchQuery.trim());
+                                setActiveFolder(folderSearchQuery.trim());
+                                setFolderSearchQuery('');
+                                setIsFolderDropdownOpen(false);
+                              }}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-sans text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer mt-0.5 font-medium"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span className="truncate">Create "{folderSearchQuery.trim()}"</span>
+                            </button>
+                          )}
+                      </div>
+
+                      {/* Quick Add Folder at bottom of dropdown */}
+                      {isCreatingSidebarFolder ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleCreateSidebarFolder();
+                            setIsFolderDropdownOpen(false);
+                          }}
+                          className="pt-1.5 border-t border-border/60 flex items-center gap-1"
+                        >
+                          <input
+                            type="text"
+                            autoFocus
+                            value={sidebarFolderName}
+                            onChange={(e) => setSidebarFolderName(e.target.value)}
+                            placeholder="Folder name..."
+                            className="flex-1 bg-surface border border-border rounded-lg px-2 py-1 text-xs text-primaryDark outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') setIsCreatingSidebarFolder(false);
+                            }}
+                          />
+                          <button
+                            type="submit"
+                            disabled={!sidebarFolderName.trim()}
+                            className="px-2 py-1 rounded-lg bg-primaryDark text-white text-[11px] font-semibold disabled:opacity-40 cursor-pointer shrink-0"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingSidebarFolder(false)}
+                            className="p-1 text-secondaryGray hover:text-primaryDark cursor-pointer shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatingSidebarFolder(true)}
+                          className="pt-1.5 border-t border-border/60 flex items-center gap-1 text-[11px] font-mono font-medium text-secondaryGray hover:text-primaryDark cursor-pointer px-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>New folder</span>
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
 
               {/* Notes List with Figma Pastel Pills */}
               <div className="bg-[#F5EFE6]/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-48 overflow-y-auto">
