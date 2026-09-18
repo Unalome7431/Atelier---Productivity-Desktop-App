@@ -12,7 +12,7 @@ import { Eyebrow } from '@/components/common/Badge';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { CalendarEvent, RecurringWeeklyBlock, Task } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getTodayDateString } from '@/lib/utils';
 
 // Subcomponents
 import { MonthlyGrid } from '@/components/calendar/MonthlyGrid';
@@ -39,7 +39,8 @@ export const CalendarView: React.FC = () => {
     deleteWeeklyBlock,
   } = useCalendarStore();
 
-  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask } = useTasksStore();
+  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask, addSubtask } =
+    useTasksStore();
 
   // Navigation state (Defaulting to September 2026 matching Figma design)
   const [currentYear, setCurrentYear] = useState(2026);
@@ -107,9 +108,11 @@ export const CalendarView: React.FC = () => {
   };
 
   const handleToday = () => {
-    setCurrentYear(2026);
-    setCurrentMonth(8);
-    setSelectedDate('2026-09-09');
+    const todayStr = getTodayDateString();
+    const parts = todayStr.split('-').map(Number);
+    setCurrentYear(parts[0]);
+    setCurrentMonth(parts[1] - 1);
+    setSelectedDate(todayStr);
   };
 
   // Open Add Event modal helper (from Selected Date Agenda)
@@ -376,6 +379,7 @@ export const CalendarView: React.FC = () => {
             onDropTask={handleDropTaskOnDate}
             onUnscheduleTask={(taskId) => setTaskScheduledDate(taskId, null)}
             onQuickAddTask={(title, date) => addTask({ title, scheduledDate: date })}
+            onAddSubtask={(taskId, title) => addSubtask(taskId, title)}
           />
         </div>
       </div>

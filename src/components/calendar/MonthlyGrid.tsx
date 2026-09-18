@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { CalendarEvent, Task } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getTodayDateString } from '@/lib/utils';
 
 interface MonthlyGridProps {
   year: number;
@@ -24,16 +24,10 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
   const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
-  // Compute today's date (or fallback to Figma reference date if testing preview year/month)
+  // Compute today's date
   const todayDateStr = useMemo(() => {
-    const d = new Date();
-    const realToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    // If exploring September 2026, default reference day is 2026-09-13 (today) or 2026-09-09
-    if (year === 2026 && month === 8) {
-      return '2026-09-13';
-    }
-    return realToday;
-  }, [year, month]);
+    return getTodayDateString();
+  }, []);
 
   // Generate 42 calendar cells (6 rows × 7 columns)
   const calendarCells = useMemo(() => {

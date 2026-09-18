@@ -138,6 +138,9 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       inboxTasks: state.inboxTasks.map((t) =>
         t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
       ),
+      allTasks: state.allTasks.map((t) =>
+        t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
+      ),
     }));
   },
 
@@ -146,6 +149,9 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     set((state) => ({
       tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t)),
       inboxTasks: state.inboxTasks.map((t) =>
+        t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
+      ),
+      allTasks: state.allTasks.map((t) =>
         t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
       ),
     }));
