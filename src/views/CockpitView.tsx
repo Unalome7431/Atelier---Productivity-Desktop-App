@@ -637,7 +637,7 @@ export const CockpitView: React.FC = () => {
                             className="flex items-center gap-1 font-mono text-[11px] text-secondaryGray hover:text-primaryDark mt-0.5 text-left w-fit cursor-pointer"
                           >
                             <span>
-                              {completedSubtasksCount}/{subtasks.length} steps completed
+                              {completedSubtasksCount}/{subtasks.length} subtasks completed
                             </span>
                             {isExpanded ? (
                               <ChevronUp className="w-3 h-3" />
@@ -715,10 +715,10 @@ export const CockpitView: React.FC = () => {
                         {subtasks.length === 0 && (
                           <button
                             onClick={() => toggleTaskExpansion(task.id)}
-                            title="Add sub-steps"
+                            title="Add subtask"
                             className="text-xs text-secondaryGray hover:text-primaryDark p-1 rounded hover:bg-surface transition-colors cursor-pointer font-mono"
                           >
-                            + Step
+                            + Subtask
                           </button>
                         )}
 
@@ -733,7 +733,7 @@ export const CockpitView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Expanded Sub-steps Section */}
+                  {/* Expanded Subtasks Section */}
                   {isExpanded && (
                     <div className="mt-1 pt-2 border-t border-border/70 flex flex-col gap-1.5 pl-9 pr-2">
                       {subtasks.map((sub) => (
@@ -779,7 +779,7 @@ export const CockpitView: React.FC = () => {
                               handleAddInlineSubtask(task.id);
                             }
                           }}
-                          placeholder="+ Add sub-step and press Enter..."
+                          placeholder="+ Add subtask and press Enter..."
                           className="flex-1 bg-surface border border-border rounded-md px-2.5 py-1 text-ui-rg-xs text-primaryDark placeholder:text-midGray outline-none focus:border-[#C5BDAF]"
                         />
                         <Button

@@ -1,5 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { ListFilter, Plus, Trash2, Calendar as CalendarIcon, X, ChevronDown } from 'lucide-react';
+import {
+  ListFilter,
+  Plus,
+  Trash2,
+  Calendar as CalendarIcon,
+  X,
+  ChevronDown,
+  CheckSquare,
+} from 'lucide-react';
 import { Eyebrow } from '@/components/common/Badge';
 import { CalendarEvent, Task } from '@/types';
 import { cn } from '@/lib/utils';
@@ -14,6 +22,9 @@ interface SelectedDateAgendaProps {
   onUnscheduleTask?: (taskId: string) => void;
   onQuickAddTask?: (title: string, date: string) => void;
   onAddSubtask?: (taskId: string, title: string) => void;
+  isTaskDrawerOpen?: boolean;
+  onToggleTaskDrawer?: () => void;
+  queueTasksCount?: number;
 }
 
 export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
@@ -26,6 +37,9 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
   onUnscheduleTask,
   onQuickAddTask,
   onAddSubtask,
+  isTaskDrawerOpen,
+  onToggleTaskDrawer,
+  queueTasksCount,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isQuickAddingTask, setIsQuickAddingTask] = useState(false);
@@ -222,7 +236,7 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
 
         {/* Part 2: Schedule Tasks */}
         <div className="flex flex-col gap-2.5 bg-bg/50 border border-border/80 rounded-2xl p-3.5 flex-1 min-h-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
               <CalendarIcon className="w-3.5 h-3.5 text-secondaryGray" />
               <span className="font-mono text-mono-xs font-bold text-primaryDark uppercase tracking-wider">
@@ -233,15 +247,39 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsQuickAddingTask(!isQuickAddingTask)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-surface border border-border text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
-              title="Quick schedule task for this date"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Schedule Task</span>
-            </button>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {onToggleTaskDrawer && (
+                <button
+                  type="button"
+                  onClick={onToggleTaskDrawer}
+                  className={cn(
+                    'flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs',
+                    isTaskDrawerOpen
+                      ? 'bg-accent-indigo text-indigo-950 border-indigo-300'
+                      : 'bg-white hover:bg-surface border-border text-primaryDark'
+                  )}
+                  title="Open tasks queue to schedule tasks"
+                >
+                  <CheckSquare className="w-3 h-3" />
+                  <span>Tasks Queue</span>
+                  {typeof queueTasksCount === 'number' && (
+                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded-full bg-black/5 text-primaryDark ml-0.5 font-bold">
+                      {queueTasksCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsQuickAddingTask(!isQuickAddingTask)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-surface border border-border text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
+                title="Quick schedule task for this date"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Schedule Task</span>
+              </button>
+            </div>
           </div>
 
           {/* Inline Quick Add Task Form */}

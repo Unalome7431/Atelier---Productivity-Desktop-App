@@ -197,17 +197,17 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
                   ))
                 ) : (
                   <p className="text-ui-rg-xs text-secondaryGray py-1">
-                    No sub-tasks yet. Break this task into steps below:
+                    No subtasks yet. Break this task into subtasks below:
                   </p>
                 )}
 
-                {/* Inline Add Step */}
+                {/* Inline Add Subtask */}
                 <form onSubmit={handleAddSubtask} className="flex gap-2 mt-1">
                   <input
                     type="text"
                     value={newSubtaskTitle}
                     onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                    placeholder="Add step..."
+                    placeholder="Add subtask..."
                     className="flex-1 bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-xs text-primaryDark placeholder:text-midGray outline-none focus:border-[#C5BDAF]"
                   />
                   <Button type="submit" variant="secondary" size="sm" className="gap-1 px-3">

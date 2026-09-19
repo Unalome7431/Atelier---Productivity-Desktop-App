@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  CheckSquare,
-  Calendar as CalendarIcon,
-  ChevronDown,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { Eyebrow } from '@/components/common/Badge';
@@ -326,20 +320,6 @@ export const CalendarView: React.FC = () => {
               </>
             )}
           </div>
-
-          {/* Tactical Tasks Drawer Trigger */}
-          <Button
-            variant={isTaskDrawerOpen ? 'lavender' : 'secondary'}
-            size="sm"
-            onClick={toggleTaskDrawer}
-            className="gap-1.5 shadow-subtle"
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Tasks Queue</span>
-            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-pill bg-white/70 text-primaryDark ml-0.5 font-bold">
-              {tasks.length + inboxTasks.length}
-            </span>
-          </Button>
         </div>
       </div>
 
@@ -380,6 +360,9 @@ export const CalendarView: React.FC = () => {
             onUnscheduleTask={(taskId) => setTaskScheduledDate(taskId, null)}
             onQuickAddTask={(title, date) => addTask({ title, scheduledDate: date })}
             onAddSubtask={(taskId, title) => addSubtask(taskId, title)}
+            isTaskDrawerOpen={isTaskDrawerOpen}
+            onToggleTaskDrawer={toggleTaskDrawer}
+            queueTasksCount={tasks.length + inboxTasks.length}
           />
         </div>
       </div>
