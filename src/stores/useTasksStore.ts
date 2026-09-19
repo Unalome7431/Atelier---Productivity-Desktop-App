@@ -5,6 +5,7 @@ import { taskService } from '@/services/taskService';
 interface TasksState {
   tasks: Task[]; // Today's Queue
   inboxTasks: Task[]; // Unscheduled Backlog
+  allTasks: Task[]; // All tasks (cross-calendar/date views)
   isLoading: boolean;
   loadTasks: () => Promise<void>;
   addTask: (params: {
@@ -29,17 +30,20 @@ interface TasksState {
 export const useTasksStore = create<TasksState>((set, get) => ({
   tasks: [],
   inboxTasks: [],
+  allTasks: [],
   isLoading: false,
 
   loadTasks: async () => {
     if (get().isLoading) return;
     set({ isLoading: true });
     try {
-      const [todayTasks, inboxTasks] = await Promise.all([
+      await taskService.rolloverIncompleteTasks();
+      const [todayTasks, inboxTasks, allTasks] = await Promise.all([
         taskService.getTodayTasks(),
         taskService.getInboxTasks(),
+        taskService.getAllTasks(),
       ]);
-      set({ tasks: todayTasks, inboxTasks, isLoading: false });
+      set({ tasks: todayTasks, inboxTasks, allTasks, isLoading: false });
     } catch (err) {
       console.error('Failed to load tasks:', err);
       set({ isLoading: false });
@@ -49,32 +53,34 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   addTask: async (params) => {
     const newTask = await taskService.createTask(params);
     if (newTask.scheduledDate) {
-      set((state) => ({ tasks: [...state.tasks, newTask] }));
+      set((state) => ({
+        tasks: [...state.tasks, newTask],
+        allTasks: [...state.allTasks, newTask],
+      }));
     } else {
-      set((state) => ({ inboxTasks: [...state.inboxTasks, newTask] }));
+      set((state) => ({
+        inboxTasks: [...state.inboxTasks, newTask],
+        allTasks: [...state.allTasks, newTask],
+      }));
     }
     return newTask;
   },
 
   toggleTask: async (taskId: string) => {
-    const { tasks, inboxTasks } = get();
+    const { tasks, inboxTasks, allTasks } = get();
     const isToday = tasks.some((t) => t.id === taskId);
     const targetList = isToday ? tasks : inboxTasks;
-    const task = targetList.find((t) => t.id === taskId);
+    const task = targetList.find((t) => t.id === taskId) || allTasks.find((t) => t.id === taskId);
     if (!task) return;
 
     const nextDone = !task.completed;
-    if (isToday) {
-      set((state) => ({
-        tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, completed: nextDone } : t)),
-      }));
-    } else {
-      set((state) => ({
-        inboxTasks: state.inboxTasks.map((t) =>
-          t.id === taskId ? { ...t, completed: nextDone } : t
-        ),
-      }));
-    }
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, completed: nextDone } : t)),
+      inboxTasks: state.inboxTasks.map((t) =>
+        t.id === taskId ? { ...t, completed: nextDone } : t
+      ),
+      allTasks: state.allTasks.map((t) => (t.id === taskId ? { ...t, completed: nextDone } : t)),
+    }));
 
     await taskService.toggleTask(taskId, nextDone);
   },
@@ -132,6 +138,9 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       inboxTasks: state.inboxTasks.map((t) =>
         t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
       ),
+      allTasks: state.allTasks.map((t) =>
+        t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
+      ),
     }));
   },
 
@@ -142,6 +151,9 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       inboxTasks: state.inboxTasks.map((t) =>
         t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
       ),
+      allTasks: state.allTasks.map((t) =>
+        t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t
+      ),
     }));
   },
 
@@ -149,6 +161,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     set((state) => ({
       tasks: state.tasks.filter((t) => t.id !== taskId),
       inboxTasks: state.inboxTasks.filter((t) => t.id !== taskId),
+      allTasks: state.allTasks.filter((t) => t.id !== taskId),
     }));
     await taskService.deleteTask(taskId);
   },

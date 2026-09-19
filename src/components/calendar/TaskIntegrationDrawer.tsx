@@ -26,7 +26,14 @@ export const TaskIntegrationDrawer: React.FC<TaskIntegrationDrawerProps> = ({
   const currentList = activeTab === 'today' ? tasks : inboxTasks;
 
   const handleDragStart = (e: React.DragEvent, task: Task) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(task));
+    const serialized = JSON.stringify(task);
+    try {
+      e.dataTransfer.setData('application/json', serialized);
+      e.dataTransfer.setData('text/plain', serialized);
+      e.dataTransfer.setData('text', serialized);
+    } catch {
+      e.dataTransfer.setData('text', serialized);
+    }
     e.dataTransfer.effectAllowed = 'copyMove';
   };
 
@@ -116,7 +123,7 @@ export const TaskIntegrationDrawer: React.FC<TaskIntegrationDrawerProps> = ({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
-                    <GripVertical className="w-4 h-4 text-midGray group-hover:text-primaryDark mt-0.5 shrink-0 transition-colors" />
+                    <GripVertical className="w-4 h-4 text-midGray group-hover:text-primaryDark mt-0.5 shrink-0 transition-colors pointer-events-none" />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-sans font-medium text-ui-rg-sm text-primaryDark leading-tight line-clamp-2">
                         {task.title}

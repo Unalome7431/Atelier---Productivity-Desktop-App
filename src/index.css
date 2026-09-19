@@ -110,23 +110,30 @@
     filter: drop-shadow(0 0 3px rgba(129, 140, 248, 0.5));
   }
 
-  /* Tiptap Rich Text Editor Styles mapped to STYLEGUIDE.md */
-  .tiptap {
+  /* Tiptap Rich Text Editor & Note Preview Styles mapped to STYLEGUIDE.md */
+  .tiptap,
+  .note-preview {
     outline: none;
-    min-height: 280px;
   }
 
-  .tiptap p {
+  .note-preview > :first-child,
+  .tiptap > :first-child {
+    margin-top: 0 !important;
+  }
+
+  .tiptap p,
+  .note-preview p {
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.68;
     color: var(--color-primary-dark);
     margin-bottom: 0.85rem;
   }
 
-  .tiptap h1 {
+  .tiptap h1,
+  .note-preview h1 {
     font-family: 'Outfit', sans-serif;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--color-primary-dark);
@@ -134,52 +141,59 @@
     margin-bottom: 0.75rem;
   }
 
-  .tiptap h2 {
+  .tiptap h2,
+  .note-preview h2 {
     font-family: 'Outfit', sans-serif;
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 19px;
+    font-weight: 700;
     letter-spacing: -0.01em;
     color: var(--color-primary-dark);
     margin-top: 1.5rem;
     margin-bottom: 0.6rem;
   }
 
-  .tiptap h3 {
+  .tiptap h3,
+  .note-preview h3 {
     font-family: 'Outfit', sans-serif;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--color-primary-dark);
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
   }
 
-  .tiptap ul {
+  .tiptap ul,
+  .note-preview ul {
     list-style-type: disc;
     padding-left: 1.5rem;
     margin-bottom: 0.85rem;
   }
 
-  .tiptap ol {
+  .tiptap ol,
+  .note-preview ol {
     list-style-type: decimal;
     padding-left: 1.5rem;
     margin-bottom: 0.85rem;
   }
 
-  .tiptap li {
+  .tiptap li,
+  .note-preview li {
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
     color: var(--color-primary-dark);
     margin-bottom: 0.35rem;
   }
 
-  .tiptap li > p {
+  .tiptap li > p,
+  .note-preview li > p {
     margin-bottom: 0.25rem;
   }
 
-  .tiptap code {
+  .tiptap code,
+  .note-preview code {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+    font-size: 12px;
     background-color: #efeae1;
     color: var(--color-primary-dark);
     padding: 0.15rem 0.4rem;
@@ -187,7 +201,8 @@
     border: 1px solid rgba(239, 234, 225, 0.8);
   }
 
-  .tiptap pre {
+  .tiptap pre,
+  .note-preview pre {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     background-color: #2d2c2a;
@@ -198,7 +213,8 @@
     overflow-x: auto;
   }
 
-  .tiptap pre code {
+  .tiptap pre code,
+  .note-preview pre code {
     background-color: transparent;
     color: inherit;
     padding: 0;
@@ -206,7 +222,8 @@
     font-size: inherit;
   }
 
-  .tiptap blockquote {
+  .tiptap blockquote,
+  .note-preview blockquote {
     border-left: 3px solid #ebe7ff;
     padding-left: 1rem;
     margin: 1rem 0;
@@ -214,7 +231,8 @@
     color: var(--color-secondary-gray);
   }
 
-  .tiptap mark {
+  .tiptap mark,
+  .note-preview mark {
     background-color: #fcfce8;
     padding: 0.1rem 0.3rem;
     border-radius: 0.25rem;

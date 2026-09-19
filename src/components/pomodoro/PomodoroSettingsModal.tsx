@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Volume2, Bell, Check, Sparkles } from 'lucide-react';
+import { Volume2, Bell, Check, Sparkles, Minus, Plus } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
@@ -21,6 +21,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
     shortBreakMinutes,
     longBreakMinutes,
     targetCyclesDaily,
+    cyclesBeforeLongBreak,
     soundEnabled,
     notificationsEnabled,
     autoStartBreaks,
@@ -32,6 +33,9 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
   const [localShortBreak, setLocalShortBreak] = useState(shortBreakMinutes);
   const [localLongBreak, setLocalLongBreak] = useState(longBreakMinutes);
   const [localTargetCycles, setLocalTargetCycles] = useState(targetCyclesDaily);
+  const [localCyclesBeforeLongBreak, setLocalCyclesBeforeLongBreak] = useState(
+    cyclesBeforeLongBreak || 4
+  );
   const [localSound, setLocalSound] = useState(soundEnabled);
   const [localNotifications, setLocalNotifications] = useState(notificationsEnabled);
   const [localAutoBreaks, setLocalAutoBreaks] = useState(autoStartBreaks);
@@ -45,6 +49,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
       setLocalShortBreak(shortBreakMinutes);
       setLocalLongBreak(longBreakMinutes);
       setLocalTargetCycles(targetCyclesDaily);
+      setLocalCyclesBeforeLongBreak(cyclesBeforeLongBreak || 4);
       setLocalSound(soundEnabled);
       setLocalNotifications(notificationsEnabled);
       setLocalAutoBreaks(autoStartBreaks);
@@ -57,6 +62,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
     shortBreakMinutes,
     longBreakMinutes,
     targetCyclesDaily,
+    cyclesBeforeLongBreak,
     soundEnabled,
     notificationsEnabled,
     autoStartBreaks,
@@ -65,10 +71,11 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
 
   const handleSave = () => {
     updateSettings({
-      focusMinutes: localFocus,
-      shortBreakMinutes: localShortBreak,
-      longBreakMinutes: localLongBreak,
-      targetCyclesDaily: localTargetCycles,
+      focusMinutes: Math.max(1, localFocus),
+      shortBreakMinutes: Math.max(1, localShortBreak),
+      longBreakMinutes: Math.max(1, localLongBreak),
+      targetCyclesDaily: Math.max(1, localTargetCycles),
+      cyclesBeforeLongBreak: Math.max(1, localCyclesBeforeLongBreak),
       soundEnabled: localSound,
       notificationsEnabled: localNotifications,
       autoStartBreaks: localAutoBreaks,
@@ -95,279 +102,337 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
     setTimeout(() => setTestNotificationFeedback(null), 3000);
   };
 
-  const focusPresets = [15, 20, 25, 30, 45, 50, 60];
-  const shortBreakPresets = [3, 5, 10, 15];
-  const longBreakPresets = [10, 15, 20, 30];
-  const cyclePresets = [2, 3, 4, 6, 8];
+  // Symmetrical Stepper Controller Component
+  const StepperInput = ({
+    value,
+    unit,
+    step,
+    min,
+    max,
+    onChange,
+  }: {
+    value: number;
+    unit: string;
+    step: number;
+    min: number;
+    max: number;
+    onChange: (val: number) => void;
+  }) => {
+    const displayUnit = unit === 'cycles' && value === 1 ? 'cycle' : unit;
+    return (
+      <div className="flex items-center gap-1.5 shrink-0 select-none">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - step))}
+          className="w-7 h-7 rounded-lg bg-white hover:bg-surface border border-border flex items-center justify-center text-secondaryGray hover:text-primaryDark cursor-pointer transition-colors shadow-2xs active:scale-95 shrink-0"
+          title={`Decrease by ${step} ${unit}`}
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-24 h-7 flex items-center justify-center bg-white border border-border rounded-lg px-2 shadow-2xs">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(e) => {
+              const parsed = parseInt(e.target.value, 10);
+              onChange(isNaN(parsed) ? min : Math.min(max, Math.max(min, parsed)));
+            }}
+            className="w-9 text-right font-mono text-xs font-bold text-primaryDark bg-transparent outline-none"
+          />
+          <span className="font-mono text-[11px] text-secondaryGray ml-1 text-left select-none">
+            {displayUnit}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + step))}
+          className="w-7 h-7 rounded-lg bg-white hover:bg-surface border border-border flex items-center justify-center text-secondaryGray hover:text-primaryDark cursor-pointer transition-colors shadow-2xs active:scale-95 shrink-0"
+          title={`Increase by ${step} ${unit}`}
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Pomodoro Preferences"
-      description="Configure focus intervals, cycle cadence, audio chimes, and native desktop notifications."
-      maxWidth="md"
+      description="Configure customizable focus intervals, cycle cadence, audio chimes, and native desktop notifications."
+      maxWidth="lg"
     >
-      <div className="flex flex-col gap-5 pt-2">
-        {/* Preset Durations */}
-        <div className="flex flex-col gap-4">
-          {/* Focus Duration */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="font-mono text-mono-xs font-bold text-primaryDark uppercase">
-                Focus Duration
-              </label>
-              <span className="font-mono text-mono-xs text-secondaryGray font-bold">
-                {localFocus} min
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {focusPresets.map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  onClick={() => setLocalFocus(mins)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-pill text-mono-xs font-mono transition-all cursor-pointer border',
-                    localFocus === mins
-                      ? 'bg-primaryDark text-bg border-primaryDark'
-                      : 'bg-surface border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9]'
-                  )}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
-          </div>
+      <div className="flex flex-col gap-5 pt-1 font-sans text-xs">
+        {/* Section 1: Interval Durations */}
+        <div className="flex flex-col gap-2.5">
+          <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider px-0.5">
+            Interval Durations
+          </span>
 
-          {/* Short Break Duration */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="font-mono text-mono-xs font-bold text-primaryDark uppercase">
-                Short Break
-              </label>
-              <span className="font-mono text-mono-xs text-secondaryGray font-bold">
-                {localShortBreak} min
-              </span>
+          <div className="flex flex-col gap-2">
+            {/* Focus Session */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">Focus Session</span>
+                <span className="text-[11px] text-secondaryGray">Deep work countdown interval</span>
+              </div>
+              <StepperInput
+                value={localFocus}
+                unit="min"
+                step={5}
+                min={1}
+                max={180}
+                onChange={setLocalFocus}
+              />
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {shortBreakPresets.map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  onClick={() => setLocalShortBreak(mins)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-pill text-mono-xs font-mono transition-all cursor-pointer border',
-                    localShortBreak === mins
-                      ? 'bg-primaryDark text-bg border-primaryDark'
-                      : 'bg-surface border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9]'
-                  )}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Long Break Duration */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="font-mono text-mono-xs font-bold text-primaryDark uppercase">
-                Long Break
-              </label>
-              <span className="font-mono text-mono-xs text-secondaryGray font-bold">
-                {localLongBreak} min
-              </span>
+            {/* Short Break */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">Short Break</span>
+                <span className="text-[11px] text-secondaryGray">
+                  Brief recovery between focus sessions
+                </span>
+              </div>
+              <StepperInput
+                value={localShortBreak}
+                unit="min"
+                step={1}
+                min={1}
+                max={60}
+                onChange={setLocalShortBreak}
+              />
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {longBreakPresets.map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  onClick={() => setLocalLongBreak(mins)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-pill text-mono-xs font-mono transition-all cursor-pointer border',
-                    localLongBreak === mins
-                      ? 'bg-primaryDark text-bg border-primaryDark'
-                      : 'bg-surface border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9]'
-                  )}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Daily Target Cycles */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="font-mono text-mono-xs font-bold text-primaryDark uppercase">
-                Daily Focus Target
-              </label>
-              <span className="font-mono text-mono-xs text-secondaryGray font-bold">
-                {localTargetCycles} cycles
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {cyclePresets.map((cycles) => (
-                <button
-                  key={cycles}
-                  type="button"
-                  onClick={() => setLocalTargetCycles(cycles)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-pill text-mono-xs font-mono transition-all cursor-pointer border',
-                    localTargetCycles === cycles
-                      ? 'bg-primaryDark text-bg border-primaryDark'
-                      : 'bg-surface border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9]'
-                  )}
-                >
-                  {cycles} cycles
-                </button>
-              ))}
+            {/* Long Break */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">Long Break</span>
+                <span className="text-[11px] text-secondaryGray">
+                  Extended recovery upon completing cycle threshold
+                </span>
+              </div>
+              <StepperInput
+                value={localLongBreak}
+                unit="min"
+                step={5}
+                min={1}
+                max={90}
+                onChange={setLocalLongBreak}
+              />
             </div>
           </div>
         </div>
 
-        {/* Audio & Notification Preferences */}
-        <div className="pt-3 border-t border-border flex flex-col gap-3">
-          {/* Sound Chime Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Volume2 className="w-4 h-4 text-secondaryGray" />
-              <div>
-                <p className="text-ui-bold-sm text-primaryDark font-medium">Subtle Audio Chime</p>
-                <p className="text-ui-rg-xs text-secondaryGray">
-                  Play harmonic chime upon interval completion
-                </p>
+        {/* Section 2: Customizable Cycle Cadence */}
+        <div className="flex flex-col gap-2.5 pt-2 border-t border-border/80">
+          <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider px-0.5">
+            Cycle Cadence
+          </span>
+
+          <div className="flex flex-col gap-2">
+            {/* Cycles Before Long Break */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">
+                  Cycles Before Long Break
+                </span>
+                <span className="text-[11px] text-secondaryGray">
+                  Completed sessions before triggering an extended break
+                </span>
+              </div>
+              <StepperInput
+                value={localCyclesBeforeLongBreak}
+                unit="cycles"
+                step={1}
+                min={1}
+                max={20}
+                onChange={setLocalCyclesBeforeLongBreak}
+              />
+            </div>
+
+            {/* Daily Focus Target */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">
+                  Daily Focus Target
+                </span>
+                <span className="text-[11px] text-secondaryGray">
+                  Total target sessions to complete each day
+                </span>
+              </div>
+              <StepperInput
+                value={localTargetCycles}
+                unit="cycles"
+                step={1}
+                min={1}
+                max={30}
+                onChange={setLocalTargetCycles}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Audio & Alerts */}
+        <div className="flex flex-col gap-2.5 pt-2 border-t border-border/80">
+          <span className="font-mono text-mono-xs font-bold text-midGray uppercase tracking-wider px-0.5">
+            Audio & Alerts
+          </span>
+
+          <div className="flex flex-col gap-2">
+            {/* Sound Chime Toggle */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-white border border-border flex items-center justify-center text-secondaryGray shrink-0 shadow-2xs">
+                  <Volume2 className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="font-sans text-xs font-bold text-primaryDark">
+                    Subtle Audio Chime
+                  </span>
+                  <span className="text-[11px] text-secondaryGray">
+                    Play harmonic chime upon interval completion
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleTestChime}
+                  title="Test audio chime"
+                  className="font-mono text-mono-xs text-secondaryGray hover:text-primaryDark px-2.5 py-1 rounded-lg border border-border bg-white hover:bg-surface cursor-pointer transition-colors shadow-2xs"
+                >
+                  Test
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocalSound(!localSound)}
+                  className={cn(
+                    'w-10 h-6 rounded-full transition-colors relative cursor-pointer shadow-inner-xs',
+                    localSound ? 'bg-primaryDark' : 'bg-border'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-xs',
+                      localSound ? 'left-5' : 'left-1'
+                    )}
+                  />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Desktop Notification Toggle */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-white border border-border flex items-center justify-center text-secondaryGray shrink-0 shadow-2xs">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="font-sans text-xs font-bold text-primaryDark">
+                    Desktop Notifications
+                  </span>
+                  <span className="text-[11px] text-secondaryGray">
+                    Receive native OS alerts when cycles finish
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleTestNotification}
+                  title="Test desktop notification"
+                  className="font-mono text-mono-xs text-secondaryGray hover:text-primaryDark px-2.5 py-1 rounded-lg border border-border bg-white hover:bg-surface cursor-pointer transition-colors shadow-2xs"
+                >
+                  Test
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocalNotifications(!localNotifications)}
+                  className={cn(
+                    'w-10 h-6 rounded-full transition-colors relative cursor-pointer shadow-inner-xs',
+                    localNotifications ? 'bg-primaryDark' : 'bg-border'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-xs',
+                      localNotifications ? 'left-5' : 'left-1'
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {testNotificationFeedback && (
+              <div className="bg-[#D1FAE5] border border-emerald-300 text-emerald-950 px-3 py-1.5 rounded-xl text-ui-rg-xs font-mono flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span>{testNotificationFeedback}</span>
+              </div>
+            )}
+
+            {/* Auto-start Breaks */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">
+                  Auto-start Breaks
+                </span>
+                <span className="text-[11px] text-secondaryGray">
+                  Automatically begin break timers after focus session finishes
+                </span>
+              </div>
               <button
                 type="button"
-                onClick={handleTestChime}
-                title="Test audio chime"
-                className="text-mono-xs font-mono text-secondaryGray hover:text-primaryDark px-2 py-1 rounded border border-border bg-surface hover:bg-bg cursor-pointer transition-colors"
-              >
-                Test
-              </button>
-              <button
-                type="button"
-                onClick={() => setLocalSound(!localSound)}
+                onClick={() => setLocalAutoBreaks(!localAutoBreaks)}
                 className={cn(
-                  'w-10 h-6 rounded-full transition-colors relative cursor-pointer',
-                  localSound ? 'bg-primaryDark' : 'bg-border'
+                  'w-10 h-6 rounded-full transition-colors relative cursor-pointer shadow-inner-xs shrink-0',
+                  localAutoBreaks ? 'bg-primaryDark' : 'bg-border'
                 )}
               >
                 <span
                   className={cn(
-                    'absolute top-1 w-4 h-4 rounded-full bg-bg transition-transform',
-                    localSound ? 'left-5' : 'left-1'
+                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-xs',
+                    localAutoBreaks ? 'left-5' : 'left-1'
                   )}
                 />
               </button>
             </div>
-          </div>
 
-          {/* Desktop Notification Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-secondaryGray" />
-              <div>
-                <p className="text-ui-bold-sm text-primaryDark font-medium">
-                  Desktop Notifications
-                </p>
-                <p className="text-ui-rg-xs text-secondaryGray">
-                  Receive native OS alerts when cycles finish
-                </p>
+            {/* Auto-start Focus */}
+            <div className="bg-bg border border-border/80 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="font-sans text-xs font-bold text-primaryDark">
+                  Auto-start Focus
+                </span>
+                <span className="text-[11px] text-secondaryGray">
+                  Automatically begin focus session after break timer finishes
+                </span>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleTestNotification}
-                title="Test desktop notification"
-                className="text-mono-xs font-mono text-secondaryGray hover:text-primaryDark px-2 py-1 rounded border border-border bg-surface hover:bg-bg cursor-pointer transition-colors"
-              >
-                Test
-              </button>
-              <button
-                type="button"
-                onClick={() => setLocalNotifications(!localNotifications)}
+                onClick={() => setLocalAutoFocus(!localAutoFocus)}
                 className={cn(
-                  'w-10 h-6 rounded-full transition-colors relative cursor-pointer',
-                  localNotifications ? 'bg-primaryDark' : 'bg-border'
+                  'w-10 h-6 rounded-full transition-colors relative cursor-pointer shadow-inner-xs shrink-0',
+                  localAutoFocus ? 'bg-primaryDark' : 'bg-border'
                 )}
               >
                 <span
                   className={cn(
-                    'absolute top-1 w-4 h-4 rounded-full bg-bg transition-transform',
-                    localNotifications ? 'left-5' : 'left-1'
+                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-xs',
+                    localAutoFocus ? 'left-5' : 'left-1'
                   )}
                 />
               </button>
             </div>
-          </div>
-
-          {testNotificationFeedback && (
-            <div className="bg-[#D1FAE5] border border-emerald-300 text-emerald-950 px-3 py-1.5 rounded-lg text-ui-rg-xs font-mono flex items-center gap-2">
-              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-              <span>{testNotificationFeedback}</span>
-            </div>
-          )}
-
-          {/* Auto-start options */}
-          <div className="flex items-center justify-between pt-2 border-t border-border/60">
-            <div>
-              <p className="text-ui-bold-sm text-primaryDark font-medium">Auto-start Breaks</p>
-              <p className="text-ui-rg-xs text-secondaryGray">
-                Automatically begin break timers after focus
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setLocalAutoBreaks(!localAutoBreaks)}
-              className={cn(
-                'w-10 h-6 rounded-full transition-colors relative cursor-pointer',
-                localAutoBreaks ? 'bg-primaryDark' : 'bg-border'
-              )}
-            >
-              <span
-                className={cn(
-                  'absolute top-1 w-4 h-4 rounded-full bg-bg transition-transform',
-                  localAutoBreaks ? 'left-5' : 'left-1'
-                )}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-ui-bold-sm text-primaryDark font-medium">Auto-start Focus</p>
-              <p className="text-ui-rg-xs text-secondaryGray">
-                Automatically begin focus timer after break
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setLocalAutoFocus(!localAutoFocus)}
-              className={cn(
-                'w-10 h-6 rounded-full transition-colors relative cursor-pointer',
-                localAutoFocus ? 'bg-primaryDark' : 'bg-border'
-              )}
-            >
-              <span
-                className={cn(
-                  'absolute top-1 w-4 h-4 rounded-full bg-bg transition-transform',
-                  localAutoFocus ? 'left-5' : 'left-1'
-                )}
-              />
-            </button>
           </div>
         </div>
 
         {/* Footer Actions */}
         <div className="flex justify-between items-center pt-3 border-t border-border">
-          <div className="flex items-center gap-1 text-secondaryGray text-ui-rg-xs">
+          <div className="flex items-center gap-1.5 text-secondaryGray text-ui-rg-xs">
             <Sparkles className="w-3.5 h-3.5 text-accent-indigo" />
             <span>Settings persist locally</span>
           </div>

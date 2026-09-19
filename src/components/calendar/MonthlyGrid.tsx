@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { CalendarEvent, Task } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getTodayDateString } from '@/lib/utils';
 
 interface MonthlyGridProps {
   year: number;
   month: number; // 0-indexed (0 = Jan, 8 = Sep)
   selectedDate: string; // YYYY-MM-DD
   events: CalendarEvent[];
+  tasks?: Task[];
   onSelectDate: (date: string) => void;
   onDropTask: (task: Task, date: string) => void;
 }
@@ -16,22 +17,17 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
   month,
   selectedDate,
   events,
+  tasks = [],
   onSelectDate,
   onDropTask,
 }) => {
   const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
-  // Compute today's date (or fallback to Figma reference date if testing preview year/month)
+  // Compute today's date
   const todayDateStr = useMemo(() => {
-    const d = new Date();
-    const realToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    // If exploring September 2026, default reference day is 2026-09-13 (today) or 2026-09-09
-    if (year === 2026 && month === 8) {
-      return '2026-09-13';
-    }
-    return realToday;
-  }, [year, month]);
+    return getTodayDateString();
+  }, []);
 
   // Generate 42 calendar cells (6 rows × 7 columns)
   const calendarCells = useMemo(() => {
@@ -86,13 +82,16 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
 
   const handleDragOver = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
     if (dragOverDate !== dateStr) {
       setDragOverDate(dateStr);
     }
   };
 
-  const handleDragLeave = (_e: React.DragEvent, dateStr: string) => {
+  const handleDragLeave = (e: React.DragEvent, dateStr: string) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     if (dragOverDate === dateStr) {
       setDragOverDate(null);
     }
@@ -100,12 +99,18 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverDate(null);
     try {
-      const raw = e.dataTransfer.getData('application/json');
+      const raw =
+        e.dataTransfer.getData('application/json') ||
+        e.dataTransfer.getData('text/plain') ||
+        e.dataTransfer.getData('text');
       if (raw) {
         const task: Task = JSON.parse(raw);
-        onDropTask(task, dateStr);
+        if (task && task.id) {
+          onDropTask(task, dateStr);
+        }
       }
     } catch (err) {
       console.error('Failed to parse dropped task on date cell:', err);
@@ -149,6 +154,8 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
           const isToday = cell.dateStr === todayDateStr;
           const isDragTarget = dragOverDate === cell.dateStr;
           const cellEvents = events.filter((e) => e.date === cell.dateStr);
+          const cellTasks = tasks.filter((t) => t.scheduledDate === cell.dateStr);
+          const totalItems = cellEvents.length + cellTasks.length;
 
           return (
             <div
@@ -199,8 +206,9 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                 </div>
               </div>
 
-              {/* Event Pills List */}
+              {/* Event & Task Items List */}
               <div className="flex flex-col gap-1 mt-1 overflow-hidden">
+                {/* Events (with timeline start time) */}
                 {cellEvents.slice(0, 2).map((ev) => (
                   <div
                     key={ev.id}
@@ -214,9 +222,22 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                     <span className="truncate">{ev.title}</span>
                   </div>
                 ))}
-                {cellEvents.length > 2 && (
+
+                {/* Scheduled Tasks (no timeline, pure date allocation, no checklist) */}
+                {cellEvents.length < 2 &&
+                  cellTasks.slice(0, 2 - cellEvents.length).map((task) => (
+                    <div
+                      key={task.id}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-sans font-medium truncate leading-tight border transition-transform bg-white/95 border-border/90 text-primaryDark shadow-2xs"
+                      title={`Scheduled Task: ${task.title}`}
+                    >
+                      <span className="truncate">{task.title}</span>
+                    </div>
+                  ))}
+
+                {totalItems > 2 && (
                   <span className="text-[9px] font-mono text-midGray px-1">
-                    +{cellEvents.length - 2} more
+                    +{totalItems - 2} more
                   </span>
                 )}
               </div>
@@ -225,7 +246,7 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
               {isDragTarget && (
                 <div className="absolute inset-0 bg-accent-green/80 rounded-lg flex items-center justify-center pointer-events-none z-10 border border-emerald-400">
                   <span className="text-[10px] font-sans font-bold text-emerald-950">
-                    Drop to schedule
+                    Schedule for this date
                   </span>
                 </div>
               )}

@@ -45,10 +45,13 @@ export const NewCardModal: React.FC<NewCardModalProps> = ({
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('mint');
 
-  // Sync columnId if targetColumnId changes
+  // Sync columnId if targetColumnId or board.columns changes
   React.useEffect(() => {
-    setColumnId(targetColumnId);
-  }, [targetColumnId]);
+    if (board?.columns && board.columns.length > 0) {
+      const isValid = board.columns.some((c) => c.id === targetColumnId);
+      setColumnId(isValid ? targetColumnId : board.columns[0].id);
+    }
+  }, [targetColumnId, board?.columns]);
 
   const availableTags = getAvailableTags();
 

@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   shortBreakMinutes: 5,
   longBreakMinutes: 15,
   targetCyclesDaily: 4,
+  cyclesBeforeLongBreak: 4,
   soundEnabled: true,
   notificationsEnabled: true,
   autoStartBreaks: false,
@@ -38,7 +39,12 @@ function getInitialSettings(): PomodoroSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (raw) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        cyclesBeforeLongBreak: parsed.cyclesBeforeLongBreak ?? 4,
+      };
     }
   } catch {
     // Fall back to defaults
@@ -120,12 +126,13 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       shortBreakMinutes,
       longBreakMinutes,
       completedCyclesToday,
-      targetCyclesDaily,
+      cyclesBeforeLongBreak,
     } = get();
 
     if (mode === 'focus') {
       // Skip focus to break
-      const isLongBreak = (completedCyclesToday + 1) % targetCyclesDaily === 0;
+      const interval = Math.max(1, cyclesBeforeLongBreak || 4);
+      const isLongBreak = (completedCyclesToday + 1) % interval === 0;
       const nextMode = isLongBreak ? 'longBreak' : 'shortBreak';
       const nextDuration = isLongBreak ? longBreakMinutes * 60 : shortBreakMinutes * 60;
 
@@ -156,7 +163,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       focusMinutes,
       shortBreakMinutes,
       longBreakMinutes,
-      targetCyclesDaily,
+      cyclesBeforeLongBreak,
       soundEnabled,
       notificationsEnabled,
       autoStartBreaks,
@@ -188,7 +195,8 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
           void useTasksStore.getState().incrementTaskPomodoro(activeTaskId);
         }
 
-        const isLongBreak = nextCycles % targetCyclesDaily === 0;
+        const interval = Math.max(1, cyclesBeforeLongBreak || 4);
+        const isLongBreak = nextCycles % interval === 0;
         const nextMode = isLongBreak ? 'longBreak' : 'shortBreak';
         const nextDuration = isLongBreak ? longBreakMinutes * 60 : shortBreakMinutes * 60;
 
@@ -252,6 +260,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       shortBreakMinutes: newSettings.shortBreakMinutes ?? current.shortBreakMinutes,
       longBreakMinutes: newSettings.longBreakMinutes ?? current.longBreakMinutes,
       targetCyclesDaily: newSettings.targetCyclesDaily ?? current.targetCyclesDaily,
+      cyclesBeforeLongBreak: newSettings.cyclesBeforeLongBreak ?? current.cyclesBeforeLongBreak,
       soundEnabled: newSettings.soundEnabled ?? current.soundEnabled,
       notificationsEnabled: newSettings.notificationsEnabled ?? current.notificationsEnabled,
       autoStartBreaks: newSettings.autoStartBreaks ?? current.autoStartBreaks,

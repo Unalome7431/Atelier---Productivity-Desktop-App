@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { NodeViewWrapper, NodeViewContent, NodeViewProps } from '@tiptap/react';
-import { CheckCircle2, AlertTriangle, Lightbulb, Bookmark, Trash2, ChevronDown } from 'lucide-react';
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Lightbulb,
+  Bookmark,
+  Trash2,
+  ChevronDown,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type CalloutType = 'decision' | 'caution' | 'idea' | 'reference';
 
-interface CalloutConfig {
+export interface CalloutConfig {
   label: string;
   defaultEyebrow: string;
   icon: React.ElementType;
@@ -13,7 +20,7 @@ interface CalloutConfig {
   eyebrowClass: string;
 }
 
-const CALLOUT_CONFIGS: Record<CalloutType, CalloutConfig> = {
+export const CALLOUT_CONFIGS: Record<CalloutType, CalloutConfig> = {
   decision: {
     label: 'Decision Record',
     defaultEyebrow: 'DECISION RECORD · 04',
@@ -44,7 +51,11 @@ const CALLOUT_CONFIGS: Record<CalloutType, CalloutConfig> = {
   },
 };
 
-export const CalloutComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, deleteNode }) => {
+export const CalloutComponent: React.FC<NodeViewProps> = ({
+  node,
+  updateAttributes,
+  deleteNode,
+}) => {
   const currentType: CalloutType = (node.attrs.type as CalloutType) || 'decision';
   const config = CALLOUT_CONFIGS[currentType] || CALLOUT_CONFIGS.decision;
   const IconComponent = config.icon;
@@ -55,7 +66,10 @@ export const CalloutComponent: React.FC<NodeViewProps> = ({ node, updateAttribut
     const newConfig = CALLOUT_CONFIGS[newType];
     updateAttributes({
       type: newType,
-      eyebrow: node.attrs.eyebrow === config.defaultEyebrow ? newConfig.defaultEyebrow : node.attrs.eyebrow,
+      eyebrow:
+        node.attrs.eyebrow === config.defaultEyebrow
+          ? newConfig.defaultEyebrow
+          : node.attrs.eyebrow,
     });
     setIsTypeMenuOpen(false);
   };

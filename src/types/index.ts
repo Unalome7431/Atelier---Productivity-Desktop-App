@@ -61,6 +61,7 @@ export interface PomodoroSettings {
   shortBreakMinutes: number;
   longBreakMinutes: number;
   targetCyclesDaily: number;
+  cyclesBeforeLongBreak: number;
   soundEnabled: boolean;
   notificationsEnabled: boolean;
   autoStartBreaks: boolean;

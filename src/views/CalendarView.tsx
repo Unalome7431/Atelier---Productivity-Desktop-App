@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckSquare,
+  Calendar as CalendarIcon,
+  ChevronDown,
+} from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { Eyebrow } from '@/components/common/Badge';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { CalendarEvent, RecurringWeeklyBlock, Task } from '@/types';
+import { cn, getTodayDateString } from '@/lib/utils';
 
 // Subcomponents
 import { MonthlyGrid } from '@/components/calendar/MonthlyGrid';
@@ -27,17 +34,19 @@ export const CalendarView: React.FC = () => {
     setTaskDrawerOpen,
     addEvent,
     deleteEvent,
-    scheduleTask,
     addWeeklyBlock,
     updateWeeklyBlock,
     deleteWeeklyBlock,
   } = useCalendarStore();
 
-  const { tasks, inboxTasks, loadTasks } = useTasksStore();
+  const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask, addSubtask } =
+    useTasksStore();
 
   // Navigation state (Defaulting to September 2026 matching Figma design)
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(8); // 8 = September (0-indexed)
+  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(2026);
 
   // Single Add Event Modal state (for date-bound calendar events)
   const [isAddAgendaModalOpen, setIsAddAgendaModalOpen] = useState(false);
@@ -99,9 +108,11 @@ export const CalendarView: React.FC = () => {
   };
 
   const handleToday = () => {
-    setCurrentYear(2026);
-    setCurrentMonth(8);
-    setSelectedDate('2026-09-09');
+    const todayStr = getTodayDateString();
+    const parts = todayStr.split('-').map(Number);
+    setCurrentYear(parts[0]);
+    setCurrentMonth(parts[1] - 1);
+    setSelectedDate(todayStr);
   };
 
   // Open Add Event modal helper (from Selected Date Agenda)
@@ -142,16 +153,11 @@ export const CalendarView: React.FC = () => {
 
   // Task drop handlers
   const handleDropTaskOnDate = async (task: Task, date: string) => {
-    await scheduleTask(task, date, '09:00', 60);
+    await setTaskScheduledDate(task.id, date);
   };
 
-  const handleConfirmModalSchedule = async (
-    task: Task,
-    date: string,
-    startTime: string,
-    durationMinutes: number
-  ) => {
-    await scheduleTask(task, date, startTime, durationMinutes);
+  const handleConfirmModalSchedule = async (task: Task, date: string) => {
+    await setTaskScheduledDate(task.id, date);
     setSelectedTaskForModal(null);
   };
 
@@ -169,8 +175,8 @@ export const CalendarView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Month Pagination Controls */}
-          <div className="flex items-center gap-2">
+          {/* Month Pagination & Specific Month/Year Picker Controls */}
+          <div className="flex items-center gap-2 relative">
             <div className="flex items-center gap-1 bg-surface border border-border rounded-pill p-1 shadow-subtle">
               <button
                 type="button"
@@ -180,9 +186,29 @@ export const CalendarView: React.FC = () => {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="font-mono text-mono-xs font-bold text-primaryDark px-2 min-w-[130px] text-center">
-                {monthNames[currentMonth]} {currentYear}
-              </span>
+
+              {/* Clickable Month & Year Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPickerYear(currentYear);
+                  setIsMonthYearPickerOpen(!isMonthYearPickerOpen);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-pill hover:bg-bg transition-colors cursor-pointer group"
+                title="Choose month and year"
+              >
+                <CalendarIcon className="w-3.5 h-3.5 text-secondaryGray group-hover:text-primaryDark" />
+                <span className="font-mono text-mono-xs font-bold text-primaryDark">
+                  {monthNames[currentMonth]} {currentYear}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'w-3.5 h-3.5 text-secondaryGray transition-transform',
+                    isMonthYearPickerOpen && 'rotate-180'
+                  )}
+                />
+              </button>
+
               <button
                 type="button"
                 onClick={handleNextMonth}
@@ -201,6 +227,104 @@ export const CalendarView: React.FC = () => {
             >
               Today
             </Button>
+
+            {/* Month & Year Picker Popover */}
+            {isMonthYearPickerOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setIsMonthYearPickerOpen(false)}
+                />
+                <div className="absolute left-0 top-full mt-2 w-72 bg-white border border-border shadow-float rounded-2xl p-4 z-40 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-100 select-none">
+                  {/* Year Selection Header */}
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setPickerYear((y) => y - 1)}
+                      className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
+                      title="Previous Year"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={pickerYear}
+                        onChange={(e) => setPickerYear(parseInt(e.target.value, 10))}
+                        className="font-mono text-sm font-bold text-primaryDark bg-surface border border-border/70 rounded-lg px-2.5 py-1 outline-none cursor-pointer"
+                      >
+                        {Array.from({ length: 21 }, (_, i) => 2020 + i).map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPickerYear((y) => y + 1)}
+                      className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
+                      title="Next Year"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* 12 Months Grid */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {monthNames.map((name, index) => {
+                      const isSelected = currentMonth === index && currentYear === pickerYear;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => {
+                            setCurrentMonth(index);
+                            setCurrentYear(pickerYear);
+                            setIsMonthYearPickerOpen(false);
+                          }}
+                          className={cn(
+                            'py-2 px-1 rounded-xl text-xs font-mono transition-all text-center cursor-pointer',
+                            isSelected
+                              ? 'bg-primaryDark text-white font-bold shadow-xs'
+                              : 'bg-surface/60 hover:bg-surface text-primaryDark hover:font-bold'
+                          )}
+                        >
+                          {name.substring(0, 3).toUpperCase()}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Quick Reset Footer */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        setPickerYear(now.getFullYear());
+                      }}
+                      className="text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
+                    >
+                      Current Year
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        setCurrentMonth(now.getMonth());
+                        setCurrentYear(now.getFullYear());
+                        setIsMonthYearPickerOpen(false);
+                      }}
+                      className="text-indigo-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Jump to Today
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Tactical Tasks Drawer Trigger */}
@@ -238,19 +362,24 @@ export const CalendarView: React.FC = () => {
             month={currentMonth}
             selectedDate={selectedDate}
             events={events}
+            tasks={allTasks}
             onSelectDate={setSelectedDate}
             onDropTask={handleDropTaskOnDate}
           />
         </div>
 
-        {/* Right 35%: Selected Date Details Panel (Houses the single Add Event button, fills vertical space) */}
+        {/* Right 35%: Selected Date Details Panel (Separated into Events & Scheduled Tasks) */}
         <div className="xl:col-span-4 h-full flex flex-col">
           <SelectedDateAgenda
             selectedDate={selectedDate}
             events={events}
+            tasks={allTasks}
             onOpenAddAgenda={handleOpenAddAgenda}
             onDeleteEvent={deleteEvent}
             onDropTask={handleDropTaskOnDate}
+            onUnscheduleTask={(taskId) => setTaskScheduledDate(taskId, null)}
+            onQuickAddTask={(title, date) => addTask({ title, scheduledDate: date })}
+            onAddSubtask={(taskId, title) => addSubtask(taskId, title)}
           />
         </div>
       </div>

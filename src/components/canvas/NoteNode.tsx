@@ -1,6 +1,14 @@
 import React, { useState, memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { GripVertical, Trash2, ExternalLink, Palette, Check } from 'lucide-react';
+import {
+  GripVertical,
+  Trash2,
+  FileText,
+  Palette,
+  Check,
+  ArrowUpRight,
+  ExternalLink,
+} from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useNotesStore } from '@/stores/useNotesStore';
 import { useAppStore } from '@/stores/useAppStore';
@@ -9,47 +17,53 @@ import { cn } from '@/lib/utils';
 
 export const NoteNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
   const nodeData = (data || {}) as CanvasNodeData;
-  const { updateNodeData, deleteNode, isConnecting } = useCanvasStore();
+  const { updateNodeData, deleteNode, isConnecting, setActiveSidebarNode } = useCanvasStore();
   const { notes, setActiveNoteId } = useNotesStore();
   const { setActiveTab } = useAppStore();
 
-  const [isEditing, setIsEditing] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
-  const currentColor = nodeData.color || '#D1FBE3';
-  const referencedNote = notes.find((n) => n.id === nodeData.referenceId);
+  // Link directly to the referenced note in Knowledge Notes
+  const referencedNote =
+    notes.find((n) => n.id === nodeData.referenceId) ||
+    notes.find((n) => n.id === 'n_note_a') ||
+    notes[0];
 
+  const currentColor = referencedNote?.categoryColor || nodeData.color || '#D1FBE3';
   const displayTitle = referencedNote?.title || nodeData.title || nodeData.label || 'Linked Note';
-  const displayContent =
-    referencedNote?.content || nodeData.content || 'Click to link note document...';
 
-  const handleOpenNote = () => {
-    if (referencedNote) {
-      setActiveNoteId(referencedNote.id);
-      setActiveTab('notes');
-    }
+  const previewSnippet = referencedNote?.content
+    ? referencedNote.content
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ')
+        .trim()
+    : nodeData.content || 'Click to view linked note document in sidebar...';
+
+  const displayBadge = referencedNote?.folder?.toUpperCase() || nodeData.badge || 'NOTE';
+
+  const handleOpenSidebar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveSidebarNode({ type: 'note', nodeId: id });
   };
 
-  const handleSelectNote = (noteId: string) => {
-    const target = notes.find((n) => n.id === noteId);
-    if (target) {
-      updateNodeData(id, {
-        referenceId: target.id,
-        title: target.title,
-        content: target.content,
-        badge: target.category?.toUpperCase() || 'DOC',
-      });
+  const handleMoveToNotePage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (referencedNote) {
+      setActiveNoteId(referencedNote.id);
     }
-    setIsEditing(false);
+    setActiveTab('notes');
   };
 
   return (
     <div
+      onClick={handleOpenSidebar}
       style={{ backgroundColor: currentColor }}
       className={cn(
-        'group relative min-w-[240px] max-w-[320px] rounded-2xl p-4 transition-all duration-150',
+        'group relative min-w-[250px] max-w-[320px] rounded-2xl p-4 transition-all duration-150 cursor-pointer',
         'border border-border/80 shadow-subtle hover:shadow-float',
-        selected && 'ring-2 ring-primaryDark/30'
+        selected && 'ring-2 ring-primaryDark/40'
       )}
     >
       {/* 4 Directional Connection Handles */}
@@ -100,53 +114,67 @@ export const NoteNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
 
       {/* Header with Note Badge & Controls */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/95 text-primaryDark font-mono text-[10px] font-bold tracking-wider uppercase shadow-xs">
-            NOTE
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/95 text-primaryDark font-mono text-[9px] font-bold tracking-wider uppercase shadow-xs">
+            <FileText className="w-2.5 h-2.5 text-secondaryGray" />
+            {displayBadge}
           </span>
-          <button
-            onClick={handleOpenNote}
-            title="Open note in editor"
-            className="nodrag p-1 text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </button>
+          <span className="text-[10px] font-mono text-secondaryGray/70 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span>view</span>
+            <ArrowUpRight className="w-2.5 h-2.5" />
+          </span>
         </div>
 
         <div className="flex items-center gap-1 text-secondaryGray/70">
           <button
-            onClick={() => setIsEditing(!isEditing)}
-            title="Link document"
-            className="p-1 hover:text-primaryDark hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer text-[11px] font-medium"
+            type="button"
+            onClick={handleMoveToNotePage}
+            title="Open full Note page"
+            className="p-1 hover:text-primaryDark hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
           >
-            Link
+            <ExternalLink className="w-3 h-3" />
           </button>
           <button
-            onClick={() => setShowColorPicker(!showColorPicker)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowColorPicker(!showColorPicker);
+            }}
             title="Color"
             className="p-1 hover:text-primaryDark hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
           >
-            <Palette className="w-3.5 h-3.5" />
+            <Palette className="w-3 h-3" />
           </button>
           <button
-            onClick={() => deleteNode(id)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteNode(id);
+            }}
             title="Delete node"
             className="p-1 hover:text-rose-600 hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3" />
           </button>
-          <div className="p-1 text-secondaryGray/60 cursor-grab active:cursor-grabbing">
-            <GripVertical className="w-4 h-4" />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 text-secondaryGray/60 cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
 
       {/* Color Palette Popover */}
       {showColorPicker && (
-        <div className="absolute top-10 right-2 z-20 flex items-center gap-1 bg-white p-1.5 rounded-full shadow-float border border-border">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-10 right-2 z-20 flex items-center gap-1 bg-white p-1.5 rounded-full shadow-float border border-border"
+        >
           {['#D1FBE3', '#EEEDFD', '#DEE5FD', '#F5F0E6', '#FED7E8'].map((bg) => (
             <button
               key={bg}
+              type="button"
               onClick={() => {
                 updateNodeData(id, { color: bg });
                 setShowColorPicker(false);
@@ -160,45 +188,13 @@ export const NoteNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
         </div>
       )}
 
-      {/* Note Switcher Dropdown */}
-      {isEditing && (
-        <div className="mb-2 p-2 bg-white rounded-xl border border-border shadow-float flex flex-col gap-1.5 nodrag">
-          <span className="text-[11px] font-medium text-secondaryGray">
-            Choose document to reference:
-          </span>
-          <select
-            value={nodeData.referenceId || ''}
-            onChange={(e) => handleSelectNote(e.target.value)}
-            className="text-xs p-1.5 border border-border rounded font-sans bg-surface"
-          >
-            <option value="">Select a note...</option>
-            {notes.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.title}
-              </option>
-            ))}
-          </select>
-          <div className="flex justify-end">
-            <button
-              onClick={() => setIsEditing(false)}
-              className="text-[11px] text-secondaryGray hover:underline cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Title & Preview */}
-      <h4
-        onClick={handleOpenNote}
-        className="font-display font-bold text-[15px] text-primaryDark tracking-tight leading-snug cursor-pointer hover:underline"
-      >
+      <h4 className="font-display font-bold text-[15px] text-primaryDark tracking-tight leading-snug group-hover:text-primaryDark/90">
         {displayTitle}
       </h4>
 
-      <p className="font-sans text-[13px] text-primaryDark/80 line-clamp-3 leading-relaxed mt-1">
-        {displayContent}
+      <p className="font-sans text-[12px] text-primaryDark/75 line-clamp-3 leading-relaxed mt-1.5">
+        {previewSnippet}
       </p>
     </div>
   );

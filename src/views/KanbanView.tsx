@@ -58,18 +58,27 @@ export const KanbanView: React.FC = () => {
     title: string;
     description: string;
     tagLabel?: string;
+    tagColor?: string;
     dueDate?: string;
   }) => {
-    await addCard({
-      boardId: data.boardId,
-      columnId: data.columnId,
-      title: data.title,
-      description: data.description,
-      tagLabel: data.tagLabel,
-      dueDate: data.dueDate,
-    });
-    setToastMessage(`Added card "${data.title}"`);
-    setTimeout(() => setToastMessage(null), 3000);
+    try {
+      await addCard({
+        boardId: data.boardId,
+        columnId: data.columnId,
+        title: data.title,
+        description: data.description,
+        tagLabel: data.tagLabel,
+        tagColor: data.tagColor,
+        dueDate: data.dueDate,
+      });
+      setToastMessage(`Added card "${data.title}"`);
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error('Failed to add card:', err);
+      setToastMessage(`Failed to add card: ${msg}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    }
   };
 
   const handleSendToToday = async (cardId: string, title: string) => {
@@ -89,9 +98,16 @@ export const KanbanView: React.FC = () => {
 
   const handleAddColumnSubmit = async (title: string, themeId: string) => {
     if (!activeBoard) return;
-    const newCol = await addColumn(activeBoard.id, title, themeId);
-    setToastMessage(`Created column "${newCol.title}"`);
-    setTimeout(() => setToastMessage(null), 3000);
+    try {
+      const newCol = await addColumn(activeBoard.id, title, themeId);
+      setToastMessage(`Created column "${newCol.title}"`);
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error('Failed to add column:', err);
+      setToastMessage(`Failed to create column: ${msg}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    }
   };
 
   const handleRenameColumn = async (columnId: string, newTitle: string) => {
@@ -122,8 +138,11 @@ export const KanbanView: React.FC = () => {
     const map: Record<string, typeof activeBoard.cards> = {};
 
     activeBoard.columns.forEach((col) => {
-      let cards = activeBoard.cards.filter(
-        (c) => c.columnId === col.id || (col.id === 'done' && c.columnId === 'complete')
+      let cards = (activeBoard.cards || []).filter(
+        (c) =>
+          c.columnId === col.id ||
+          ((col.id === 'done' || col.id === 'complete') &&
+            (c.columnId === 'done' || c.columnId === 'complete'))
       );
 
       if (searchQuery.trim()) {
@@ -148,7 +167,21 @@ export const KanbanView: React.FC = () => {
     return map;
   }, [activeBoard, searchQuery, selectedTagFilter]);
 
-  if (!activeBoard) return null;
+  if (!activeBoard) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-bg h-full select-none">
+        <div className="w-12 h-12 rounded-2xl bg-accent-blue flex items-center justify-center text-sky-800 shadow-xs">
+          <Layers className="w-6 h-6" />
+        </div>
+        <h3 className="font-display font-bold text-display-3 text-primaryDark">
+          Loading Kanban Board...
+        </h3>
+        <p className="font-sans text-xs text-secondaryGray max-w-sm text-center">
+          Preparing your sprint deliverable lanes and board cards.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-x-auto p-8 flex flex-col gap-6 bg-bg h-full select-none">
