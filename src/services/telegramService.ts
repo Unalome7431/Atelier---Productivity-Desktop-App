@@ -1278,3 +1278,10 @@ export class TelegramService {
 }
 
 export const telegramService = new TelegramService();
+
+// Clean up background polling loop on Vite Hot Module Replacement (HMR)
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    telegramService.stopPolling();
+  });
+}
