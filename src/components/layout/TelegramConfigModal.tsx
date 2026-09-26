@@ -53,6 +53,16 @@ export const TelegramConfigModal: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = telegramService.subscribe((newConfig) => {
+      setConfig(newConfig);
+      setChatId(newConfig.chatId || '');
+      setPairingCode(newConfig.pairingCode);
+      setPairingExpiresAt(newConfig.pairingCodeExpiresAt);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     const handleOpen = () => {
       setIsOpen(true);
       void loadCurrentConfig();
@@ -182,6 +192,12 @@ export const TelegramConfigModal: React.FC = () => {
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2">
+            {config?.isPolling && (
+              <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Listening
+              </span>
+            )}
             <Badge variant={isLinked ? 'mint' : 'outline'} dot>
               {isLinked ? 'Linked & Ready' : 'Pending Link'}
             </Badge>

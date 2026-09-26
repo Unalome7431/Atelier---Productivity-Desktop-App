@@ -10,9 +10,15 @@ import { CanvasView } from '@/views/CanvasView';
 import { KanbanView } from '@/views/KanbanView';
 import { NotesView } from '@/views/NotesView';
 import { useAppStore } from '@/stores/useAppStore';
+import { telegramService } from '@/services/telegramService';
 
 export const App: React.FC = () => {
   const { activeTab, isCommandPaletteOpen, setCommandPaletteOpen } = useAppStore();
+
+  useEffect(() => {
+    void telegramService.startPolling();
+    return () => telegramService.stopPolling();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

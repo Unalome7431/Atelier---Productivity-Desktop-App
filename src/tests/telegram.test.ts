@@ -113,7 +113,15 @@ async function runTelegramTests() {
   assert(unlinkedConfig.chatId === null, 'chatId is null after unlink');
   assert(unlinkedConfig.botToken === null, 'botToken is cleared after unlink');
 
-  console.log('\nAll 14 Telegram companion bot engine tests PASSED successfully!');
+  // Test 8: Polling engine lifecycle
+  console.log('\n--- Test 8: Long-Polling Engine Lifecycle ---');
+  assert(telegramService.isPollingActive() === false, 'Polling initially inactive without token');
+  await telegramService.saveCredentials('7819283401:AAH_test_token', '987654321');
+  assert(telegramService.isPollingActive() === true, 'Polling starts automatically when credentials saved');
+  telegramService.stopPolling();
+  assert(telegramService.isPollingActive() === false, 'Polling stops on stopPolling()');
+
+  console.log('\nAll 16 Telegram companion bot engine tests PASSED successfully!');
 }
 
 runTelegramTests().catch((err) => {
