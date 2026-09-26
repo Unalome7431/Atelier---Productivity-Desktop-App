@@ -1,14 +1,12 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
 import { taskService } from './taskService';
-import { noteService } from './noteService';
-import { kanbanService } from './kanbanService';
 import { routineService } from './routineService';
+import { calendarService } from './calendarService';
 import { useTasksStore } from '@/stores/useTasksStore';
-import { useNotesStore } from '@/stores/useNotesStore';
-import { useKanbanStore } from '@/stores/useKanbanStore';
-import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { getTodayDateString } from '@/lib/utils';
+import { Task, TaskSubtask } from '@/types';
 
 export interface TelegramConfigState {
   chatId: string | null;
@@ -41,6 +39,17 @@ export class TelegramService {
   private abortController: AbortController | null = null;
   private lastUpdateId = 0;
   private statusListeners: ((state: TelegramConfigState) => void)[] = [];
+
+  // Temporary storage for pending /add task drafts: draftId -> task title
+  private pendingDraftTasks = new Map<string, string>();
+
+  // Reminder tracking set to prevent double alerts within the same interval/day
+  private sentReminders = new Set<string>();
+  private reminderIntervalTimer: any = null;
+
+  isPollingActive(): boolean {
+    return this.isPolling;
+  }
 
   subscribe(listener: (state: TelegramConfigState) => void) {
     this.statusListeners.push(listener);
@@ -122,15 +131,19 @@ export class TelegramService {
     };
   }
 
-  async generatePairingCode(): Promise<{ code: string; expiresAt: string; command: string }> {
+  async generatePairingCode(): Promise<{ code: string; expiresAt: string }> {
     await db.init();
-    // 6-character clean pairing code: ATL-XXX (3 random alphanumeric uppercase chars)
-    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
-    const code = `ATL-${randomChars}`;
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 mins validity
-    const now = new Date().toISOString();
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let randomPart = '';
+    for (let i = 0; i < 3; i++) {
+      randomPart += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
+    const code = `ATL-${randomPart}`;
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     const existing = await db.select<any>('SELECT id FROM workspace_config LIMIT 1');
+    const now = new Date().toISOString();
+
     if (existing.length === 0) {
       const configId = 'cfg_default';
       await db.execute(
@@ -160,11 +173,7 @@ export class TelegramService {
     }
 
     void this.notifyListeners();
-    return {
-      code,
-      expiresAt,
-      command: `/pair ${code}`,
-    };
+    return { code, expiresAt };
   }
 
   async saveCredentials(
@@ -190,7 +199,7 @@ export class TelegramService {
         localStorage.setItem(TelegramService.STORAGE_USERNAME_KEY, botUsername.trim().replace(/^@/, ''));
       }
     } catch (e) {
-      console.warn('[TelegramService] localStorage quota reached; storing credentials in database/memory only:', e);
+      console.warn('[TelegramService] localStorage quota reached; credentials kept in database/memory:', e);
     }
 
     const cleanChatId = chatId ? chatId.trim() : null;
@@ -282,10 +291,14 @@ export class TelegramService {
       const text =
         `✦ *Atelier Desktop Connected*\n\n` +
         `Your personal Telegram companion bot is active and listening.\n\n` +
-        `• Quick capture tasks: \`/todo <title>\`\n` +
-        `• Add Kanban cards: \`/kanban <board> <title>\`\n` +
-        `• Daily agenda: \`/agenda\`\n` +
-        `• Focus status: \`/focus\``;
+        `• /add — Add task (choose Today or Inbox)\n` +
+        `• /habit — List habits & toggle or increment\n` +
+        `• /today — Tasks, habits, and events summary\n` +
+        `• /schedule — Weekly schedule details\n` +
+        `• /inbox — List inbox tasks\n` +
+        `• /todo — Today's tasks & subtasks checklist\n` +
+        `• /move — Move task from inbox to today\n` +
+        `• /help — Full command guide`;
 
       const res = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
         method: 'POST',
@@ -352,12 +365,37 @@ export class TelegramService {
     this.abortController = new AbortController();
     void this.notifyListeners();
 
-    // Clear any stale webhook so getUpdates is allowed by Telegram API
+    // Register official 8 bot commands with Telegram so client autocomplete shows them
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commands: [
+            { command: 'add', description: 'Add todo task (choose Today or Inbox)' },
+            { command: 'habit', description: 'List habits with checklist or increment' },
+            { command: 'today', description: 'Daily summary of tasks, habits, and events' },
+            { command: 'schedule', description: 'Show weekly schedule and details' },
+            { command: 'inbox', description: 'List all todo tasks in inbox' },
+            { command: 'todo', description: 'List today tasks with subtasks and checklist' },
+            { command: 'move', description: 'Move task from inbox to today' },
+            { command: 'help', description: 'List all available bot commands' },
+          ],
+        }),
+      });
+    } catch (e) {
+      console.warn('[TelegramPolling] Could not register bot commands menu:', e);
+    }
+
+    // Clear any stale webhook so getUpdates works properly
     try {
       await fetch(`https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=false`);
     } catch (err) {
       console.warn('[TelegramPolling] Could not delete webhook prior to polling:', err);
     }
+
+    // Start background reminder checks (06:00, 16:00, 21:00, 3h advance alerts)
+    this.startReminderScheduler();
 
     console.log('[TelegramPolling] Starting desktop long-polling loop...');
     this.pollLoop(token);
@@ -370,22 +408,29 @@ export class TelegramService {
       this.abortController.abort();
       this.abortController = null;
     }
+    if (this.reminderIntervalTimer) {
+      clearInterval(this.reminderIntervalTimer);
+      this.reminderIntervalTimer = null;
+    }
     console.log('[TelegramPolling] Stopped desktop long-polling.');
     void this.notifyListeners();
-  }
-
-  isPollingActive(): boolean {
-    return this.isPolling;
   }
 
   private async pollLoop(token: string): Promise<void> {
     while (this.isPolling) {
       try {
-        const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${this.lastUpdateId ? this.lastUpdateId + 1 : 0}&timeout=20`;
-        const res = await fetch(url, { signal: this.abortController?.signal });
+        const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${this.lastUpdateId + 1}&timeout=20`;
+        const res = await fetch(url, {
+          signal: this.abortController?.signal,
+        });
+
         if (!res.ok) {
-          // If conflict or network error, wait a few seconds before retrying
-          await new Promise((r) => setTimeout(r, 4000));
+          if (res.status === 409) {
+            console.warn('[TelegramPolling] Conflict (another webhook/poller is active). Retrying in 5s...');
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            continue;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 3000));
           continue;
         }
 
@@ -397,41 +442,48 @@ export class TelegramService {
           }
         }
       } catch (err: any) {
-        if (err.name === 'AbortError') break;
-        console.warn('[TelegramPolling] Polling tick error (retrying):', err);
-        await new Promise((r) => setTimeout(r, 3000));
+        if (err.name === 'AbortError') {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     }
   }
 
+  // =========================================================================
+  // Command & Callback Handlers
+  // =========================================================================
+
   private async handleUpdate(token: string, update: any): Promise<void> {
-    // 1. Handle incoming text messages & commands
+    // 1. Incoming text commands
     if (update.message?.text) {
       const msg = update.message;
       const text: string = msg.text.trim();
       const chatId = String(msg.chat.id);
 
-      if (text.startsWith('/start')) {
-        await this.handleStartCommand(token, chatId);
+      if (text.startsWith('/add')) {
+        await this.handleAddCommand(token, chatId, text);
+      } else if (text.startsWith('/habit')) {
+        await this.handleHabitCommand(token, chatId);
+      } else if (text.startsWith('/today')) {
+        await this.handleTodayCommand(token, chatId);
+      } else if (text.startsWith('/schedule')) {
+        await this.handleScheduleCommand(token, chatId);
+      } else if (text.startsWith('/inbox')) {
+        await this.handleInboxCommand(token, chatId);
+      } else if (text.startsWith('/todo')) {
+        await this.handleTodoCommand(token, chatId);
+      } else if (text.startsWith('/move')) {
+        await this.handleMoveCommand(token, chatId, text);
       } else if (text.startsWith('/help')) {
         await this.handleHelpCommand(token, chatId);
-      } else if (text.startsWith('/pair')) {
-        await this.handlePairCommand(token, chatId, text);
-      } else if (text.startsWith('/todo')) {
-        await this.handleTodoCommand(token, chatId, text);
-      } else if (text.startsWith('/kanban')) {
-        await this.handleKanbanCommand(token, chatId, text);
-      } else if (text.startsWith('/note')) {
-        await this.handleNoteCommand(token, chatId, text);
-      } else if (text.startsWith('/agenda')) {
-        await this.handleAgendaCommand(token, chatId);
-      } else if (text.startsWith('/focus')) {
-        await this.handleFocusCommand(token, chatId);
+      } else if (text.startsWith('/start') || text.startsWith('/pair')) {
+        await this.handleStartOrPairCommand(token, chatId, text);
       }
       return;
     }
 
-    // 2. Handle callback queries from inline action keyboards
+    // 2. Inline keyboard callbacks
     if (update.callback_query) {
       await this.handleCallbackQuery(token, update.callback_query);
     }
@@ -442,9 +494,9 @@ export class TelegramService {
     chatId: string,
     text: string,
     replyMarkup?: any
-  ): Promise<void> {
+  ): Promise<any> {
     try {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -454,8 +506,33 @@ export class TelegramService {
           reply_markup: replyMarkup,
         }),
       });
+      return await res.json();
     } catch (err) {
       console.error('[TelegramService] sendMessage error:', err);
+    }
+  }
+
+  private async editMessageText(
+    token: string,
+    chatId: string,
+    messageId: number,
+    text: string,
+    replyMarkup?: any
+  ): Promise<void> {
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text,
+          parse_mode: 'Markdown',
+          reply_markup: replyMarkup,
+        }),
+      });
+    } catch (err) {
+      console.error('[TelegramService] editMessageText error:', err);
     }
   }
 
@@ -474,297 +551,729 @@ export class TelegramService {
     }
   }
 
-  private async handleStartCommand(token: string, chatId: string): Promise<void> {
-    const config = await this.getConfig();
-    const isPaired = config.chatId === chatId;
-
-    if (isPaired) {
+  // -------------------------------------------------------------------------
+  // 1. /add — Add task with destination choice (Today or Inbox)
+  // -------------------------------------------------------------------------
+  private async handleAddCommand(token: string, chatId: string, text: string): Promise<void> {
+    const raw = text.replace(/^\/add(@\w+)?/i, '').trim();
+    if (!raw) {
       await this.sendMessage(
         token,
         chatId,
-        `✦ *Atelier Personal Operating System*\n\n` +
-          `Your desktop workspace is active and paired.\n\n` +
-          `• \`/todo <title>\` — Add task to Today's queue\n` +
-          `• \`/kanban <board> <title>\` — Add card to Kanban board\n` +
-          `• \`/note <text>\` — Capture an inbox note\n` +
-          `• \`/agenda\` — View today's agenda & routines\n` +
-          `• \`/focus\` — View live Pomodoro focus status\n` +
-          `• \`/help\` — Detailed command reference`
-      );
-    } else {
-      await this.sendMessage(
-        token,
-        chatId,
-        `✦ *Welcome to Atelier*\n\n` +
-          `Your personal desktop cockpit companion bot.\n\n` +
-          `To link this chat to your desktop:\n` +
-          `1. Open Atelier on your computer.\n` +
-          `2. Click *Telegram* in the status footer.\n` +
-          `3. Click *Generate Code* (e.g. \`ATL-984\`).\n` +
-          `4. Send \`/pair <code>\` right here.\n\n` +
-          `_Example:_ \`/pair ATL-984\``
-      );
-    }
-  }
-
-  private async handleHelpCommand(token: string, chatId: string): Promise<void> {
-    await this.sendMessage(
-      token,
-      chatId,
-      `✦ *Atelier Telegram Commands*\n\n` +
-        `*/pair <code>*\n` +
-        `Link this chat with your desktop workspace.\n\n` +
-        `*/todo <title>*\n` +
-        `Schedule a task into Today's queue on your desktop.\n` +
-        `_Example:_ \`/todo Finalize Q3 design sprint\`\n\n` +
-        `*/kanban <board> <title>*\n` +
-        `Drop a new card into a Kanban board's Planned column.\n` +
-        `_Example:_ \`/kanban "Project A" Fix API contract\`\n\n` +
-        `*/note <text>*\n` +
-        `Save a quick reference note into your Notes Inbox.\n` +
-        `_Example:_ \`/note Meeting note: soft minimalism style guide\`\n\n` +
-        `*/agenda*\n` +
-        `Show today's habit routines and tasks with one-tap completion buttons.\n\n` +
-        `*/focus*\n` +
-        `View daily Pomodoro cycle goals and active timer status.`
-    );
-  }
-
-  private async handlePairCommand(token: string, chatId: string, text: string): Promise<void> {
-    const parts = text.split(/\s+/);
-    const code = parts[1]?.trim().toUpperCase();
-
-    if (!code) {
-      await this.sendMessage(
-        token,
-        chatId,
-        `Please specify your pairing code.\n_Example:_ \`/pair ATL-984\`\n\nGenerate your code in Atelier: Footer → Telegram → Generate Code.`
+        `✦ *Add Task*\n\n` +
+          `Usage:\n` +
+          `• \`/add <task title>\` — prompt to choose Today or Inbox\n` +
+          `• \`/add today <task title>\` — add directly to Today\n` +
+          `• \`/add inbox <task title>\` — add directly to Inbox\n\n` +
+          `_Example:_ \`/add Review roadmap\``
       );
       return;
     }
 
-    const config = await this.getConfig();
-    if (!config.pairingCode || config.pairingCode.toUpperCase() !== code) {
-      await this.sendMessage(
-        token,
-        chatId,
-        `❌ *Invalid or expired pairing code.*\n\nPairing codes expire after 15 minutes. Please generate a fresh code in Atelier (Footer → Telegram).`
-      );
+    // Direct shortcut: /add today <title>
+    if (/^today\s+/i.test(raw)) {
+      const title = raw.replace(/^today\s+/i, '').trim();
+      const todayStr = getTodayDateString();
+      await taskService.createTask({ title, scheduledDate: todayStr });
+      await useTasksStore.getState().loadTasks();
+      await this.sendMessage(token, chatId, `✓ *Added to Today's Tasks*\n\n"${title}"`);
       return;
     }
 
-    // Save chat ID and complete pairing
-    await this.saveCredentials(token, chatId, config.botUsername || undefined);
-
-    await this.sendMessage(
-      token,
-      chatId,
-      `✦ *Successfully Linked to Atelier!*\n\n` +
-        `Your Telegram account is now paired with your workspace.\n\n` +
-        `Tasks and notes you send here will immediately appear on your desktop screen.`
-    );
-  }
-
-  private async handleTodoCommand(token: string, chatId: string, text: string): Promise<void> {
-    const title = text.replace(/^\/todo(@\w+)?/i, '').trim();
-    if (!title) {
-      await this.sendMessage(
-        token,
-        chatId,
-        'Please provide a task title.\n_Example:_ `/todo Finalize Q3 design sprint`'
-      );
+    // Direct shortcut: /add inbox <title>
+    if (/^inbox\s+/i.test(raw)) {
+      const title = raw.replace(/^inbox\s+/i, '').trim();
+      await taskService.createTask({ title, scheduledDate: null });
+      await useTasksStore.getState().loadTasks();
+      await this.sendMessage(token, chatId, `✓ *Added to Inbox Backlog*\n\n"${title}"`);
       return;
     }
 
-    const todayStr = getTodayDateString();
-    const task = await taskService.createTask({
-      title,
-      scheduledDate: todayStr,
-    });
-
-    // Refresh reactive UI in desktop app immediately
-    await useTasksStore.getState().loadTasks();
+    // Interactive choice: prompt Today vs Inbox buttons
+    const draftId = `d_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    this.pendingDraftTasks.set(draftId, raw);
 
     const keyboard = {
-      inline_keyboard: [[{ text: '✓ Mark Done', callback_data: `done:${task.id}` }]],
+      inline_keyboard: [
+        [
+          { text: 'Add to Today', callback_data: `add_dest:today:${draftId}` },
+          { text: 'Add to Inbox', callback_data: `add_dest:inbox:${draftId}` },
+        ],
+      ],
     };
 
     await this.sendMessage(
       token,
       chatId,
-      `✓ *Task Scheduled for Today*\n\n"${title}"\n\n_Added to Daily Cockpit._`,
+      `✦ *Choose Destination for Task*\n\n"${raw}"`,
       keyboard
     );
   }
 
-  private async handleKanbanCommand(token: string, chatId: string, text: string): Promise<void> {
-    const raw = text.replace(/^\/kanban(@\w+)?/i, '').trim();
-    if (!raw) {
-      await this.sendMessage(
-        token,
-        chatId,
-        'Please provide a board name and card title.\n_Example:_ `/kanban "Project A" Fix layout regression`'
-      );
-      return;
-    }
-
-    let boardName = '';
-    let cardTitle = raw;
-
-    const quoted = raw.match(/^"([^"]+)"\s+(.+)$/);
-    if (quoted) {
-      boardName = quoted[1];
-      cardTitle = quoted[2];
-    } else {
-      const parts = raw.split(/\s+/);
-      if (parts.length > 1) {
-        boardName = parts[0];
-        cardTitle = parts.slice(1).join(' ');
-      }
-    }
-
-    const boards = await kanbanService.getBoards();
-    let board = boards.find(
-      (b) => b.title.toLowerCase() === boardName.toLowerCase() || b.id === boardName
-    );
-    if (!board && boards.length > 0) {
-      board = boards[0];
-    }
-
-    if (!board) {
-      await this.sendMessage(
-        token,
-        chatId,
-        `No Kanban boards found. Open Atelier on desktop to create a board first.`
-      );
-      return;
-    }
-
-    const columns = board.columns || [];
-    const targetCol = columns[0];
-    if (!targetCol) {
-      await this.sendMessage(token, chatId, `Board *${board.title}* has no columns configured.`);
-      return;
-    }
-
-    await kanbanService.addCard(board.id, targetCol.id, cardTitle);
-    await useKanbanStore.getState().loadBoards();
-
-    await this.sendMessage(
-      token,
-      chatId,
-      `✓ *Kanban Card Created*\n\nBoard: *${board.title}*\nColumn: *${targetCol.title}*\nCard: "${cardTitle}"`
-    );
-  }
-
-  private async handleNoteCommand(token: string, chatId: string, text: string): Promise<void> {
-    const raw = text.replace(/^\/note(@\w+)?/i, '').trim();
-    if (!raw) {
-      await this.sendMessage(
-        token,
-        chatId,
-        'Please provide note text.\n_Example:_ `/note Architectural review notes`'
-      );
-      return;
-    }
-
-    const title = raw.length > 40 ? raw.substring(0, 37) + '...' : raw;
-    await noteService.createNote({
-      title,
-      content: `<p>${raw}</p>`,
-      folder: 'Inbox',
-      categoryColor: '#EEEDFD',
-    });
-
-    await useNotesStore.getState().loadNotes();
-
-    await this.sendMessage(
-      token,
-      chatId,
-      `✓ *Note Captured to Inbox*\n\n"${title}"\n\n_Available in Notes & Docs._`
-    );
-  }
-
-  private async handleAgendaCommand(token: string, chatId: string): Promise<void> {
+  // -------------------------------------------------------------------------
+  // 2. /habit — List all habits with checklist or increment options
+  // -------------------------------------------------------------------------
+  private async handleHabitCommand(token: string, chatId: string, editMessageId?: number): Promise<void> {
     const todayStr = getTodayDateString();
-    const [routines, logs, todayTasks] = await Promise.all([
+    const [routines, logs] = await Promise.all([
       routineService.getAllRoutines(),
       routineService.getTodayLogs(todayStr),
-      taskService.getTodayTasks(todayStr),
     ]);
 
-    let message = `✦ *Atelier Agenda for Today*\n_${todayStr}_\n\n`;
+    if (routines.length === 0) {
+      const emptyText = `✦ *Daily Habits*\n\nNo habits configured yet. Create habits in Atelier desktop cockpit.`;
+      if (editMessageId) {
+        await this.editMessageText(token, chatId, editMessageId, emptyText);
+      } else {
+        await this.sendMessage(token, chatId, emptyText);
+      }
+      return;
+    }
 
-    if (routines.length > 0) {
-      message += `*Daily Habits:*\n`;
-      for (const r of routines) {
+    let text = `✦ *Daily Habits* (${todayStr})\n\n`;
+    const inlineKeyboard: any[][] = [];
+
+    routines.forEach((r, idx) => {
+      const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
+      const count = (log as any)?.currentCount ?? (log as any)?.current_count ?? 0;
+      const isDone = Boolean(log?.completed);
+      const target = r.targetCount || (r as any).target_count || 1;
+
+      text += `${idx + 1}. ${isDone ? '[✓]' : '[ ]'} *${r.title}* (${count}/${target})\n`;
+
+      if (target > 1) {
+        // Repeating habit: option to increment (+1) or toggle complete
+        inlineKeyboard.push([
+          {
+            text: `+1 ${r.title.length > 14 ? r.title.substring(0, 12) + '…' : r.title} (${count}/${target})`,
+            callback_data: `habit_inc:${r.id}`,
+          },
+          {
+            text: isDone ? 'Reopen' : '✓ Done',
+            callback_data: `habit_toggle:${r.id}`,
+          },
+        ]);
+      } else {
+        // Boolean habit: checklist toggle
+        inlineKeyboard.push([
+          {
+            text: `${isDone ? '↩ Reopen' : '✓ Check'}: ${r.title.length > 20 ? r.title.substring(0, 18) + '…' : r.title}`,
+            callback_data: `habit_toggle:${r.id}`,
+          },
+        ]);
+      }
+    });
+
+    const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
+
+    if (editMessageId) {
+      await this.editMessageText(token, chatId, editMessageId, text, replyMarkup);
+    } else {
+      await this.sendMessage(token, chatId, text, replyMarkup);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 3. /today — Daily summary of tasks, habits, and events
+  // -------------------------------------------------------------------------
+  public async handleTodayCommand(token: string, chatId: string): Promise<void> {
+    const todayStr = getTodayDateString();
+    const [tasks, routines, logs, events] = await Promise.all([
+      taskService.getTodayTasks(todayStr),
+      routineService.getAllRoutines(),
+      routineService.getTodayLogs(todayStr),
+      calendarService.getEvents(),
+    ]);
+
+    const todayEvents = events.filter((e) => e.date === todayStr);
+    const completedTasksCount = tasks.filter((t) => t.completed).length;
+    const completedHabitsCount = routines.filter((r) => {
+      const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
+      return Boolean(log?.completed);
+    }).length;
+
+    let text = `✦ *Atelier Today Overview*\n_Date: ${todayStr}_\n\n`;
+
+    // Tasks section
+    text += `*Todo Tasks (${completedTasksCount}/${tasks.length}):*\n`;
+    if (tasks.length === 0) {
+      text += `_No tasks scheduled for today. Use /add to create one._\n`;
+    } else {
+      tasks.forEach((t) => {
+        text += `${t.completed ? '[✓] ~' + t.title + '~' : '[ ] ' + t.title}\n`;
+      });
+    }
+    text += '\n';
+
+    // Habits section
+    text += `*Daily Habits (${completedHabitsCount}/${routines.length}):*\n`;
+    if (routines.length === 0) {
+      text += `_No habits active._\n`;
+    } else {
+      routines.forEach((r) => {
         const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
         const count = (log as any)?.currentCount ?? (log as any)?.current_count ?? 0;
-        const isDone = log?.completed;
-        message += `${isDone ? '✓' : '○'} ${r.title} (${count}/${r.targetCount || (r as any).target_count || 1})\n`;
-      }
-      message += `\n`;
+        const isDone = Boolean(log?.completed);
+        const target = r.targetCount || (r as any).target_count || 1;
+        text += `${isDone ? '[✓]' : '[ ]'} ${r.title} (${count}/${target})\n`;
+      });
     }
+    text += '\n';
 
-    if (todayTasks.length > 0) {
-      message += `*Today's Tactical Tasks:*\n`;
-      for (const t of todayTasks) {
-        message += `${t.completed ? '✓ ~' + t.title + '~' : '• ' + t.title}\n`;
-      }
+    // Events section
+    text += `*Scheduled Events (${todayEvents.length}):*\n`;
+    if (todayEvents.length === 0) {
+      text += `_No calendar events scheduled for today._\n`;
     } else {
-      message += `_No tasks scheduled for today. Add one with /todo <title>_\n`;
+      todayEvents.forEach((e) => {
+        text += `• ${e.startTime || ''}${e.endTime ? ' - ' + e.endTime : ''} | *${e.title}* [${e.category || 'Event'}]\n`;
+      });
     }
 
-    const openTasks = todayTasks.filter((t: any) => !t.completed).slice(0, 3);
-    const inlineKeyboard = openTasks.map((t: any) => [
+    // Quick completion action buttons for open tasks
+    const openTasks = tasks.filter((t) => !t.completed).slice(0, 4);
+    const inlineKeyboard = openTasks.map((t) => [
       {
-        text: `✓ ${t.title.length > 20 ? t.title.substring(0, 18) + '…' : t.title}`,
-        callback_data: `done:${t.id}`,
+        text: `✓ Done: ${t.title.length > 22 ? t.title.substring(0, 20) + '…' : t.title}`,
+        callback_data: `todo_toggle:${t.id}`,
       },
     ]);
 
     await this.sendMessage(
       token,
       chatId,
-      message,
+      text,
       inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
     );
   }
 
-  private async handleFocusCommand(token: string, chatId: string): Promise<void> {
-    const pomodoro = usePomodoroStore.getState();
-    const mins = Math.floor(pomodoro.remainingSeconds / 60);
-    const secs = pomodoro.remainingSeconds % 60;
-    const timeFormatted = `${mins}:${secs.toString().padStart(2, '0')}`;
-    const modeLabel =
-      pomodoro.mode === 'focus'
-        ? 'Focus Session'
-        : pomodoro.mode === 'shortBreak'
-          ? 'Short Break'
-          : 'Long Break';
+  // -------------------------------------------------------------------------
+  // 4. /schedule — Weekly schedule with details & recurring blocks
+  // -------------------------------------------------------------------------
+  private async handleScheduleCommand(token: string, chatId: string): Promise<void> {
+    const recurringBlocks = calendarService.getRecurringWeeklyBlocks();
+    const events = await calendarService.getEvents();
+
+    const daysMap: Record<number, string> = {
+      1: 'Monday',
+      2: 'Tuesday',
+      3: 'Wednesday',
+      4: 'Thursday',
+      5: 'Friday',
+      6: 'Saturday',
+      0: 'Sunday',
+    };
+
+    let text = `✦ *Atelier Weekly Schedule*\n\n`;
+
+    // Group recurring blocks by day
+    for (const dayNum of [1, 2, 3, 4, 5, 6, 0]) {
+      const dayName = daysMap[dayNum];
+      const dayBlocks = recurringBlocks.filter((b) => b.dayOfWeek === dayNum);
+      if (dayBlocks.length > 0) {
+        text += `*${dayName}:*\n`;
+        dayBlocks.forEach((b) => {
+          const start = b.startFormatted || b.timeSlot;
+          const end = b.endFormatted || '';
+          text += `• ${start}${end ? ' - ' + end : ''} | *${b.title}* [${b.category || 'Block'}]\n`;
+        });
+        text += '\n';
+      }
+    }
+
+    // Upcoming calendar events for current week
+    if (events.length > 0) {
+      const upcoming = events.slice(0, 5);
+      text += `*Upcoming Calendar Events:*\n`;
+      upcoming.forEach((e) => {
+        text += `• ${e.date || ''} ${e.startTime || ''} | *${e.title}*\n`;
+      });
+    }
+
+    await this.sendMessage(token, chatId, text);
+  }
+
+  // -------------------------------------------------------------------------
+  // 5. /inbox — List all todo tasks in inbox
+  // -------------------------------------------------------------------------
+  private async handleInboxCommand(token: string, chatId: string, editMessageId?: number): Promise<void> {
+    const inboxTasks = await taskService.getInboxTasks();
+
+    if (inboxTasks.length === 0) {
+      const emptyText = `✦ *Inbox Backlog*\n\nInbox is empty. No unscheduled tasks.`;
+      if (editMessageId) {
+        await this.editMessageText(token, chatId, editMessageId, emptyText);
+      } else {
+        await this.sendMessage(token, chatId, emptyText);
+      }
+      return;
+    }
+
+    let text = `✦ *Inbox Backlog* (${inboxTasks.length} tasks)\n\n`;
+    inboxTasks.forEach((t, idx) => {
+      text += `${idx + 1}. *${t.title}*\n`;
+    });
+    text += `\n_Use /move to schedule any task to Today._`;
+
+    // Quick move buttons for first 5 inbox tasks
+    const inlineKeyboard = inboxTasks.slice(0, 5).map((t) => [
+      {
+        text: `-> Move to Today: ${t.title.length > 20 ? t.title.substring(0, 18) + '…' : t.title}`,
+        callback_data: `move_task:${t.id}`,
+      },
+    ]);
+
+    const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
+
+    if (editMessageId) {
+      await this.editMessageText(token, chatId, editMessageId, text, replyMarkup);
+    } else {
+      await this.sendMessage(token, chatId, text, replyMarkup);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 6. /todo — List today tasks with subtasks and checklist toggle
+  // -------------------------------------------------------------------------
+  private async handleTodoCommand(token: string, chatId: string, editMessageId?: number): Promise<void> {
+    const todayStr = getTodayDateString();
+    const tasks = await taskService.getTodayTasks(todayStr);
+
+    if (tasks.length === 0) {
+      const emptyText = `✦ *Today's Todo Tasks*\n\nNo tasks scheduled for today. Use /add to add a task.`;
+      if (editMessageId) {
+        await this.editMessageText(token, chatId, editMessageId, emptyText);
+      } else {
+        await this.sendMessage(token, chatId, emptyText);
+      }
+      return;
+    }
+
+    let text = `✦ *Today's Todo Tasks* (${todayStr})\n\n`;
+    const inlineKeyboard: any[][] = [];
+
+    tasks.forEach((t, idx) => {
+      const isDone = t.completed;
+      text += `${idx + 1}. ${isDone ? '[✓] ~' + t.title + '~' : '[ ] *' + t.title + '*'}\n`;
+
+      // Render subtasks
+      if (t.subtasks && t.subtasks.length > 0) {
+        t.subtasks.forEach((sub: TaskSubtask) => {
+          text += `    └ ${sub.completed ? '[✓] ~' + sub.title + '~' : '[ ] ' + sub.title}\n`;
+        });
+      }
+
+      // Action button for task
+      const actionRow: any[] = [
+        {
+          text: isDone ? `↩ Reopen: ${t.title.slice(0, 16)}` : `✓ Done: ${t.title.slice(0, 16)}`,
+          callback_data: `todo_toggle:${t.id}`,
+        },
+      ];
+
+      // If task has incomplete subtasks, offer quick subtask check button
+      const openSubtask = t.subtasks?.find((s) => !s.completed);
+      if (openSubtask && !isDone) {
+        actionRow.push({
+          text: `✓ Subtask: ${openSubtask.title.slice(0, 12)}`,
+          callback_data: `subtask_toggle:${t.id}:${openSubtask.id}`,
+        });
+      }
+
+      inlineKeyboard.push(actionRow);
+    });
+
+    const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
+
+    if (editMessageId) {
+      await this.editMessageText(token, chatId, editMessageId, text, replyMarkup);
+    } else {
+      await this.sendMessage(token, chatId, text, replyMarkup);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 7. /move — Move specific task from inbox to todo
+  // -------------------------------------------------------------------------
+  private async handleMoveCommand(token: string, chatId: string, text: string): Promise<void> {
+    const raw = text.replace(/^\/move(@\w+)?/i, '').trim();
+    const inboxTasks = await taskService.getInboxTasks();
+
+    if (inboxTasks.length === 0) {
+      await this.sendMessage(token, chatId, `✦ *Move Task*\n\nInbox is currently empty. No tasks to move.`);
+      return;
+    }
+
+    if (!raw) {
+      // List inbox tasks with inline buttons to move directly
+      let promptText = `✦ *Move Task from Inbox to Today*\n\nSelect a task below to schedule for Today:\n\n`;
+      inboxTasks.forEach((t, idx) => {
+        promptText += `${idx + 1}. *${t.title}*\n`;
+      });
+
+      const inlineKeyboard = inboxTasks.slice(0, 8).map((t) => [
+        {
+          text: `-> Move: ${t.title.length > 24 ? t.title.substring(0, 22) + '…' : t.title}`,
+          callback_data: `move_task:${t.id}`,
+        },
+      ]);
+
+      await this.sendMessage(token, chatId, promptText, { inline_keyboard: inlineKeyboard });
+      return;
+    }
+
+    // Try finding by numerical index (1-based)
+    const indexNum = parseInt(raw, 10);
+    let matchedTask: Task | undefined;
+    if (!isNaN(indexNum) && indexNum >= 1 && indexNum <= inboxTasks.length) {
+      matchedTask = inboxTasks[indexNum - 1];
+    } else {
+      // Find by title substring
+      matchedTask = inboxTasks.find(
+        (t) => t.title.toLowerCase().includes(raw.toLowerCase()) || t.id === raw
+      );
+    }
+
+    if (!matchedTask) {
+      await this.sendMessage(
+        token,
+        chatId,
+        `Task not found in Inbox matching "${raw}".\nUse \`/inbox\` to view all available tasks.`
+      );
+      return;
+    }
+
+    const todayStr = getTodayDateString();
+    await taskService.updateTaskScheduledDate(matchedTask.id, todayStr);
+    await useTasksStore.getState().loadTasks();
 
     await this.sendMessage(
       token,
       chatId,
-      `✦ *Pomodoro Focus Status*\n\n` +
-        `• Status: *${pomodoro.isRunning ? 'Active ▶' : 'Paused ⏸'}*\n` +
-        `• Current Mode: *${modeLabel}*\n` +
-        `• Time Remaining: *${timeFormatted}*\n` +
-        `• Completed Today: *${pomodoro.completedCyclesToday} of ${pomodoro.targetCyclesDaily} cycles*\n` +
-        `• Active Target: *${pomodoro.activeTarget?.title || 'None bound'}*`
+      `✓ *Task Moved to Today*\n\n"${matchedTask.title}" is now scheduled for today.`
     );
   }
 
+  // -------------------------------------------------------------------------
+  // 8. /help — Full command guide & reminder schedule
+  // -------------------------------------------------------------------------
+  private async handleHelpCommand(token: string, chatId: string): Promise<void> {
+    await this.sendMessage(
+      token,
+      chatId,
+      `✦ *Atelier Bot Commands*\n\n` +
+        `• \`/add <title>\` — Add todo task (choose Today or Inbox)\n` +
+        `• \`/habit\` — List all habits with checklist or increment (+1)\n` +
+        `• \`/today\` — Daily summary of tasks, habits, and events\n` +
+        `• \`/schedule\` — Show weekly schedule and recurring blocks\n` +
+        `• \`/inbox\` — List all tasks in inbox backlog\n` +
+        `• \`/todo\` — List today tasks & subtasks with checklist\n` +
+        `• \`/move\` — Move task from inbox to today\n` +
+        `• \`/help\` — View this guide\n\n` +
+        `*Automated Reminders:*\n` +
+        `• 06:00 — Morning daily briefing (/today)\n` +
+        `• 16:00 — Afternoon unfinished tasks & habits check-in\n` +
+        `• 21:00 — Evening unfinished tasks & habits review\n` +
+        `• 3h Advance — Advance alert before scheduled events & blocks`
+    );
+  }
+
+  private async handleStartOrPairCommand(token: string, chatId: string, text: string): Promise<void> {
+    const parts = text.split(/\s+/);
+    const code = parts[1]?.trim().toUpperCase();
+
+    if (code && code.startsWith('ATL-')) {
+      const config = await this.getConfig();
+      if (!config.pairingCode || config.pairingCode.toUpperCase() !== code) {
+        await this.sendMessage(
+          token,
+          chatId,
+          `❌ *Invalid or expired pairing code.*\nPlease generate a fresh code in Atelier (Footer → Telegram).`
+        );
+        return;
+      }
+
+      await this.saveCredentials(token, chatId, config.botUsername || undefined);
+      await this.sendMessage(
+        token,
+        chatId,
+        `✦ *Successfully Linked to Atelier!*\n\nUse \`/help\` to view all commands.`
+      );
+      return;
+    }
+
+    await this.handleHelpCommand(token, chatId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Callback Query Engine (Interactive Buttons)
+  // -------------------------------------------------------------------------
   private async handleCallbackQuery(token: string, cb: any): Promise<void> {
     const data: string = cb.data || '';
-    if (data.startsWith('done:')) {
-      const taskId = data.replace('done:', '');
-      await taskService.toggleTask(taskId, true);
+    const chatId = String(cb.message?.chat?.id || '');
+    const messageId = cb.message?.message_id;
+
+    // A. Task destination choice from /add
+    if (data.startsWith('add_dest:')) {
+      const [, dest, draftId] = data.split(':');
+      const title = this.pendingDraftTasks.get(draftId);
+      if (!title) {
+        await this.answerCallback(token, cb.id, 'Draft expired. Please run /add again.');
+        return;
+      }
+      this.pendingDraftTasks.delete(draftId);
+
+      const scheduledDate = dest === 'today' ? getTodayDateString() : null;
+      await taskService.createTask({ title, scheduledDate });
       await useTasksStore.getState().loadTasks();
-      await this.answerCallback(token, cb.id, '✓ Task marked as completed on desktop!');
-    } else {
-      await this.answerCallback(token, cb.id);
+
+      const label = dest === 'today' ? "Today's Tasks" : 'Inbox Backlog';
+      await this.answerCallback(token, cb.id, `Added to ${label}`);
+      if (messageId) {
+        await this.editMessageText(
+          token,
+          chatId,
+          messageId,
+          `✓ *Task Added to ${label}*\n\n"${title}"`
+        );
+      }
+      return;
     }
+
+    // B. Habit toggle or increment
+    if (data.startsWith('habit_inc:')) {
+      const routineId = data.replace('habit_inc:', '');
+      await routineService.updateRoutineCount(routineId, 1);
+      await useRoutinesStore.getState().loadRoutines();
+      await this.answerCallback(token, cb.id, '+1 count recorded!');
+      if (messageId) {
+        await this.handleHabitCommand(token, chatId, messageId);
+      }
+      return;
+    }
+
+    if (data.startsWith('habit_toggle:')) {
+      const routineId = data.replace('habit_toggle:', '');
+      const todayStr = getTodayDateString();
+      const logs = await routineService.getTodayLogs(todayStr);
+      const existing = logs.find((l: any) => l.routineId === routineId || l.routine_id === routineId);
+      const nextCompleted = !existing?.completed;
+
+      await routineService.toggleRoutine(routineId, nextCompleted);
+      await useRoutinesStore.getState().loadRoutines();
+      await this.answerCallback(token, cb.id, nextCompleted ? '✓ Completed!' : 'Reopened');
+      if (messageId) {
+        await this.handleHabitCommand(token, chatId, messageId);
+      }
+      return;
+    }
+
+    // C. Todo toggle (today tasks)
+    if (data.startsWith('todo_toggle:')) {
+      const taskId = data.replace('todo_toggle:', '');
+      const todayStr = getTodayDateString();
+      const tasks = await taskService.getTodayTasks(todayStr);
+      const target = tasks.find((t) => t.id === taskId);
+      const nextCompleted = !target?.completed;
+
+      await taskService.toggleTask(taskId, nextCompleted);
+      await useTasksStore.getState().loadTasks();
+      await this.answerCallback(token, cb.id, nextCompleted ? '✓ Task done!' : 'Task reopened');
+      if (messageId) {
+        await this.handleTodoCommand(token, chatId, messageId);
+      }
+      return;
+    }
+
+    // D. Subtask toggle
+    if (data.startsWith('subtask_toggle:')) {
+      const parts = data.split(':');
+      const taskId = parts[1];
+      const subtaskId = parts[2];
+
+      await taskService.toggleSubtask(taskId, subtaskId);
+      await useTasksStore.getState().loadTasks();
+      await this.answerCallback(token, cb.id, '✓ Subtask updated!');
+      if (messageId) {
+        await this.handleTodoCommand(token, chatId, messageId);
+      }
+      return;
+    }
+
+    // E. Move task from inbox to today
+    if (data.startsWith('move_task:')) {
+      const taskId = data.replace('move_task:', '');
+      const todayStr = getTodayDateString();
+      await taskService.updateTaskScheduledDate(taskId, todayStr);
+      await useTasksStore.getState().loadTasks();
+
+      await this.answerCallback(token, cb.id, '✓ Moved to Today!');
+      if (messageId) {
+        await this.handleInboxCommand(token, chatId, messageId);
+      }
+      return;
+    }
+
+    await this.answerCallback(token, cb.id);
+  }
+
+  // =========================================================================
+  // Automated Reminder Engine:
+  // - 06:00 Morning /today briefing
+  // - 16:00 Afternoon unfinished tasks & habits check-in
+  // - 21:00 Evening unfinished tasks & habits review
+  // - 3 hours before scheduled event or recurring schedule block
+  // =========================================================================
+
+  private startReminderScheduler(): void {
+    if (this.reminderIntervalTimer) {
+      clearInterval(this.reminderIntervalTimer);
+    }
+
+    // Check every 30 seconds
+    this.reminderIntervalTimer = setInterval(() => {
+      void this.runScheduledRemindersCheck();
+    }, 30000);
+  }
+
+  private async runScheduledRemindersCheck(): Promise<void> {
+    const config = await this.getConfig();
+    if (!config.isLinked || !config.botToken || !config.chatId) {
+      return;
+    }
+
+    const token = config.botToken;
+    const chatId = config.chatId;
+
+    const now = new Date();
+    const hours = now.getHours();
+    const todayStr = getTodayDateString();
+
+    // 1. Morning 06:00 Daily Briefing
+    const key0600 = `briefing_0600_${todayStr}`;
+    if (hours === 6 && !this.sentReminders.has(key0600)) {
+      this.sentReminders.add(key0600);
+      await this.handleTodayCommand(token, chatId);
+    }
+
+    // 2. Afternoon 16:00 Unfinished Items Check-in
+    const key1600 = `checkin_1600_${todayStr}`;
+    if (hours === 16 && !this.sentReminders.has(key1600)) {
+      this.sentReminders.add(key1600);
+      await this.sendIncompleteReminder(token, chatId, 'Afternoon Check-in (16:00)');
+    }
+
+    // 3. Evening 21:00 Unfinished Items Review
+    const key2100 = `checkin_2100_${todayStr}`;
+    if (hours === 21 && !this.sentReminders.has(key2100)) {
+      this.sentReminders.add(key2100);
+      await this.sendIncompleteReminder(token, chatId, 'Evening Review (21:00)');
+    }
+
+    // 4. 3 Hours Advance Reminder for Events
+    try {
+      const events = await calendarService.getEvents();
+      for (const ev of events) {
+        if (!ev.startTime || ev.date !== todayStr) continue;
+        const [eh, em] = ev.startTime.split(':').map(Number);
+        if (isNaN(eh)) continue;
+
+        const evDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em || 0, 0);
+        const diffMinutes = Math.round((evDate.getTime() - now.getTime()) / 60000);
+
+        // Window: 170 to 185 minutes (~3 hours prior)
+        const evKey = `event_3h_${ev.id}_${todayStr}`;
+        if (diffMinutes >= 170 && diffMinutes <= 185 && !this.sentReminders.has(evKey)) {
+          this.sentReminders.add(evKey);
+          await this.sendMessage(
+            token,
+            chatId,
+            `✦ *Upcoming Event Reminder (in 3 hours)*\n\n` +
+              `• *${ev.title}*\n` +
+              `• Time: ${ev.startTime}${ev.endTime ? ' - ' + ev.endTime : ''}\n` +
+              `• Category: ${ev.category || 'General'}\n` +
+              (ev.description ? `• Details: ${ev.description}\n` : '')
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('[TelegramScheduler] Event check error:', e);
+    }
+
+    // 5. 3 Hours Advance Reminder for Recurring Schedule Blocks
+    try {
+      const currentDayOfWeek = now.getDay(); // 0 = Sun, 1 = Mon ...
+      const blocks = calendarService.getRecurringWeeklyBlocks();
+      for (const block of blocks) {
+        if (block.dayOfWeek !== currentDayOfWeek) continue;
+        const timeSlot = block.startFormatted || block.timeSlot;
+        if (!timeSlot) continue;
+
+        const [bh, bm] = timeSlot.split(':').map(Number);
+        if (isNaN(bh)) continue;
+
+        const bDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), bh, bm || 0, 0);
+        const diffMinutes = Math.round((bDate.getTime() - now.getTime()) / 60000);
+
+        const bKey = `schedule_3h_${block.id}_${todayStr}`;
+        if (diffMinutes >= 170 && diffMinutes <= 185 && !this.sentReminders.has(bKey)) {
+          this.sentReminders.add(bKey);
+          await this.sendMessage(
+            token,
+            chatId,
+            `✦ *Upcoming Schedule Reminder (in 3 hours)*\n\n` +
+              `• *${block.title}*\n` +
+              `• Time: ${block.startFormatted || block.timeSlot}${block.endFormatted ? ' - ' + block.endFormatted : ''}\n` +
+              `• Category: ${block.category || 'Schedule'}`
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('[TelegramScheduler] Schedule block check error:', e);
+    }
+  }
+
+  private async sendIncompleteReminder(token: string, chatId: string, label: string): Promise<void> {
+    const todayStr = getTodayDateString();
+    const [tasks, routines, logs] = await Promise.all([
+      taskService.getTodayTasks(todayStr),
+      routineService.getAllRoutines(),
+      routineService.getTodayLogs(todayStr),
+    ]);
+
+    const pendingTasks = tasks.filter((t) => !t.completed);
+    const pendingHabits = routines.filter((r) => {
+      const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
+      return !log?.completed;
+    });
+
+    if (pendingTasks.length === 0 && pendingHabits.length === 0) {
+      return;
+    }
+
+    let text = `✦ *${label}*\n\nYou have unfinished items for today:\n\n`;
+    if (pendingTasks.length > 0) {
+      text += `*Remaining Tasks (${pendingTasks.length}):*\n`;
+      pendingTasks.forEach((t) => {
+        text += `• ${t.title}\n`;
+      });
+      text += '\n';
+    }
+
+    if (pendingHabits.length > 0) {
+      text += `*Remaining Habits (${pendingHabits.length}):*\n`;
+      pendingHabits.forEach((r) => {
+        const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
+        const count = (log as any)?.currentCount ?? (log as any)?.current_count ?? 0;
+        const target = r.targetCount || (r as any).target_count || 1;
+        text += `• ${r.title} (${count}/${target})\n`;
+      });
+      text += '\n';
+    }
+
+    text += `_Use /todo or /habit to check them off._`;
+
+    await this.sendMessage(token, chatId, text);
   }
 }
 

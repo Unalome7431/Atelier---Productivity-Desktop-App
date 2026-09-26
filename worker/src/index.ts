@@ -1,7 +1,7 @@
 import { webhookCallback } from 'grammy';
 import { Env } from './types';
 import { createBot } from './bot';
-import { handleMorningCron } from './cron';
+import { handleCronTrigger } from './cron';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -48,7 +48,7 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    console.log('[CronTrigger] Running scheduled morning agenda delivery...', event.cron);
-    ctx.waitUntil(handleMorningCron(env));
+    console.log('[CronTrigger] Running scheduled agenda & check-in delivery...', event.cron);
+    ctx.waitUntil(handleCronTrigger(env, event.scheduledTime));
   },
 };

@@ -29,7 +29,7 @@ const mockStorage: Record<string, string> = {};
       }),
     };
   }
-  if (url.includes('/sendMessage')) {
+  if (url.includes('/sendMessage') || url.includes('/editMessageText') || url.includes('/setMyCommands') || url.includes('/deleteWebhook') || url.includes('/answerCallbackQuery')) {
     return {
       ok: true,
       json: async () => ({
@@ -45,6 +45,10 @@ const mockStorage: Record<string, string> = {};
 };
 
 import { telegramService } from '../services/telegramService';
+import { taskService } from '../services/taskService';
+import { routineService } from '../services/routineService';
+import { calendarService } from '../services/calendarService';
+import { getTodayDateString } from '../lib/utils';
 import { db } from '../db/database';
 
 function assert(condition: boolean, message: string) {
@@ -72,7 +76,6 @@ async function runTelegramTests() {
   assert(Boolean(pairingRes.code), 'Pairing code generated');
   assert(pairingRes.code.startsWith('ATL-'), 'Pairing code uses ATL- prefix');
   assert(pairingRes.code.length === 7, 'Pairing code is 7 characters (ATL-XXX)');
-  assert(pairingRes.command === `/pair ${pairingRes.code}`, 'Command string formatted correctly');
 
   const now = Date.now();
   const expiresTimestamp = new Date(pairingRes.expiresAt).getTime();
@@ -105,23 +108,81 @@ async function runTelegramTests() {
   const testMsgRes = await telegramService.sendTestNotification('7819283401:AAH_test_token', '987654321');
   assert(testMsgRes.ok === true, 'sendTestNotification succeeds');
 
-  // Test 7: Unlink
-  console.log('\n--- Test 7: Unlink Telegram Chat ---');
+  // Test 7: Command 1 — /add (Today vs Inbox)
+  console.log('\n--- Test 7: Command /add (Today and Inbox Destination Options) ---');
+  const todayStr = getTodayDateString();
+  const createdTodayTask = await taskService.createTask({
+    title: 'Telegram Today Task Test',
+    scheduledDate: todayStr,
+  });
+  assert(createdTodayTask.scheduledDate === todayStr, 'Task added to Today has scheduledDate set');
+
+  const createdInboxTask = await taskService.createTask({
+    title: 'Telegram Inbox Task Test',
+    scheduledDate: null,
+  });
+  assert(createdInboxTask.scheduledDate === null, 'Task added to Inbox has null scheduledDate');
+
+  // Test 8: Command 2 — /habit (Habits list, toggle & increment)
+  console.log('\n--- Test 8: Command /habit (Habit List, Toggle & Increment) ---');
+  const routines = await routineService.getAllRoutines();
+  assert(routines.length > 0, 'Routines exist for /habit listing');
+  const firstRoutine = routines[0];
+  const toggledLog = await routineService.toggleRoutine(firstRoutine.id, true);
+  assert(toggledLog.completed === true, 'Habit checklist toggles to completed');
+  const incrementedLog = await routineService.updateRoutineCount(firstRoutine.id, 1);
+  assert((incrementedLog.currentCount || 0) >= 1, 'Repeating habit increments count successfully');
+
+  // Test 9: Command 3 — /today (Daily tasks, habits, events)
+  console.log('\n--- Test 9: Command /today (Today Tasks, Habits & Events) ---');
+  const todayTasks = await taskService.getTodayTasks(todayStr);
+  assert(todayTasks.length > 0, 'Today tasks retrieved for /today overview');
+  const events = await calendarService.getEvents();
+  assert(events !== undefined, 'Calendar events accessible for /today overview');
+
+  // Test 10: Command 4 — /schedule (Weekly schedule blocks)
+  console.log('\n--- Test 10: Command /schedule (Weekly Schedule Details) ---');
+  const recurringBlocks = calendarService.getRecurringWeeklyBlocks();
+  assert(recurringBlocks.length >= 5, 'Weekly recurring schedule blocks loaded for /schedule');
+
+  // Test 11: Command 5 — /inbox (Inbox backlog tasks)
+  console.log('\n--- Test 11: Command /inbox (Inbox Backlog List) ---');
+  const inboxTasks = await taskService.getInboxTasks();
+  assert(inboxTasks.some((t) => t.id === createdInboxTask.id), 'Created inbox task found in /inbox query');
+
+  // Test 12: Command 6 — /todo (Today tasks and subtasks checklist)
+  console.log('\n--- Test 12: Command /todo (Today Tasks & Subtasks Checklist) ---');
+  await taskService.addSubtask(createdTodayTask.id, 'Subtask 1');
+  await taskService.toggleTask(createdTodayTask.id, true);
+  const reloadedTodayTasks = await taskService.getTodayTasks(todayStr);
+  const foundTask = reloadedTodayTasks.find((t) => t.id === createdTodayTask.id);
+  assert(foundTask?.completed === true, 'Task completed status toggles correctly for /todo checklist');
+
+  // Test 13: Command 7 — /move (Move from Inbox to Today)
+  console.log('\n--- Test 13: Command /move (Move Task from Inbox to Today) ---');
+  await taskService.updateTaskScheduledDate(createdInboxTask.id, todayStr);
+  const reloadedInbox = await taskService.getInboxTasks();
+  assert(!reloadedInbox.some((t) => t.id === createdInboxTask.id), 'Task removed from Inbox backlog after /move');
+  const movedToday = await taskService.getTodayTasks(todayStr);
+  assert(movedToday.some((t) => t.id === createdInboxTask.id), 'Task scheduled in Today queue after /move');
+
+  // Test 14: Unlink & Cleanup
+  console.log('\n--- Test 14: Unlink Telegram Chat ---');
   await telegramService.unlink();
   const unlinkedConfig = await telegramService.getConfig();
   assert(unlinkedConfig.isLinked === false, 'isLinked is false after unlink');
   assert(unlinkedConfig.chatId === null, 'chatId is null after unlink');
   assert(unlinkedConfig.botToken === null, 'botToken is cleared after unlink');
 
-  // Test 8: Polling engine lifecycle
-  console.log('\n--- Test 8: Long-Polling Engine Lifecycle ---');
+  // Test 15: Polling engine lifecycle
+  console.log('\n--- Test 15: Long-Polling Engine Lifecycle ---');
   assert(telegramService.isPollingActive() === false, 'Polling initially inactive without token');
   await telegramService.saveCredentials('7819283401:AAH_test_token', '987654321');
   assert(telegramService.isPollingActive() === true, 'Polling starts automatically when credentials saved');
   telegramService.stopPolling();
   assert(telegramService.isPollingActive() === false, 'Polling stops on stopPolling()');
 
-  console.log('\nAll 16 Telegram companion bot engine tests PASSED successfully!');
+  console.log('\nAll 15 Telegram companion bot engine tests PASSED successfully!');
 }
 
 runTelegramTests().catch((err) => {
