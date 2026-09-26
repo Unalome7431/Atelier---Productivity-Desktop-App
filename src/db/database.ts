@@ -42,6 +42,8 @@ class DatabaseManager {
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_break_mins INTEGER DEFAULT 5;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_long_break_mins INTEGER DEFAULT 15;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_daily_target INTEGER DEFAULT 4;',
+          'ALTER TABLE workspace_config ADD COLUMN telegram_bot_token TEXT;',
+          'ALTER TABLE workspace_config ADD COLUMN telegram_bot_username TEXT;',
           'ALTER TABLE kanban_cards ADD COLUMN checklist TEXT DEFAULT "[]";',
           'ALTER TABLE kanban_cards ADD COLUMN due_date TEXT;',
           'ALTER TABLE kanban_cards ADD COLUMN tag_label TEXT;',
@@ -171,6 +173,17 @@ class DatabaseManager {
       localStorage.setItem(`atelier_db_${table}`, JSON.stringify(data));
     } catch (storageErr) {
       console.warn(`[Atelier DB] Failed to persist table "${table}" to localStorage:`, storageErr);
+      if (table === 'client_sync_queue') {
+        try {
+          // Keep only recent mutations to prevent local storage quota overflow
+          const queue = this.fallbackMemoryStore.get('client_sync_queue') || [];
+          const trimmed = queue.slice(-20);
+          this.fallbackMemoryStore.set('client_sync_queue', trimmed);
+          localStorage.setItem('atelier_db_client_sync_queue', JSON.stringify(trimmed));
+        } catch {
+          // Ignore secondary storage error
+        }
+      }
     }
   }
 

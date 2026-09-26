@@ -34,6 +34,9 @@ export class TelegramService {
   private static STORAGE_TOKEN_KEY = 'atelier_telegram_bot_token';
   private static STORAGE_USERNAME_KEY = 'atelier_telegram_bot_username';
 
+  private inMemoryToken: string | null = null;
+  private inMemoryUsername: string | null = null;
+
   private isPolling = false;
   private abortController: AbortController | null = null;
   private lastUpdateId = 0;
@@ -54,8 +57,20 @@ export class TelegramService {
   async getConfig(): Promise<TelegramConfigState> {
     await db.init();
     const rows = await db.select<any>('SELECT * FROM workspace_config LIMIT 1');
-    const localToken = localStorage.getItem(TelegramService.STORAGE_TOKEN_KEY);
-    const localUsername = localStorage.getItem(TelegramService.STORAGE_USERNAME_KEY);
+
+    let localToken: string | null = this.inMemoryToken;
+    let localUsername: string | null = this.inMemoryUsername;
+
+    try {
+      if (!localToken && typeof localStorage !== 'undefined') {
+        localToken = localStorage.getItem(TelegramService.STORAGE_TOKEN_KEY);
+      }
+      if (!localUsername && typeof localStorage !== 'undefined') {
+        localUsername = localStorage.getItem(TelegramService.STORAGE_USERNAME_KEY);
+      }
+    } catch {
+      // LocalStorage access fallback
+    }
 
     if (rows.length === 0) {
       return {
@@ -74,10 +89,32 @@ export class TelegramService {
       ? new Date(row.pairing_code_expires_at).getTime() < Date.now()
       : true;
 
+    let resolvedToken = row.telegram_bot_token;
+    if (resolvedToken === undefined) {
+      resolvedToken = this.inMemoryToken || localToken || null;
+    }
+
+    let resolvedUsername = row.telegram_bot_username;
+    if (resolvedUsername === undefined) {
+      resolvedUsername = this.inMemoryUsername || localUsername || null;
+    }
+
+    if (resolvedToken) {
+      this.inMemoryToken = resolvedToken;
+    } else if (resolvedToken === null) {
+      this.inMemoryToken = null;
+    }
+
+    if (resolvedUsername) {
+      this.inMemoryUsername = resolvedUsername;
+    } else if (resolvedUsername === null) {
+      this.inMemoryUsername = null;
+    }
+
     return {
       chatId: row.telegram_chat_id || null,
-      botToken: localToken || null,
-      botUsername: localUsername || null,
+      botToken: resolvedToken || null,
+      botUsername: resolvedUsername || null,
       pairingCode: isCodeExpired ? null : row.pairing_code || null,
       pairingCodeExpiresAt: row.pairing_code_expires_at || null,
       isLinked: Boolean(row.telegram_chat_id),
@@ -137,14 +174,23 @@ export class TelegramService {
   ): Promise<void> {
     await db.init();
     const cleanToken = botToken.trim();
-    if (cleanToken) {
-      localStorage.setItem(TelegramService.STORAGE_TOKEN_KEY, cleanToken);
-    } else {
-      localStorage.removeItem(TelegramService.STORAGE_TOKEN_KEY);
+    this.inMemoryToken = cleanToken || null;
+    if (botUsername) {
+      this.inMemoryUsername = botUsername.trim().replace(/^@/, '');
     }
 
-    if (botUsername) {
-      localStorage.setItem(TelegramService.STORAGE_USERNAME_KEY, botUsername.trim().replace(/^@/, ''));
+    try {
+      if (cleanToken) {
+        localStorage.setItem(TelegramService.STORAGE_TOKEN_KEY, cleanToken);
+      } else {
+        localStorage.removeItem(TelegramService.STORAGE_TOKEN_KEY);
+      }
+
+      if (botUsername) {
+        localStorage.setItem(TelegramService.STORAGE_USERNAME_KEY, botUsername.trim().replace(/^@/, ''));
+      }
+    } catch (e) {
+      console.warn('[TelegramService] localStorage quota reached; storing credentials in database/memory only:', e);
     }
 
     const cleanChatId = chatId ? chatId.trim() : null;
@@ -154,32 +200,36 @@ export class TelegramService {
     if (existing.length === 0) {
       const configId = 'cfg_default';
       await db.execute(
-        `INSERT INTO workspace_config (id, user_name, telegram_chat_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [configId, 'Creator', cleanChatId, now, now]
+        `INSERT INTO workspace_config (id, user_name, telegram_chat_id, telegram_bot_token, telegram_bot_username, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [configId, 'Creator', cleanChatId, cleanToken || null, this.inMemoryUsername, now, now]
       );
       await syncService.enqueueMutation('workspace_config', configId, 'INSERT', {
         id: configId,
         user_name: 'Creator',
         telegram_chat_id: cleanChatId,
+        telegram_bot_token: cleanToken || null,
+        telegram_bot_username: this.inMemoryUsername,
         created_at: now,
         updated_at: now,
       });
     } else {
       const configId = existing[0].id;
       await db.execute(
-        `UPDATE workspace_config SET telegram_chat_id = ?, updated_at = ? WHERE id = ?`,
-        [cleanChatId, now, configId]
+        `UPDATE workspace_config SET telegram_chat_id = ?, telegram_bot_token = ?, telegram_bot_username = ?, updated_at = ? WHERE id = ?`,
+        [cleanChatId, cleanToken || null, this.inMemoryUsername, now, configId]
       );
       await syncService.enqueueMutation('workspace_config', configId, 'UPDATE', {
         telegram_chat_id: cleanChatId,
+        telegram_bot_token: cleanToken || null,
+        telegram_bot_username: this.inMemoryUsername,
         updated_at: now,
       });
     }
 
     // Restart polling with new token if provided
     if (cleanToken) {
-      void this.startPolling();
+      await this.startPolling();
     } else {
       this.stopPolling();
     }
@@ -259,19 +309,27 @@ export class TelegramService {
 
   async unlink(): Promise<void> {
     this.stopPolling();
+    this.inMemoryToken = null;
+    this.inMemoryUsername = null;
     await db.init();
-    localStorage.removeItem(TelegramService.STORAGE_TOKEN_KEY);
-    localStorage.removeItem(TelegramService.STORAGE_USERNAME_KEY);
+    try {
+      localStorage.removeItem(TelegramService.STORAGE_TOKEN_KEY);
+      localStorage.removeItem(TelegramService.STORAGE_USERNAME_KEY);
+    } catch {
+      // Ignore storage cleanup error
+    }
     const now = new Date().toISOString();
     const existing = await db.select<any>('SELECT id FROM workspace_config LIMIT 1');
     if (existing.length > 0) {
       const configId = existing[0].id;
       await db.execute(
-        `UPDATE workspace_config SET telegram_chat_id = ?, pairing_code = ?, pairing_code_expires_at = ?, updated_at = ? WHERE id = ?`,
-        [null, null, null, now, configId]
+        `UPDATE workspace_config SET telegram_chat_id = ?, telegram_bot_token = ?, telegram_bot_username = ?, pairing_code = ?, pairing_code_expires_at = ?, updated_at = ? WHERE id = ?`,
+        [null, null, null, null, null, now, configId]
       );
       await syncService.enqueueMutation('workspace_config', configId, 'UPDATE', {
         telegram_chat_id: null,
+        telegram_bot_token: null,
+        telegram_bot_username: null,
         pairing_code: null,
         pairing_code_expires_at: null,
         updated_at: now,
@@ -285,7 +343,8 @@ export class TelegramService {
   // =========================================================================
 
   async startPolling(): Promise<void> {
-    const token = localStorage.getItem(TelegramService.STORAGE_TOKEN_KEY);
+    const config = await this.getConfig();
+    const token = config.botToken;
     if (!token) return;
     if (this.isPolling) return;
 
@@ -581,7 +640,7 @@ export class TelegramService {
       return;
     }
 
-    const columns = await kanbanService.getColumns(board.id);
+    const columns = board.columns || [];
     const targetCol = columns[0];
     if (!targetCol) {
       await this.sendMessage(token, chatId, `Board *${board.title}* has no columns configured.`);
@@ -630,7 +689,7 @@ export class TelegramService {
     const todayStr = getTodayDateString();
     const [routines, logs, todayTasks] = await Promise.all([
       routineService.getAllRoutines(),
-      routineService.getRoutineLogs(todayStr),
+      routineService.getTodayLogs(todayStr),
       taskService.getTodayTasks(todayStr),
     ]);
 
@@ -639,10 +698,10 @@ export class TelegramService {
     if (routines.length > 0) {
       message += `*Daily Habits:*\n`;
       for (const r of routines) {
-        const log = logs.find((l) => l.routine_id === r.id);
-        const count = log?.current_count || 0;
+        const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
+        const count = (log as any)?.currentCount ?? (log as any)?.current_count ?? 0;
         const isDone = log?.completed;
-        message += `${isDone ? '✓' : '○'} ${r.title} (${count}/${r.target_count || 1})\n`;
+        message += `${isDone ? '✓' : '○'} ${r.title} (${count}/${r.targetCount || (r as any).target_count || 1})\n`;
       }
       message += `\n`;
     }
@@ -656,8 +715,8 @@ export class TelegramService {
       message += `_No tasks scheduled for today. Add one with /todo <title>_\n`;
     }
 
-    const openTasks = todayTasks.filter((t) => !t.completed).slice(0, 3);
-    const inlineKeyboard = openTasks.map((t) => [
+    const openTasks = todayTasks.filter((t: any) => !t.completed).slice(0, 3);
+    const inlineKeyboard = openTasks.map((t: any) => [
       {
         text: `✓ ${t.title.length > 20 ? t.title.substring(0, 18) + '…' : t.title}`,
         callback_data: `done:${t.id}`,

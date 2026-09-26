@@ -4,6 +4,8 @@ export const SQLITE_SCHEMA_QUERIES = [
     id TEXT PRIMARY KEY,
     user_name TEXT NOT NULL DEFAULT 'Creator',
     telegram_chat_id TEXT,
+    telegram_bot_token TEXT,
+    telegram_bot_username TEXT,
     pairing_code TEXT,
     pairing_code_expires_at TEXT,
     theme TEXT DEFAULT 'parchment',
