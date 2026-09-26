@@ -46,9 +46,7 @@ export const Sidebar: React.FC = () => {
         {/* Top Wordmark & Logo */}
         <div className="flex items-center justify-between px-2 pt-1.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primaryDark flex items-center justify-center shadow-subtle overflow-hidden p-1">
-              <img src="/favicon.svg" alt="Atelier" className="w-full h-full object-contain" />
-            </div>
+            <img src="/favicon.png" alt="Atelier" className="w-7 h-7 object-contain" />
             <span className="font-display font-bold text-lg tracking-tight text-primaryDark">
               Atelier
             </span>
