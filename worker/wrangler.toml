@@ -1,0 +1,16 @@
+name = "atelier-telegram-bot"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+# Daily Morning Briefing trigger at 08:00 UTC+7 (01:00 UTC)
+crons = ["0 1 * * *"]
+
+[vars]
+TELEGRAM_BOT_USERNAME = "AtelierProductivityBot"
+
+# Secrets to be configured via `wrangler secret put <KEY>`:
+# - TELEGRAM_BOT_TOKEN (API token from @BotFather)
+# - DATABASE_URL (PostgreSQL connection string or Neon/Supabase pooler)
+# - WEBHOOK_SECRET (Random secret token for X-Telegram-Bot-Api-Secret-Token)

@@ -255,16 +255,24 @@ class DatabaseManager {
         const setClause = match[2];
         const whereClause = match[3];
         const records = this.fallbackMemoryStore.get(table) || [];
-        const setCols = setClause.split(',').map((s) =>
-          s
-            .trim()
-            .split(/\s*=\s*/)[0]
-            .trim()
-        );
+        const setAssignments = setClause.split(',').map((s) => {
+          const parts = s.trim().split(/\s*=\s*/);
+          return { col: parts[0].trim(), valExpr: (parts[1] || '').trim() };
+        });
 
-        // Number of SET params = setCols.length, remainder are WHERE params
-        const setParams = params.slice(0, setCols.length);
-        const whereParams = params.slice(setCols.length);
+        let pIdx = 0;
+        const colSetters: { col: string; getVal: () => any }[] = [];
+        for (const a of setAssignments) {
+          if (a.valExpr === '?') {
+            const val = params[pIdx++];
+            colSetters.push({ col: a.col, getVal: () => val });
+          } else if (a.valExpr.toUpperCase() === 'NULL') {
+            colSetters.push({ col: a.col, getVal: () => null });
+          } else {
+            colSetters.push({ col: a.col, getVal: () => a.valExpr });
+          }
+        }
+        const whereParams = params.slice(pIdx);
 
         let affected = 0;
         for (const r of records) {
@@ -283,8 +291,8 @@ class DatabaseManager {
             matches = r.id === whereParams[0];
           }
           if (matches) {
-            setCols.forEach((col, idx) => {
-              r[col] = setParams[idx];
+            colSetters.forEach((setter) => {
+              r[setter.col] = setter.getVal();
             });
             affected++;
           }
