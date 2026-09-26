@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { Eyebrow } from '@/components/common/Badge';
@@ -167,160 +167,6 @@ export const CalendarView: React.FC = () => {
             Schedule & Time-Blocking Calendar
           </p>
         </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Month Pagination & Specific Month/Year Picker Controls */}
-          <div className="flex items-center gap-2 relative">
-            <div className="flex items-center gap-1 bg-surface border border-border rounded-pill p-1 shadow-subtle">
-              <button
-                type="button"
-                onClick={handlePrevMonth}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-secondaryGray hover:text-primaryDark hover:bg-bg transition-colors cursor-pointer"
-                title="Previous Month"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              {/* Clickable Month & Year Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setPickerYear(currentYear);
-                  setIsMonthYearPickerOpen(!isMonthYearPickerOpen);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-pill hover:bg-bg transition-colors cursor-pointer group"
-                title="Choose month and year"
-              >
-                <CalendarIcon className="w-3.5 h-3.5 text-secondaryGray group-hover:text-primaryDark" />
-                <span className="font-mono text-mono-xs font-bold text-primaryDark">
-                  {monthNames[currentMonth]} {currentYear}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'w-3.5 h-3.5 text-secondaryGray transition-transform',
-                    isMonthYearPickerOpen && 'rotate-180'
-                  )}
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-secondaryGray hover:text-primaryDark hover:bg-bg transition-colors cursor-pointer"
-                title="Next Month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleToday}
-              className="text-ui-rg-xs px-3.5 shadow-subtle"
-            >
-              Today
-            </Button>
-
-            {/* Month & Year Picker Popover */}
-            {isMonthYearPickerOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-30"
-                  onClick={() => setIsMonthYearPickerOpen(false)}
-                />
-                <div className="absolute left-0 top-full mt-2 w-72 bg-white border border-border shadow-float rounded-2xl p-4 z-40 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-100 select-none">
-                  {/* Year Selection Header */}
-                  <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setPickerYear((y) => y - 1)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
-                      title="Previous Year"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={pickerYear}
-                        onChange={(e) => setPickerYear(parseInt(e.target.value, 10))}
-                        className="font-mono text-sm font-bold text-primaryDark bg-surface border border-border/70 rounded-lg px-2.5 py-1 outline-none cursor-pointer"
-                      >
-                        {Array.from({ length: 21 }, (_, i) => 2020 + i).map((y) => (
-                          <option key={y} value={y}>
-                            {y}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setPickerYear((y) => y + 1)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
-                      title="Next Year"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* 12 Months Grid */}
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {monthNames.map((name, index) => {
-                      const isSelected = currentMonth === index && currentYear === pickerYear;
-                      return (
-                        <button
-                          key={name}
-                          type="button"
-                          onClick={() => {
-                            setCurrentMonth(index);
-                            setCurrentYear(pickerYear);
-                            setIsMonthYearPickerOpen(false);
-                          }}
-                          className={cn(
-                            'py-2 px-1 rounded-xl text-xs font-mono transition-all text-center cursor-pointer',
-                            isSelected
-                              ? 'bg-primaryDark text-white font-bold shadow-xs'
-                              : 'bg-surface/60 hover:bg-surface text-primaryDark hover:font-bold'
-                          )}
-                        >
-                          {name.substring(0, 3).toUpperCase()}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Quick Reset Footer */}
-                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-mono">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const now = new Date();
-                        setPickerYear(now.getFullYear());
-                      }}
-                      className="text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
-                    >
-                      Current Year
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const now = new Date();
-                        setCurrentMonth(now.getMonth());
-                        setCurrentYear(now.getFullYear());
-                        setIsMonthYearPickerOpen(false);
-                      }}
-                      className="text-indigo-700 font-bold hover:underline cursor-pointer"
-                    >
-                      Jump to Today
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Top Split Section: Monthly Calendar Grid (65%) & Selected Date Agenda (35%) */}
@@ -348,7 +194,7 @@ export const CalendarView: React.FC = () => {
           />
         </div>
 
-        {/* Right 35%: Selected Date Details Panel (Separated into Events & Scheduled Tasks) */}
+        {/* Right 35%: Selected Date Details Panel */}
         <div className="xl:col-span-4 h-full flex flex-col">
           <SelectedDateAgenda
             selectedDate={selectedDate}
@@ -363,6 +209,86 @@ export const CalendarView: React.FC = () => {
             isTaskDrawerOpen={isTaskDrawerOpen}
             onToggleTaskDrawer={toggleTaskDrawer}
             queueTasksCount={tasks.length + inboxTasks.length}
+            headerControls={
+              <div className="flex items-center gap-2 select-none">
+                <div className="flex items-center gap-1 bg-white border border-border-hover rounded-pill p-0.5 shadow-subtle relative">
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-secondaryGray hover:text-primaryDark hover:bg-surface transition-colors cursor-pointer"
+                    title="Previous Month"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickerYear(currentYear);
+                      setIsMonthYearPickerOpen(!isMonthYearPickerOpen);
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-pill hover:bg-surface transition-colors cursor-pointer group"
+                    title="Choose month and year"
+                  >
+                    <span className="font-mono text-[10px] font-bold text-primaryDark">
+                      {monthNames[currentMonth].substring(0, 3).toUpperCase()} {currentYear}
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        'w-3 h-3 text-secondaryGray transition-transform',
+                        isMonthYearPickerOpen && 'rotate-180'
+                      )}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-secondaryGray hover:text-primaryDark hover:bg-surface transition-colors cursor-pointer"
+                    title="Next Month"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Month & Year Picker Popover */}
+                  {isMonthYearPickerOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setIsMonthYearPickerOpen(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-border shadow-float rounded-2xl p-4 z-40 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-100 select-none">
+                        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                          <button type="button" onClick={() => setPickerYear((y) => y - 1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer" title="Previous Year">
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <select value={pickerYear} onChange={(e) => setPickerYear(parseInt(e.target.value, 10))} className="font-mono text-sm font-bold text-primaryDark bg-surface border border-border/70 rounded-lg px-2.5 py-1 outline-none cursor-pointer">
+                            {Array.from({ length: 21 }, (_, i) => 2020 + i).map((y) => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+                          <button type="button" onClick={() => setPickerYear((y) => y + 1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer" title="Next Year">
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {monthNames.map((name, index) => {
+                            const isSelected = currentMonth === index && currentYear === pickerYear;
+                            return (
+                              <button key={name} type="button" onClick={() => { setCurrentMonth(index); setCurrentYear(pickerYear); setIsMonthYearPickerOpen(false); }} className={cn('py-2 px-1 rounded-xl text-xs font-mono transition-all text-center cursor-pointer', isSelected ? 'bg-primaryDark text-white font-bold shadow-xs' : 'bg-surface/60 hover:bg-surface text-primaryDark hover:font-bold')}>
+                                {name.substring(0, 3).toUpperCase()}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-mono">
+                          <button type="button" onClick={() => { const now = new Date(); setPickerYear(now.getFullYear()); }} className="text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer">Current Year</button>
+                          <button type="button" onClick={() => { const now = new Date(); setCurrentMonth(now.getMonth()); setCurrentYear(now.getFullYear()); setIsMonthYearPickerOpen(false); }} className="text-primaryDark font-bold hover:underline cursor-pointer">Jump to Today</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <Button variant="secondary" size="xs" onClick={handleToday} className="px-2.5 shrink-0">
+                  Today
+                </Button>
+              </div>
+            }
           />
         </div>
       </div>
@@ -442,7 +368,7 @@ export const CalendarView: React.FC = () => {
               value={agendaTitle}
               onChange={(e) => setAgendaTitle(e.target.value)}
               placeholder="e.g. Team sync / Deep work block..."
-              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             />
           </div>
 
@@ -466,7 +392,7 @@ export const CalendarView: React.FC = () => {
                 {
                   id: 'sand',
                   label: 'Sand',
-                  bg: 'bg-[#EFE9DC] text-amber-950 border border-amber-200/60',
+                  bg: 'bg-[#EFE9DC] text-[#4F483D] border border-[#DDD5C8]',
                 },
                 {
                   id: 'blue',
@@ -476,7 +402,7 @@ export const CalendarView: React.FC = () => {
                 {
                   id: 'mauve',
                   label: 'Mauve',
-                  bg: 'bg-accent-mauve/25 text-[#4A2D40] border border-accent-mauve/40',
+                  bg: 'bg-[#F3E8EE] text-[#4A2D40] border border-[#DFC5D6]',
                 },
               ].map((c) => (
                 <button
@@ -503,7 +429,7 @@ export const CalendarView: React.FC = () => {
                 required
                 value={agendaDate}
                 onChange={(e) => setAgendaDate(e.target.value)}
-                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
               />
             </div>
 
@@ -516,7 +442,7 @@ export const CalendarView: React.FC = () => {
                 required
                 value={agendaStart}
                 onChange={(e) => setAgendaStart(e.target.value)}
-                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
               />
             </div>
 
@@ -529,7 +455,7 @@ export const CalendarView: React.FC = () => {
                 required
                 value={agendaEnd}
                 onChange={(e) => setAgendaEnd(e.target.value)}
-                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
               />
             </div>
           </div>
@@ -543,7 +469,7 @@ export const CalendarView: React.FC = () => {
               value={agendaDesc}
               onChange={(e) => setAgendaDesc(e.target.value)}
               placeholder="e.g. Review delivery progress and blockers."
-              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             />
           </div>
 

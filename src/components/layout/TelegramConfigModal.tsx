@@ -72,7 +72,7 @@ export const TelegramConfigModal: React.FC = () => {
               type="text"
               value={botToken}
               onChange={(e) => setBotToken(e.target.value)}
-              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             />
           </div>
 
@@ -84,7 +84,7 @@ export const TelegramConfigModal: React.FC = () => {
               type="text"
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
-              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             />
           </div>
         </div>

@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Check,
-  CheckCircle2,
   Flame,
   Plus,
   Sparkles,
-  GripVertical,
   Trash2,
-  ChevronDown,
-  ChevronUp,
   Inbox,
   Sun,
   Minus,
@@ -20,6 +16,7 @@ import { CircularProgress } from '@/components/cockpit/CircularProgress';
 import { CreateRoutineModal } from '@/components/cockpit/CreateRoutineModal';
 import { CreateTaskModal } from '@/components/cockpit/CreateTaskModal';
 import { AllRoutinesModal, getStreakBadgeStyle } from '@/components/cockpit/AllRoutinesModal';
+import { CockpitTaskCard } from '@/components/cockpit/CockpitTaskCard';
 import { Modal } from '@/components/common/Modal';
 import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { useTasksStore } from '@/stores/useTasksStore';
@@ -76,7 +73,6 @@ export const CockpitView: React.FC = () => {
 
   // Subtasks expansion state
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
-  const [newSubtaskInputs, setNewSubtaskInputs] = useState<Record<string, string>>({});
 
   // Drag and drop state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -152,14 +148,6 @@ export const CockpitView: React.FC = () => {
       }
       return next;
     });
-  };
-
-  // Inline add subtask handler
-  const handleAddInlineSubtask = async (taskId: string) => {
-    const text = newSubtaskInputs[taskId]?.trim();
-    if (!text) return;
-    await addSubtask(taskId, text);
-    setNewSubtaskInputs((prev) => ({ ...prev, [taskId]: '' }));
   };
 
   // Drag and Drop reordering handlers
@@ -278,7 +266,7 @@ export const CockpitView: React.FC = () => {
                 View All
               </Button>
               <Button
-                variant="lavender"
+                variant="secondary"
                 size="xs"
                 onClick={() => setIsRoutineModalOpen(true)}
                 className="gap-1 font-mono text-mono-xs"
@@ -354,7 +342,7 @@ export const CockpitView: React.FC = () => {
                 return (
                   <div
                     key={routine.id}
-                    className="p-3.5 rounded-xl bg-bg border border-border/80 hover:border-[#D8D2C5] transition-all flex flex-col gap-2.5 group"
+                    className="p-3.5 rounded-xl bg-bg border border-border/80 hover:border-border-hover transition-all flex flex-col gap-2.5 group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -397,7 +385,7 @@ export const CockpitView: React.FC = () => {
                               onClick={() => incrementRoutine(routine.id)}
                               disabled={currentCount >= targetCount}
                               title="Increment"
-                              className="w-6 h-6 rounded-md bg-accent-green border border-emerald-300 flex items-center justify-center text-emerald-950 font-bold hover:brightness-95 disabled:opacity-30 cursor-pointer"
+                              className="w-6 h-6 rounded-md bg-primaryDark border border-primaryDark flex items-center justify-center text-white font-bold hover:opacity-90 disabled:opacity-30 cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -562,240 +550,35 @@ export const CockpitView: React.FC = () => {
             )}
 
             {/* Render List for Active Tab */}
-            {(activeTaskTab === 'today' ? tasks : inboxTasks).map((task) => {
-              const isExpanded = expandedTaskIds.has(task.id);
-              const subtasks = task.subtasks || [];
-              const completedSubtasksCount = subtasks.filter((s) => s.completed).length;
-
-              return (
-                <div
-                  key={task.id}
-                  draggable={activeTaskTab === 'today'}
-                  onDragStart={(e) => handleDragStart(e, task.id)}
-                  onDragOver={(e) => handleDragOver(e, task.id)}
-                  onDrop={(e) => handleDrop(e, task.id)}
-                  onDragEnd={handleDragEnd}
-                  className={cn(
-                    'p-3.5 rounded-card bg-bg border transition-all flex flex-col gap-2.5 group relative shadow-subtle',
-                    activeTaskId === task.id
-                      ? 'border-[#C5BDAF] bg-[#EBE7FF]/15 ring-1 ring-accent-indigo/40'
-                      : 'border-border/80',
-                    dragOverTaskId === task.id && 'border-primaryDark border-2 shadow-md',
-                    task.completed && 'opacity-75 bg-bg/70'
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {/* Drag Handle (for Today's Queue) */}
-                      {activeTaskTab === 'today' && (
-                        <div
-                          title="Drag to reorder day sequence"
-                          className="text-midGray hover:text-primaryDark cursor-grab active:cursor-grabbing p-0.5 flex-shrink-0"
-                        >
-                          <GripVertical className="w-4 h-4" />
-                        </div>
-                      )}
-
-                      {/* Checkbox */}
-                      <button
-                        onClick={() => handleToggleTask(task)}
-                        className={cn(
-                          'w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer flex-shrink-0',
-                          task.completed
-                            ? 'bg-primaryDark border-primaryDark text-white'
-                            : 'border-border bg-surface hover:border-midGray'
-                        )}
-                      >
-                        {task.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      </button>
-
-                      {/* Title & Subtasks trigger */}
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              'font-sans font-semibold text-ui-md-sm truncate',
-                              task.completed ? 'line-through text-midGray' : 'text-primaryDark'
-                            )}
-                          >
-                            {task.title}
-                          </span>
-
-                          {/* Source Kanban Badge if linked */}
-                          {task.sourceKanbanCardId && (
-                            <span className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-100 text-purple-900 border border-purple-200 flex-shrink-0 flex items-center gap-1">
-                              <KanbanSquare className="w-3 h-3" />
-                              <span>Kanban</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Subtasks Progress chip if subtasks exist */}
-                        {subtasks.length > 0 && (
-                          <button
-                            onClick={() => toggleTaskExpansion(task.id)}
-                            className="flex items-center gap-1 font-mono text-[11px] text-secondaryGray hover:text-primaryDark mt-0.5 text-left w-fit cursor-pointer"
-                          >
-                            <span>
-                              {completedSubtasksCount}/{subtasks.length} subtasks completed
-                            </span>
-                            {isExpanded ? (
-                              <ChevronUp className="w-3 h-3" />
-                            ) : (
-                              <ChevronDown className="w-3 h-3" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right Chips & Action Controls */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* Active Focus Pill or Cycle count */}
-                      {activeTaskId === task.id ? (
-                        <button
-                          onClick={() => unbindTarget()}
-                          title="Currently bound focus task. Click to unbind."
-                          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 font-mono text-[10px] font-bold cursor-pointer hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 transition-colors"
-                        >
-                          <Sparkles className="w-3 h-3 text-indigo-700 fill-indigo-700/20 shrink-0" />
-                          <span>Focusing</span>
-                        </button>
-                      ) : task.pomodoroCyclesCompleted && task.pomodoroCyclesCompleted > 0 ? (
-                        <span
-                          title={`${task.pomodoroCyclesCompleted} of ${task.pomodoroCyclesEstimated || 1} focus cycles completed`}
-                          className="font-mono text-[10px] px-2 py-0.5 rounded-pill bg-purple-50 text-purple-900 border border-purple-200/80 flex items-center gap-1"
-                        >
-                          <Sparkles className="w-2.5 h-2.5 text-indigo-700" />
-                          <span>
-                            {task.pomodoroCyclesCompleted}/{task.pomodoroCyclesEstimated || 1}
-                          </span>
-                        </span>
-                      ) : null}
-
-                      {/* Context actions */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/* Quick Focus Button if not current focus */}
-                        {activeTaskId !== task.id && !task.completed && (
-                          <button
-                            onClick={() =>
-                              bindTarget({
-                                id: task.id,
-                                title: task.title,
-                                type: 'task',
-                              })
-                            }
-                            title="Bind to Pomodoro Focus Bar"
-                            className="text-xs text-secondaryGray hover:text-primaryDark hover:bg-surface p-1 rounded transition-colors cursor-pointer flex items-center gap-1 font-mono"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Focus</span>
-                          </button>
-                        )}
-                        {activeTaskTab === 'today' ? (
-                          <button
-                            onClick={() => moveTaskToInbox(task.id)}
-                            title="Move to Daily Inbox"
-                            className="text-xs text-secondaryGray hover:text-primaryDark p-1 rounded hover:bg-surface transition-colors cursor-pointer font-mono"
-                          >
-                            → Inbox
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => moveTaskToToday(task.id)}
-                            title="Move to Today's Queue"
-                            className="text-xs text-secondaryGray hover:text-primaryDark p-1 rounded hover:bg-surface transition-colors cursor-pointer flex items-center gap-1 font-mono"
-                          >
-                            <Sun className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Today</span>
-                          </button>
-                        )}
-
-                        {/* Toggle subtasks expansion if none yet, to add first subtask */}
-                        {subtasks.length === 0 && (
-                          <button
-                            onClick={() => toggleTaskExpansion(task.id)}
-                            title="Add subtask"
-                            className="text-xs text-secondaryGray hover:text-primaryDark p-1 rounded hover:bg-surface transition-colors cursor-pointer font-mono"
-                          >
-                            + Subtask
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          title="Delete task"
-                          className="text-midGray hover:text-rose-600 p-1 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Expanded Subtasks Section */}
-                  {isExpanded && (
-                    <div className="mt-1 pt-2 border-t border-border/70 flex flex-col gap-1.5 pl-9 pr-2">
-                      {subtasks.map((sub) => (
-                        <div
-                          key={sub.id}
-                          className="flex items-center justify-between py-1 px-2 rounded-md hover:bg-surface transition-colors"
-                        >
-                          <div className="flex items-center gap-2 flex-1">
-                            <button
-                              onClick={() => toggleSubtask(task.id, sub.id)}
-                              className={cn(
-                                'w-4 h-4 rounded flex items-center justify-center border transition-all cursor-pointer',
-                                sub.completed
-                                  ? 'bg-primaryDark border-primaryDark text-bg'
-                                  : 'border-border bg-bg hover:border-midGray'
-                              )}
-                            >
-                              {sub.completed && <Check className="w-3 h-3" />}
-                            </button>
-                            <span
-                              className={cn(
-                                'text-ui-rg-xs',
-                                sub.completed ? 'line-through text-midGray' : 'text-primaryDark'
-                              )}
-                            >
-                              {sub.title}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Inline Input to add more subtasks */}
-                      <div className="flex items-center gap-2 mt-1">
-                        <input
-                          type="text"
-                          value={newSubtaskInputs[task.id] || ''}
-                          onChange={(e) =>
-                            setNewSubtaskInputs((prev) => ({ ...prev, [task.id]: e.target.value }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddInlineSubtask(task.id);
-                            }
-                          }}
-                          placeholder="+ Add subtask and press Enter..."
-                          className="flex-1 bg-surface border border-border rounded-md px-2.5 py-1 text-ui-rg-xs text-primaryDark placeholder:text-midGray outline-none focus:border-[#C5BDAF]"
-                        />
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="xs"
-                          onClick={() => handleAddInlineSubtask(task.id)}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {(activeTaskTab === 'today' ? tasks : inboxTasks).map((task) => (
+              <CockpitTaskCard
+                key={task.id}
+                task={task}
+                activeTaskTab={activeTaskTab}
+                isExpanded={expandedTaskIds.has(task.id)}
+                isDraggedOver={dragOverTaskId === task.id}
+                isCurrentFocus={activeTaskId === task.id}
+                onToggleExpansion={() => toggleTaskExpansion(task.id)}
+                onToggleTask={handleToggleTask}
+                onMoveToInbox={moveTaskToInbox}
+                onMoveToToday={moveTaskToToday}
+                onDeleteTask={deleteTask}
+                onToggleSubtask={toggleSubtask}
+                onAddSubtask={(taskId, title) => addSubtask(taskId, title)}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                onBindFocus={() =>
+                  bindTarget({
+                    id: task.id,
+                    title: task.title,
+                    type: 'task',
+                  })
+                }
+                onUnbindFocus={unbindTarget}
+              />
+            ))}
           </div>
         </div>
       </div>

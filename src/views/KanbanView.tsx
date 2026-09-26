@@ -215,8 +215,8 @@ export const KanbanView: React.FC = () => {
               className={cn(
                 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-sans text-xs font-semibold border transition-all cursor-pointer shadow-2xs',
                 selectedTagFilter || searchQuery || isFilterOpen
-                  ? 'bg-primaryDark text-white border-primaryDark'
-                  : 'bg-white hover:bg-surface text-primaryDark border-border'
+                  ? 'bg-primaryDark text-white font-bold'
+                  : 'bg-white hover:bg-surface text-primaryDark border-border-hover'
               )}
             >
               <Filter className="w-3.5 h-3.5" />
@@ -311,19 +311,19 @@ export const KanbanView: React.FC = () => {
           {/* + Add Column Button */}
           <button
             onClick={() => setIsAddColumnModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-surface text-primaryDark border border-border font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-surface text-primaryDark border border-border-hover font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs"
             title="Create custom workflow column"
           >
-            <Plus className="w-3.5 h-3.5 text-secondaryGray" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Add column</span>
           </button>
 
           {/* + New Card Button (High-affordance Mint Pill) */}
           <button
             onClick={() => handleOpenAddCard(activeBoard.columns[0]?.id || 'planned')}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D1FAE5] hover:bg-[#bbf7d0] text-primaryDark border border-[#A7F3D0] font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs hover:scale-102"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primaryDark hover:opacity-90 text-white border border-transparent font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs hover:scale-102"
           >
-            <Plus className="w-4 h-4 text-primaryDark" />
+            <Plus className="w-4 h-4" />
             <span>New card</span>
           </button>
         </div>
@@ -331,7 +331,7 @@ export const KanbanView: React.FC = () => {
 
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="bg-[#D1FAE5] border border-emerald-300 text-emerald-950 px-4 py-2 rounded-xl text-ui-rg-xs font-mono font-semibold flex items-center gap-2 shadow-sm animate-fade-in self-start">
+        <div className="bg-accent-green border border-emerald-300 text-emerald-950 px-4 py-2 rounded-xl text-ui-rg-xs font-mono font-semibold flex items-center gap-2 shadow-sm animate-fade-in self-start">
           <Check className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>{toastMessage}</span>
         </div>

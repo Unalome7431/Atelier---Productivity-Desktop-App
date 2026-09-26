@@ -9,12 +9,14 @@ export interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultDestination?: 'today' | 'inbox';
+  scheduledDate?: string;
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
   defaultDestination = 'today',
+  scheduledDate,
 }) => {
   const { addTask, addSubtask } = useTasksStore();
 
@@ -37,12 +39,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     e.preventDefault();
     if (!title.trim()) return;
 
-    const scheduledDate = destination === 'today' ? getTodayDateString() : null;
+    const taskDate =
+      scheduledDate !== undefined
+        ? scheduledDate
+        : destination === 'today'
+          ? getTodayDateString()
+          : null;
+
     const newTask = await addTask({
       title: title.trim(),
       category: '',
       iconType: 'default',
-      scheduledDate,
+      scheduledDate: taskDate,
     });
 
     // Add subtasks if any
@@ -55,11 +63,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     onClose();
   };
 
+  const modalTitle = scheduledDate
+    ? `Add Task for ${scheduledDate}`
+    : destination === 'today'
+      ? "Add to Today's Task Queue"
+      : 'Capture to Inbox Backlog';
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={destination === 'today' ? "Add to Today's Task Queue" : 'Capture to Inbox Backlog'}
+      title={modalTitle}
       description="Quickly capture a tactical action item with optional sub-steps."
       maxWidth="md"
     >
@@ -75,37 +89,39 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Finalize API module contract, Prepare handoff..."
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 
-        {/* Destination Toggle */}
-        <div className="flex items-center gap-2 p-1 bg-surface border border-border rounded-pill">
-          <button
-            type="button"
-            onClick={() => setDestination('today')}
-            className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              destination === 'today'
-                ? 'bg-primaryDark text-bg shadow-xs'
-                : 'text-secondaryGray hover:text-primaryDark'
-            }`}
-          >
-            <Sun className="w-3.5 h-3.5" />
-            <span>Today's Queue</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setDestination('inbox')}
-            className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              destination === 'inbox'
-                ? 'bg-primaryDark text-bg shadow-xs'
-                : 'text-secondaryGray hover:text-primaryDark'
-            }`}
-          >
-            <Inbox className="w-3.5 h-3.5" />
-            <span>Daily Inbox / Backlog</span>
-          </button>
-        </div>
+        {/* Destination Toggle (only shown when not adding for a specific scheduledDate) */}
+        {!scheduledDate && (
+          <div className="flex items-center gap-2 p-1 bg-surface border border-border rounded-pill">
+            <button
+              type="button"
+              onClick={() => setDestination('today')}
+              className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                destination === 'today'
+                  ? 'bg-primaryDark text-white font-semibold shadow-xs'
+                  : 'text-secondaryGray hover:text-primaryDark'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              <span>Today's Queue</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDestination('inbox')}
+              className={`flex-1 py-1.5 px-3 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                destination === 'inbox'
+                  ? 'bg-primaryDark text-white font-semibold shadow-xs'
+                  : 'text-secondaryGray hover:text-primaryDark'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5" />
+              <span>Daily Inbox / Backlog</span>
+            </button>
+          </div>
+        )}
 
         {/* Sub-steps Checklist */}
         <div className="flex flex-col gap-2 p-3 bg-surface/60 border border-border rounded-panel">
@@ -130,7 +146,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 }
               }}
               placeholder="Add step and press enter..."
-              className="flex-1 bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-xs text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="flex-1 bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-xs text-primaryDark outline-none focus:border-border-focus"
             />
             <Button
               type="button"
@@ -170,7 +186,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm">
+          <Button type="submit" variant="mint" size="sm" disabled={!title.trim()}>
             Create Task
           </Button>
         </div>

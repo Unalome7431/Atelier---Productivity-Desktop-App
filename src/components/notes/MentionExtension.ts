@@ -51,7 +51,7 @@ export const CustomMention = Mention.extend({
           'data-entity-type': entityType,
           'data-container-id': node.attrs.containerId,
           class:
-            'atelier-mention inline-flex items-center gap-1 px-2.5 py-0.5 mx-0.5 rounded-full bg-[#F5F1E8] border border-border text-xs font-mono font-medium text-primaryDark hover:bg-white hover:border-indigo-300 transition-colors cursor-pointer select-none',
+            'atelier-mention inline-flex items-center gap-1 px-2.5 py-0.5 mx-0.5 rounded-full bg-surface border border-border text-xs font-mono font-medium text-primaryDark hover:bg-white hover:border-indigo-300 transition-colors cursor-pointer select-none',
         },
         HTMLAttributes
       ),

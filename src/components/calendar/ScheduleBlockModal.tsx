@@ -106,7 +106,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Architecture Studio, CS 101, Deep Work..."
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 
@@ -119,7 +119,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
             <select
               value={dayOfWeek}
               onChange={(e) => setDayOfWeek(parseInt(e.target.value, 10))}
-              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             >
               <option value={0}>Sunday</option>
               <option value={1}>Monday</option>
@@ -145,7 +145,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
                 else if (cat === 'meeting' || cat === 'planning') setColorAccent('lavender');
                 else if (cat === 'review') setColorAccent('sand');
               }}
-              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             >
               <option value="class">Class / Lecture</option>
               <option value="work">Work Schedule</option>
@@ -169,7 +169,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
               required
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF] font-mono"
+              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus font-mono"
             />
           </div>
 
@@ -182,7 +182,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
               required
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF] font-mono"
+              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus font-mono"
             />
           </div>
         </div>
@@ -204,12 +204,12 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
                 label: 'Lavender',
                 bg: 'bg-accent-indigo text-indigo-950 border-indigo-300',
               },
-              { id: 'sand', label: 'Sand', bg: 'bg-[#EFE9DC] text-amber-950 border-amber-300' },
+              { id: 'sand', label: 'Sand', bg: 'bg-[#EFE9DC] text-[#4F483D] border-[#DDD5C8]' },
               { id: 'blue', label: 'Sky Blue', bg: 'bg-accent-blue text-sky-950 border-sky-300' },
               {
                 id: 'mauve',
                 label: 'Mauve',
-                bg: 'bg-accent-mauve/25 text-[#4A2D40] border-accent-mauve/40',
+                bg: 'bg-[#F3E8EE] text-[#4A2D40] border-[#DFC5D6]',
               },
             ].map((c) => (
               <button
@@ -236,7 +236,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Room 402 / Remote / Studio 3"
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 

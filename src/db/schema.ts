@@ -135,6 +135,9 @@ export const SQLITE_SCHEMA_QUERIES = [
     content_json TEXT DEFAULT '{}',
     folder TEXT,
     category_color TEXT,
+    canvas_id TEXT,
+    canvas_title TEXT,
+    is_pinned INTEGER DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,

@@ -6,7 +6,11 @@ declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     callout: {
       setCallout: (attributes?: { type?: string; eyebrow?: string; title?: string }) => ReturnType;
-      toggleCallout: (attributes?: { type?: string; eyebrow?: string; title?: string }) => ReturnType;
+      toggleCallout: (attributes?: {
+        type?: string;
+        eyebrow?: string;
+        title?: string;
+      }) => ReturnType;
     };
   }
 }

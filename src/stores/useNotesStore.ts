@@ -21,7 +21,8 @@ function loadStoredFolders(): string[] {
       if (Array.isArray(parsed)) {
         // Filter out any legacy pre-made folders
         const clean = parsed.filter(
-          (f: any) => typeof f === 'string' && f.trim() && !LEGACY_FOLDER_NAMES.has(f.trim().toLowerCase())
+          (f: any) =>
+            typeof f === 'string' && f.trim() && !LEGACY_FOLDER_NAMES.has(f.trim().toLowerCase())
         );
         persistStoredFolders(clean);
         return clean;
@@ -145,7 +146,9 @@ export const useNotesStore = create<NotesState>((set, get) => ({
 
     const newNote = await noteService.createNote({
       title: params.title || 'Untitled Note',
-      content: params.content || '<p>Start writing documentation, architecture decisions, or meeting notes...</p>',
+      content:
+        params.content ||
+        '<p>Start writing documentation, architecture decisions, or meeting notes...</p>',
       folder: chosenFolder || undefined,
       categoryColor: params.categoryColor || '#EEEDFD',
       canvasId: params.canvasId,
@@ -262,7 +265,9 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     set({ folders: next });
 
     // Unfile all notes previously in this folder
-    const notesToUpdate = get().notes.filter((n) => n.folder?.toLowerCase() === trimmed.toLowerCase());
+    const notesToUpdate = get().notes.filter(
+      (n) => n.folder?.toLowerCase() === trimmed.toLowerCase()
+    );
     for (const n of notesToUpdate) {
       await get().updateNote(n.id, { folder: undefined });
     }
@@ -285,7 +290,9 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     set({ folders: next });
 
     // Update all notes in this folder
-    const notesToUpdate = get().notes.filter((n) => n.folder?.toLowerCase() === oldTrimmed.toLowerCase());
+    const notesToUpdate = get().notes.filter(
+      (n) => n.folder?.toLowerCase() === oldTrimmed.toLowerCase()
+    );
     for (const n of notesToUpdate) {
       await get().updateNote(n.id, { folder: newTrimmed });
     }

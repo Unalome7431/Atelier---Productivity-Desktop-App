@@ -19,7 +19,7 @@ export function getRankBetween(prevRank?: string | null, nextRank?: string | nul
 
   // Case 2: Insert before the first item
   if (prev === null && next !== null) {
-    const newRank = next > 1 ? next / 2 : next / 2;
+    const newRank = next > 0 ? next / 2 : next - 1000;
     return newRank.toFixed(6);
   }
 
@@ -30,10 +30,13 @@ export function getRankBetween(prevRank?: string | null, nextRank?: string | nul
 
   // Case 4: Insert between two existing items
   if (prev !== null && next !== null) {
-    const mid = (prev + next) / 2;
-    if (mid === prev || mid === next) {
-      // Floating-point delta in case numbers converge closely
+    if (prev >= next) {
       return (prev + 0.000001).toFixed(6);
+    }
+    const mid = (prev + next) / 2;
+    const diff = next - prev;
+    if (diff < 0.00001) {
+      return mid.toFixed(10);
     }
     return mid.toFixed(6);
   }
@@ -44,5 +47,7 @@ export function getRankBetween(prevRank?: string | null, nextRank?: string | nul
 export function compareRanks(rankA?: string | null, rankB?: string | null): number {
   const a = rankA != null && rankA !== '' ? parseFloat(rankA) : 0;
   const b = rankB != null && rankB !== '' ? parseFloat(rankB) : 0;
+  if (isNaN(a)) return -1;
+  if (isNaN(b)) return 1;
   return a - b;
 }

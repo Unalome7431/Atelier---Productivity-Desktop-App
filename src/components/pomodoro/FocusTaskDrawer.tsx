@@ -85,7 +85,7 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
               {activeTarget.title}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-medium">
+              <span className="px-2 py-0.5 rounded-pill bg-accent-indigo border border-pastel-lavender-border text-indigo-950 text-mono-xs font-mono font-medium">
                 {activeTarget.type === 'kanban'
                   ? `Kanban: ${activeTarget.boardTitle || 'Board'}`
                   : "Today's Queue"}
@@ -208,7 +208,7 @@ export const FocusTaskDrawer: React.FC<FocusTaskDrawerProps> = ({
                     value={newSubtaskTitle}
                     onChange={(e) => setNewSubtaskTitle(e.target.value)}
                     placeholder="Add subtask..."
-                    className="flex-1 bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-xs text-primaryDark placeholder:text-midGray outline-none focus:border-[#C5BDAF]"
+                    className="flex-1 bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-xs text-primaryDark placeholder:text-midGray outline-none focus:border-border-focus"
                   />
                   <Button type="submit" variant="secondary" size="sm" className="gap-1 px-3">
                     <Plus className="w-3.5 h-3.5" />

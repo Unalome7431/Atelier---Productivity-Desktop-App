@@ -94,10 +94,10 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
       onClick={() => onOpenDrawer(card.id)}
       className={cn(
         'relative bg-white rounded-2xl p-4 border transition-all select-none cursor-pointer group',
-        'hover:shadow-[0_4px_16px_rgba(45,44,42,0.06)] hover:border-[#D8D2C5]',
+        'hover:shadow-[0_4px_16px_rgba(45,44,42,0.06)] hover:border-border-hover',
         isDragging && 'opacity-40 scale-[0.98]',
         isCurrentFocus
-          ? 'border-indigo-400 ring-2 ring-accent-indigo/60 bg-[#FAF9FF]'
+          ? 'border-indigo-400 ring-2 ring-accent-indigo/60 bg-pastel-lavender-tint/50'
           : 'border-border/80 shadow-[0_2px_8px_rgba(45,44,42,0.03)]'
       )}
     >
@@ -204,7 +204,7 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
 
       {/* Checklist Progress Bar (Figma Style) */}
       {hasChecklist && (
-        <div className="bg-[#FAF8F5] rounded-xl p-2.5 border border-border/60 mb-2.5 flex flex-col gap-1.5">
+        <div className="bg-bg rounded-xl p-2.5 border border-border/60 mb-2.5 flex flex-col gap-1.5">
           <div className="flex items-center justify-between text-[11px] font-sans">
             <div className="flex items-center gap-1.5 text-secondaryGray font-medium">
               <CheckSquare className="w-3 h-3 text-secondaryGray" />
@@ -215,9 +215,9 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
             </span>
           </div>
 
-          <div className="w-full bg-[#EFEAE1] h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-border h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-[#34D399] h-full rounded-full transition-all duration-300"
+              className="bg-pastel-mint-dot h-full rounded-full transition-all duration-300"
               style={{ width: `${checklistPercentage}%` }}
             />
           </div>
@@ -248,7 +248,7 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
               title={card.dueDate || undefined}
             >
               <Clock className="w-3 h-3 shrink-0 opacity-70" />
-              <span>{dueStatus.formatted}</span>
+              <span>{dueStatus.dayDate || dueStatus.formatted}</span>
             </span>
           ) : (
             <span />

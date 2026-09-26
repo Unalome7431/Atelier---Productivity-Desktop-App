@@ -269,11 +269,11 @@ export const CanvasToolbar: React.FC = () => {
             <div className="flex items-center justify-between pb-1 border-b border-border/60">
               <div className="flex items-center gap-2">
                 {pickerType === 'kanban' ? (
-                  <div className="w-6 h-6 rounded-lg bg-[#EBE7FF] flex items-center justify-center text-[#4338CA]">
+                  <div className="w-6 h-6 rounded-lg bg-accent-indigo flex items-center justify-center text-pastel-lavender-text">
                     <KanbanSquare className="w-3.5 h-3.5" />
                   </div>
                 ) : (
-                  <div className="w-6 h-6 rounded-lg bg-[#D1FAE5] flex items-center justify-center text-[#065F46]">
+                  <div className="w-6 h-6 rounded-lg bg-accent-green flex items-center justify-center text-pastel-mint-text">
                     <FileText className="w-3.5 h-3.5" />
                   </div>
                 )}

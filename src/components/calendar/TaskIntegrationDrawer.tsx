@@ -119,7 +119,7 @@ export const TaskIntegrationDrawer: React.FC<TaskIntegrationDrawerProps> = ({
                 key={task.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, task)}
-                className="p-3 bg-surface hover:bg-surface/90 border border-border hover:border-[#D0C8BA] rounded-card shadow-subtle flex flex-col gap-2 transition-all cursor-grab active:cursor-grabbing group select-none"
+                className="p-3 bg-surface hover:bg-surface/90 border border-border hover:border-border-hover rounded-card shadow-subtle flex flex-col gap-2 transition-all cursor-grab active:cursor-grabbing group select-none"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -139,7 +139,7 @@ export const TaskIntegrationDrawer: React.FC<TaskIntegrationDrawerProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectTaskToSchedule(task)}
-                    className="shrink-0 text-ui-rg-xs font-mono font-medium px-2 py-1 rounded-pill bg-bg border border-border hover:bg-[#EFE9DC] text-primaryDark transition-colors shadow-xs"
+                    className="shrink-0 text-ui-rg-xs font-mono font-medium px-2 py-1 rounded-pill bg-bg border border-border hover:bg-surface-alt text-primaryDark transition-colors shadow-xs"
                     title="Schedule time-box directly"
                   >
                     Schedule

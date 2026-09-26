@@ -170,7 +170,18 @@ export class NoteService {
       await db.execute(
         `INSERT OR IGNORE INTO notes (id, title, content_json, folder, category_color, canvas_id, canvas_title, is_pinned, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [n.id, n.title, n.content, n.folder, n.color, n.canvasId || null, n.canvasTitle || null, n.isPinned, now, now]
+        [
+          n.id,
+          n.title,
+          n.content,
+          n.folder,
+          n.color,
+          n.canvasId || null,
+          n.canvasTitle || null,
+          n.isPinned,
+          now,
+          now,
+        ]
       );
     }
   }
@@ -227,11 +238,20 @@ export class NoteService {
     const current = existingNotes[0];
     const newTitle = updates.title !== undefined ? updates.title : current.title;
     const newContent = updates.content !== undefined ? updates.content : current.content_json;
-    const newFolder = updates.folder !== undefined ? updates.folder : (updates.category !== undefined ? updates.category : current.folder);
-    const newColor = updates.categoryColor !== undefined ? updates.categoryColor : current.category_color;
-    const newCanvasId = updates.canvasId !== undefined ? (updates.canvasId || null) : current.canvas_id;
-    const newCanvasTitle = updates.canvasTitle !== undefined ? (updates.canvasTitle || null) : current.canvas_title;
-    const newIsPinned = updates.isPinned !== undefined ? (updates.isPinned ? 1 : 0) : current.is_pinned;
+    const newFolder =
+      updates.folder !== undefined
+        ? updates.folder
+        : updates.category !== undefined
+          ? updates.category
+          : current.folder;
+    const newColor =
+      updates.categoryColor !== undefined ? updates.categoryColor : current.category_color;
+    const newCanvasId =
+      updates.canvasId !== undefined ? updates.canvasId || null : current.canvas_id;
+    const newCanvasTitle =
+      updates.canvasTitle !== undefined ? updates.canvasTitle || null : current.canvas_title;
+    const newIsPinned =
+      updates.isPinned !== undefined ? (updates.isPinned ? 1 : 0) : current.is_pinned;
 
     await db.execute(
       `UPDATE notes SET 
@@ -270,7 +290,11 @@ export class NoteService {
     await syncService.enqueueMutation('notes', id, 'DELETE', { id });
   }
 
-  async getBacklinks(noteId: string, noteTitle: string, noteCanvasId?: string): Promise<BacklinkItem[]> {
+  async getBacklinks(
+    noteId: string,
+    noteTitle: string,
+    noteCanvasId?: string
+  ): Promise<BacklinkItem[]> {
     const backlinks: BacklinkItem[] = [];
     const seenIds = new Set<string>();
 
@@ -285,7 +309,9 @@ export class NoteService {
       // If note explicitly has canvasId, add direct canvas backlink
       if (noteCanvasId && !seenIds.has(`canvas_${noteCanvasId}`)) {
         seenIds.add(`canvas_${noteCanvasId}`);
-        const cTitle = canvasMap.get(noteCanvasId) || (noteCanvasId === 'canvas_a' ? 'Canvas A' : 'Tethered Canvas');
+        const cTitle =
+          canvasMap.get(noteCanvasId) ||
+          (noteCanvasId === 'canvas_a' ? 'Canvas A' : 'Tethered Canvas');
         backlinks.push({
           id: `canvas_${noteCanvasId}`,
           type: 'canvas',
@@ -301,7 +327,7 @@ export class NoteService {
       for (const node of canvasNodes) {
         let nodeData: any = {};
         try {
-          nodeData = typeof node.data === 'string' ? JSON.parse(node.data) : (node.data || {});
+          nodeData = typeof node.data === 'string' ? JSON.parse(node.data) : node.data || {};
         } catch {
           nodeData = {};
         }
@@ -329,7 +355,8 @@ export class NoteService {
       for (const otherNote of allNotes) {
         const text = otherNote.content_json || '';
         const mentionsId = text.includes(noteId);
-        const mentionsTitle = text.includes(`@${noteTitle}`) || text.includes(`data-label="${noteTitle}"`);
+        const mentionsTitle =
+          text.includes(`@${noteTitle}`) || text.includes(`data-label="${noteTitle}"`);
 
         if ((mentionsId || mentionsTitle) && !seenIds.has(`note_${otherNote.id}`)) {
           seenIds.add(`note_${otherNote.id}`);
@@ -373,7 +400,10 @@ export class NoteService {
       // 5. Check Tasks
       const tasks = await db.select<any>('SELECT * FROM tasks');
       for (const task of tasks) {
-        if (task.title.toLowerCase().includes(noteTitle.toLowerCase()) && !seenIds.has(`task_${task.id}`)) {
+        if (
+          task.title.toLowerCase().includes(noteTitle.toLowerCase()) &&
+          !seenIds.has(`task_${task.id}`)
+        ) {
           seenIds.add(`task_${task.id}`);
           backlinks.push({
             id: `task_${task.id}`,

@@ -125,10 +125,10 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
       return 'bg-accent-blue/85 text-sky-950 border border-sky-200/50';
     }
     if (ev.colorAccent === 'mauve' || ev.category === 'deadline') {
-      return 'bg-accent-mauve/25 text-[#4A2D40] border border-accent-mauve/40';
+      return 'bg-[#F3E8EE] text-[#4A2D40] border border-[#DFC5D6]';
     }
     if (ev.colorAccent === 'sand') {
-      return 'bg-[#EFE9DC] text-amber-950 border border-amber-200/60';
+      return 'bg-[#EFE9DC] text-[#4F483D] border border-[#DDD5C8]';
     }
     return 'bg-accent-indigo/90 text-indigo-950 border border-indigo-200/50';
   };
@@ -168,10 +168,10 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                 'min-h-[78px] rounded-lg p-1.5 border flex flex-col justify-between transition-all cursor-pointer select-none group relative',
                 cell.isCurrentMonth
                   ? isSelected
-                    ? 'bg-[#F1EEE7] border-primaryDark/45 shadow-subtle'
+                    ? 'bg-surface-alt border-primaryDark/45 shadow-subtle'
                     : isToday
-                      ? 'bg-[#EDE6DF] border-secondaryGray/50 shadow-xs'
-                      : 'bg-bg border-border/80 hover:border-[#D0C8BA]'
+                      ? 'bg-surface-warm border-secondaryGray/50 shadow-xs'
+                      : 'bg-bg border-border/80 hover:border-border-hover'
                   : 'bg-bg/40 border-border/40 opacity-40 hover:opacity-75',
                 isDragTarget && 'border-emerald-500 ring-2 ring-emerald-400/40 bg-accent-green/20'
               )}
@@ -184,7 +184,7 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                       {cell.dayNum}
                     </div>
                   ) : isToday ? (
-                    <div className="w-5 h-5 rounded-full bg-[#DFD7CC] text-primaryDark flex items-center justify-center font-mono font-bold text-mono-xs shadow-xs">
+                    <div className="w-5 h-5 rounded-full bg-surface-alt text-primaryDark flex items-center justify-center font-mono font-bold text-mono-xs shadow-xs">
                       {cell.dayNum}
                     </div>
                   ) : (

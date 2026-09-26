@@ -38,7 +38,7 @@ export const ScheduleTaskModal: React.FC<ScheduleTaskModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Schedule Task"
+      title="Add Task"
       description={`Choose what date to schedule "${task.title}".`}
       maxWidth="md"
     >
@@ -62,7 +62,7 @@ export const ScheduleTaskModal: React.FC<ScheduleTaskModalProps> = ({
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 
@@ -70,8 +70,8 @@ export const ScheduleTaskModal: React.FC<ScheduleTaskModalProps> = ({
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm">
-            Schedule Task
+          <Button type="submit" variant="mint" size="sm">
+            Add Task
           </Button>
         </div>
       </form>

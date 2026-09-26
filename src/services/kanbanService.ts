@@ -11,7 +11,7 @@ export const KANBAN_DEFAULT_COLUMNS: KanbanColumn[] = [
   {
     id: 'planned',
     title: 'Planned',
-    bgTint: 'bg-[#FAF7F0]',
+    bgTint: 'bg-pastel-sand-tint',
     dotColor: '#D4C5A9',
     colorAccent: '#FCFCE8',
     orderIndex: 0,
@@ -19,7 +19,7 @@ export const KANBAN_DEFAULT_COLUMNS: KanbanColumn[] = [
   {
     id: 'in_progress',
     title: 'In progress',
-    bgTint: 'bg-[#F0F3FF]',
+    bgTint: 'bg-pastel-lavender-tint',
     dotColor: '#818CF8',
     colorAccent: '#EBE7FF',
     orderIndex: 1,
@@ -27,7 +27,7 @@ export const KANBAN_DEFAULT_COLUMNS: KanbanColumn[] = [
   {
     id: 'review',
     title: 'Review',
-    bgTint: 'bg-[#F5F0FF]',
+    bgTint: 'bg-pastel-lilac-tint',
     dotColor: '#C084FC',
     colorAccent: '#EBE9FE',
     orderIndex: 2,
@@ -35,7 +35,7 @@ export const KANBAN_DEFAULT_COLUMNS: KanbanColumn[] = [
   {
     id: 'done',
     title: 'Complete',
-    bgTint: 'bg-[#ECFDF5]',
+    bgTint: 'bg-pastel-mint-tint',
     dotColor: '#34D399',
     colorAccent: '#D1FAE5',
     orderIndex: 3,

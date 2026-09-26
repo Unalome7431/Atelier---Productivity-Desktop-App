@@ -168,7 +168,7 @@ export const KanbanCardDrawer: React.FC<KanbanCardDrawerProps> = ({
       {/* Slide-Over Drawer Container */}
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 w-[500px] max-w-full bg-[#FAF8F5] border-l border-border shadow-modal z-50 flex flex-col justify-between',
+          'fixed inset-y-0 right-0 w-[500px] max-w-full bg-bg border-l border-border shadow-modal z-50 flex flex-col justify-between',
           'transform transition-transform duration-300 ease-in-out select-none'
         )}
       >
@@ -417,7 +417,7 @@ export const KanbanCardDrawer: React.FC<KanbanCardDrawerProps> = ({
             {checklist.length > 0 && (
               <div className="w-full bg-surface h-1.5 rounded-full overflow-hidden border border-border/60">
                 <div
-                  className="bg-[#34D399] h-full rounded-full transition-all duration-300"
+                  className="bg-pastel-mint-dot h-full rounded-full transition-all duration-300"
                   style={{ width: `${checklistPercent}%` }}
                 />
               </div>

@@ -6,6 +6,7 @@
 
 export interface DueDateStatus {
   formatted: string;
+  dayDate: string;
   isOverdue: boolean;
   isToday: boolean;
   isTomorrow: boolean;
@@ -20,6 +21,7 @@ export function formatDueDateTime(dueStr?: string | null): DueDateStatus {
   if (!dueStr || !dueStr.trim()) {
     return {
       formatted: '',
+      dayDate: '',
       isOverdue: false,
       isToday: false,
       isTomorrow: false,
@@ -35,6 +37,7 @@ export function formatDueDateTime(dueStr?: string | null): DueDateStatus {
     const lower = raw.toLowerCase();
     return {
       formatted: raw,
+      dayDate: raw,
       isOverdue: false,
       isToday: lower.includes('today'),
       isTomorrow: lower.includes('tomorrow'),
@@ -78,9 +81,20 @@ export function formatDueDateTime(dueStr?: string | null): DueDateStatus {
   ];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  const dayName = dayNames[dateObj.getDay()];
+  const monthName = monthNames[dateObj.getMonth()];
+  const dayNum = dateObj.getDate();
+
+  const dayDate = isToday
+    ? `Today, ${monthName} ${dayNum}`
+    : isTomorrow
+      ? `Tomorrow, ${monthName} ${dayNum}`
+      : `${dayName}, ${monthName} ${dayNum}`;
+
   if (isToday) {
     return {
       formatted: hasTime ? `Today ${timeStr}` : 'Today',
+      dayDate,
       isOverdue: false,
       isToday: true,
       isTomorrow: false,
@@ -91,6 +105,7 @@ export function formatDueDateTime(dueStr?: string | null): DueDateStatus {
   if (isTomorrow) {
     return {
       formatted: hasTime ? `Tomorrow ${timeStr}` : 'Tomorrow',
+      dayDate,
       isOverdue: false,
       isToday: false,
       isTomorrow: true,
@@ -98,16 +113,13 @@ export function formatDueDateTime(dueStr?: string | null): DueDateStatus {
     };
   }
 
-  const dayName = dayNames[dateObj.getDay()];
-  const monthName = monthNames[dateObj.getMonth()];
-  const dayNum = dateObj.getDate();
-
   const formatted = hasTime
     ? `${dayName}, ${monthName} ${dayNum} · ${timeStr}`
     : `${dayName}, ${monthName} ${dayNum}`;
 
   return {
     formatted,
+    dayDate,
     isOverdue,
     isToday: false,
     isTomorrow: false,
