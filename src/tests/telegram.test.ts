@@ -123,11 +123,13 @@ async function runTelegramTests() {
   });
   assert(createdInboxTask.scheduledDate === null, 'Task added to Inbox has null scheduledDate');
 
-  // Test 8: Command 2 — /habit (Habits list, toggle & increment)
-  console.log('\n--- Test 8: Command /habit (Habit List, Toggle & Increment) ---');
-  const routines = await routineService.getAllRoutines();
-  assert(routines.length > 0, 'Routines exist for /habit listing');
-  const firstRoutine = routines[0];
+  // Test 8: Command 2 — /habit (Only habits active for today, toggle & increment)
+  console.log("\n--- Test 8: Command /habit (Only Today's Active Habits, Toggle & Increment) ---");
+  const allRoutines = await routineService.getAllRoutines();
+  assert(allRoutines.length > 0, 'Routines exist in database');
+  const todayActiveRoutines = allRoutines.filter((r) => routineService.isRoutineActiveOnDate(r, todayStr));
+  assert(todayActiveRoutines.length > 0, 'Only active routines for today are selected');
+  const firstRoutine = todayActiveRoutines[0];
   const toggledLog = await routineService.toggleRoutine(firstRoutine.id, true);
   assert(toggledLog.completed === true, 'Habit checklist toggles to completed');
   const incrementedLog = await routineService.updateRoutineCount(firstRoutine.id, 1);
@@ -158,31 +160,23 @@ async function runTelegramTests() {
   const foundTask = reloadedTodayTasks.find((t) => t.id === createdTodayTask.id);
   assert(foundTask?.completed === true, 'Task completed status toggles correctly for /todo checklist');
 
-  // Test 13: Command 7 — /move (Move from Inbox to Today)
-  console.log('\n--- Test 13: Command /move (Move Task from Inbox to Today) ---');
-  await taskService.updateTaskScheduledDate(createdInboxTask.id, todayStr);
-  const reloadedInbox = await taskService.getInboxTasks();
-  assert(!reloadedInbox.some((t) => t.id === createdInboxTask.id), 'Task removed from Inbox backlog after /move');
-  const movedToday = await taskService.getTodayTasks(todayStr);
-  assert(movedToday.some((t) => t.id === createdInboxTask.id), 'Task scheduled in Today queue after /move');
-
-  // Test 14: Unlink & Cleanup
-  console.log('\n--- Test 14: Unlink Telegram Chat ---');
+  // Test 13: Unlink & Cleanup
+  console.log('\n--- Test 13: Unlink Telegram Chat ---');
   await telegramService.unlink();
   const unlinkedConfig = await telegramService.getConfig();
   assert(unlinkedConfig.isLinked === false, 'isLinked is false after unlink');
   assert(unlinkedConfig.chatId === null, 'chatId is null after unlink');
   assert(unlinkedConfig.botToken === null, 'botToken is cleared after unlink');
 
-  // Test 15: Polling engine lifecycle
-  console.log('\n--- Test 15: Long-Polling Engine Lifecycle ---');
+  // Test 14: Polling engine lifecycle
+  console.log('\n--- Test 14: Long-Polling Engine Lifecycle ---');
   assert(telegramService.isPollingActive() === false, 'Polling initially inactive without token');
   await telegramService.saveCredentials('7819283401:AAH_test_token', '987654321');
   assert(telegramService.isPollingActive() === true, 'Polling starts automatically when credentials saved');
   telegramService.stopPolling();
   assert(telegramService.isPollingActive() === false, 'Polling stops on stopPolling()');
 
-  console.log('\nAll 15 Telegram companion bot engine tests PASSED successfully!');
+  console.log('\nAll 14 Telegram companion bot engine tests PASSED successfully!');
 }
 
 runTelegramTests().catch((err) => {

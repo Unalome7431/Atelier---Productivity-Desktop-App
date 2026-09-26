@@ -52,20 +52,30 @@ export function createBot(env: Env) {
     });
   });
 
-  // 2. /habit — List all habits with checklist or increment
+  // 2. /habit — List habits active for today with checklist or increment
   bot.command('habit', async (ctx) => {
     const todayStr = getTodayStr();
     const agenda = await db.getTodayAgenda(todayStr);
 
-    if (agenda.routines.length === 0) {
-      await ctx.reply(`✦ *Daily Habits*\n\nNo habits active. Add habits in Atelier cockpit.`);
+    const d = new Date();
+    const dayOfWeek = d.getDay();
+    const isRoutineActive = (r: any) => {
+      if (!r.cadence || r.cadence === 'daily') return true;
+      if (r.cadence === 'weekdays') return dayOfWeek >= 1 && dayOfWeek <= 5;
+      if (r.cadence === 'custom' && Array.isArray(r.custom_days)) return r.custom_days.includes(dayOfWeek);
+      return true;
+    };
+    const todayRoutines = agenda.routines.filter(isRoutineActive);
+
+    if (todayRoutines.length === 0) {
+      await ctx.reply(`✦ *Today's Habits*\n\nNo habits scheduled for today (${todayStr}).`);
       return;
     }
 
-    let text = `✦ *Daily Habits* (${todayStr})\n\n`;
+    let text = `✦ *Today's Habits* (${todayStr})\n\n`;
     const keyboard = new InlineKeyboard();
 
-    agenda.routines.forEach((r, idx) => {
+    todayRoutines.forEach((r, idx) => {
       text += `${idx + 1}. *${r.title}* (${r.target_count || 1} target)\n`;
       keyboard
         .text(`+1 ${r.title.slice(0, 14)}`, `w_habit_inc:${r.id}`)
@@ -174,56 +184,16 @@ export function createBot(env: Env) {
     await ctx.reply(text, { reply_markup: keyboard, parse_mode: 'Markdown' });
   });
 
-  // 7. /move — Move specific task from inbox to todo
-  bot.command('move', async (ctx) => {
-    const raw = ctx.match?.trim();
-    const inboxTasks = await db.query<any>(
-      `SELECT * FROM tasks WHERE scheduled_date IS NULL ORDER BY created_at DESC LIMIT 20`
-    );
-
-    if (inboxTasks.length === 0) {
-      await ctx.reply(`✦ *Move Task*\n\nInbox is empty. No backlog tasks to move.`);
-      return;
-    }
-
-    if (!raw) {
-      let promptText = `✦ *Move Task from Inbox to Today*\n\nSelect a task below to schedule for Today:\n\n`;
-      const keyboard = new InlineKeyboard();
-      inboxTasks.slice(0, 8).forEach((t, idx) => {
-        promptText += `${idx + 1}. *${t.title}*\n`;
-        keyboard.text(`-> Move: ${t.title.slice(0, 20)}`, `w_move:${t.id}`).row();
-      });
-
-      await ctx.reply(promptText, { reply_markup: keyboard, parse_mode: 'Markdown' });
-      return;
-    }
-
-    const matched = inboxTasks.find(
-      (t) => t.title.toLowerCase().includes(raw.toLowerCase()) || t.id === raw
-    );
-
-    if (!matched) {
-      await ctx.reply(`Task not found in Inbox matching "${raw}".\nUse \`/inbox\` to view all tasks.`);
-      return;
-    }
-
-    await db.query(`UPDATE tasks SET scheduled_date = $1 WHERE id = $2`, [getTodayStr(), matched.id]);
-    await ctx.reply(`✓ *Task Moved to Today*\n\n"${matched.title}" is now scheduled for today.`, {
-      parse_mode: 'Markdown',
-    });
-  });
-
-  // 8. /help — Full command guide & reminder schedule
+  // 7. /help — Full command guide & reminder schedule
   bot.command('help', async (ctx) => {
     await ctx.reply(
       `✦ *Atelier Bot Commands*\n\n` +
         `• \`/add <title>\` — Add todo task (choose Today or Inbox)\n` +
-        `• \`/habit\` — List all habits with checklist or increment (+1)\n` +
+        `• \`/habit\` — List today's habits with checklist or increment (+1)\n` +
         `• \`/today\` — Daily summary of tasks, habits, and events\n` +
         `• \`/schedule\` — Show weekly schedule and recurring blocks\n` +
         `• \`/inbox\` — List all tasks in inbox backlog\n` +
         `• \`/todo\` — List today tasks & subtasks with checklist\n` +
-        `• \`/move\` — Move task from inbox to today\n` +
         `• \`/help\` — View this guide\n\n` +
         `*Automated Reminders:*\n` +
         `• 06:00 — Morning daily briefing (/today)\n` +

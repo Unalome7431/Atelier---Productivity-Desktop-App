@@ -6,7 +6,7 @@ import { calendarService } from './calendarService';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { useRoutinesStore } from '@/stores/useRoutinesStore';
 import { getTodayDateString } from '@/lib/utils';
-import { Task, TaskSubtask } from '@/types';
+import { TaskSubtask } from '@/types';
 
 export interface TelegramConfigState {
   chatId: string | null;
@@ -292,12 +292,11 @@ export class TelegramService {
         `✦ *Atelier Desktop Connected*\n\n` +
         `Your personal Telegram companion bot is active and listening.\n\n` +
         `• /add — Add task (choose Today or Inbox)\n` +
-        `• /habit — List habits & toggle or increment\n` +
+        `• /habit — List today's habits & toggle or increment\n` +
         `• /today — Tasks, habits, and events summary\n` +
         `• /schedule — Weekly schedule details\n` +
         `• /inbox — List inbox tasks\n` +
         `• /todo — Today's tasks & subtasks checklist\n` +
-        `• /move — Move task from inbox to today\n` +
         `• /help — Full command guide`;
 
       const res = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
@@ -373,12 +372,11 @@ export class TelegramService {
         body: JSON.stringify({
           commands: [
             { command: 'add', description: 'Add todo task (choose Today or Inbox)' },
-            { command: 'habit', description: 'List habits with checklist or increment' },
+            { command: 'habit', description: 'List today habits with checklist or increment' },
             { command: 'today', description: 'Daily summary of tasks, habits, and events' },
             { command: 'schedule', description: 'Show weekly schedule and details' },
             { command: 'inbox', description: 'List all todo tasks in inbox' },
             { command: 'todo', description: 'List today tasks with subtasks and checklist' },
-            { command: 'move', description: 'Move task from inbox to today' },
             { command: 'help', description: 'List all available bot commands' },
           ],
         }),
@@ -473,8 +471,6 @@ export class TelegramService {
         await this.handleInboxCommand(token, chatId);
       } else if (text.startsWith('/todo')) {
         await this.handleTodoCommand(token, chatId);
-      } else if (text.startsWith('/move')) {
-        await this.handleMoveCommand(token, chatId, text);
       } else if (text.startsWith('/help')) {
         await this.handleHelpCommand(token, chatId);
       } else if (text.startsWith('/start') || text.startsWith('/pair')) {
@@ -611,17 +607,20 @@ export class TelegramService {
   }
 
   // -------------------------------------------------------------------------
-  // 2. /habit — List all habits with checklist or increment options
+  // 2. /habit — List all habits active for today with checklist or increment
   // -------------------------------------------------------------------------
   private async handleHabitCommand(token: string, chatId: string, editMessageId?: number): Promise<void> {
     const todayStr = getTodayDateString();
-    const [routines, logs] = await Promise.all([
+    const [allRoutines, logs] = await Promise.all([
       routineService.getAllRoutines(),
       routineService.getTodayLogs(todayStr),
     ]);
 
+    // Only habits active today that need to be done
+    const routines = allRoutines.filter((r) => routineService.isRoutineActiveOnDate(r, todayStr));
+
     if (routines.length === 0) {
-      const emptyText = `✦ *Daily Habits*\n\nNo habits configured yet. Create habits in Atelier desktop cockpit.`;
+      const emptyText = `✦ *Today's Habits*\n\nNo habits scheduled for today (${todayStr}).`;
       if (editMessageId) {
         await this.editMessageText(token, chatId, editMessageId, emptyText);
       } else {
@@ -630,7 +629,7 @@ export class TelegramService {
       return;
     }
 
-    let text = `✦ *Daily Habits* (${todayStr})\n\n`;
+    let text = `✦ *Today's Habits* (${todayStr})\n\n`;
     const inlineKeyboard: any[][] = [];
 
     routines.forEach((r, idx) => {
@@ -678,13 +677,14 @@ export class TelegramService {
   // -------------------------------------------------------------------------
   public async handleTodayCommand(token: string, chatId: string): Promise<void> {
     const todayStr = getTodayDateString();
-    const [tasks, routines, logs, events] = await Promise.all([
+    const [tasks, allRoutines, logs, events] = await Promise.all([
       taskService.getTodayTasks(todayStr),
       routineService.getAllRoutines(),
       routineService.getTodayLogs(todayStr),
       calendarService.getEvents(),
     ]);
 
+    const routines = allRoutines.filter((r) => routineService.isRoutineActiveOnDate(r, todayStr));
     const todayEvents = events.filter((e) => e.date === todayStr);
     const completedTasksCount = tasks.filter((t) => t.completed).length;
     const completedHabitsCount = routines.filter((r) => {
@@ -813,7 +813,7 @@ export class TelegramService {
     inboxTasks.forEach((t, idx) => {
       text += `${idx + 1}. *${t.title}*\n`;
     });
-    text += `\n_Use /move to schedule any task to Today._`;
+    text += `\n_Tap button below to move any task to Today._`;
 
     // Quick move buttons for first 5 inbox tasks
     const inlineKeyboard = inboxTasks.slice(0, 5).map((t) => [
@@ -893,69 +893,7 @@ export class TelegramService {
   }
 
   // -------------------------------------------------------------------------
-  // 7. /move — Move specific task from inbox to todo
-  // -------------------------------------------------------------------------
-  private async handleMoveCommand(token: string, chatId: string, text: string): Promise<void> {
-    const raw = text.replace(/^\/move(@\w+)?/i, '').trim();
-    const inboxTasks = await taskService.getInboxTasks();
-
-    if (inboxTasks.length === 0) {
-      await this.sendMessage(token, chatId, `✦ *Move Task*\n\nInbox is currently empty. No tasks to move.`);
-      return;
-    }
-
-    if (!raw) {
-      // List inbox tasks with inline buttons to move directly
-      let promptText = `✦ *Move Task from Inbox to Today*\n\nSelect a task below to schedule for Today:\n\n`;
-      inboxTasks.forEach((t, idx) => {
-        promptText += `${idx + 1}. *${t.title}*\n`;
-      });
-
-      const inlineKeyboard = inboxTasks.slice(0, 8).map((t) => [
-        {
-          text: `-> Move: ${t.title.length > 24 ? t.title.substring(0, 22) + '…' : t.title}`,
-          callback_data: `move_task:${t.id}`,
-        },
-      ]);
-
-      await this.sendMessage(token, chatId, promptText, { inline_keyboard: inlineKeyboard });
-      return;
-    }
-
-    // Try finding by numerical index (1-based)
-    const indexNum = parseInt(raw, 10);
-    let matchedTask: Task | undefined;
-    if (!isNaN(indexNum) && indexNum >= 1 && indexNum <= inboxTasks.length) {
-      matchedTask = inboxTasks[indexNum - 1];
-    } else {
-      // Find by title substring
-      matchedTask = inboxTasks.find(
-        (t) => t.title.toLowerCase().includes(raw.toLowerCase()) || t.id === raw
-      );
-    }
-
-    if (!matchedTask) {
-      await this.sendMessage(
-        token,
-        chatId,
-        `Task not found in Inbox matching "${raw}".\nUse \`/inbox\` to view all available tasks.`
-      );
-      return;
-    }
-
-    const todayStr = getTodayDateString();
-    await taskService.updateTaskScheduledDate(matchedTask.id, todayStr);
-    await useTasksStore.getState().loadTasks();
-
-    await this.sendMessage(
-      token,
-      chatId,
-      `✓ *Task Moved to Today*\n\n"${matchedTask.title}" is now scheduled for today.`
-    );
-  }
-
-  // -------------------------------------------------------------------------
-  // 8. /help — Full command guide & reminder schedule
+  // 7. /help — Full command guide & reminder schedule
   // -------------------------------------------------------------------------
   private async handleHelpCommand(token: string, chatId: string): Promise<void> {
     await this.sendMessage(
@@ -963,12 +901,11 @@ export class TelegramService {
       chatId,
       `✦ *Atelier Bot Commands*\n\n` +
         `• \`/add <title>\` — Add todo task (choose Today or Inbox)\n` +
-        `• \`/habit\` — List all habits with checklist or increment (+1)\n` +
+        `• \`/habit\` — List today's habits with checklist or increment (+1)\n` +
         `• \`/today\` — Daily summary of tasks, habits, and events\n` +
         `• \`/schedule\` — Show weekly schedule and recurring blocks\n` +
         `• \`/inbox\` — List all tasks in inbox backlog\n` +
         `• \`/todo\` — List today tasks & subtasks with checklist\n` +
-        `• \`/move\` — Move task from inbox to today\n` +
         `• \`/help\` — View this guide\n\n` +
         `*Automated Reminders:*\n` +
         `• 06:00 — Morning daily briefing (/today)\n` +
@@ -1235,12 +1172,13 @@ export class TelegramService {
 
   private async sendIncompleteReminder(token: string, chatId: string, label: string): Promise<void> {
     const todayStr = getTodayDateString();
-    const [tasks, routines, logs] = await Promise.all([
+    const [tasks, allRoutines, logs] = await Promise.all([
       taskService.getTodayTasks(todayStr),
       routineService.getAllRoutines(),
       routineService.getTodayLogs(todayStr),
     ]);
 
+    const routines = allRoutines.filter((r) => routineService.isRoutineActiveOnDate(r, todayStr));
     const pendingTasks = tasks.filter((t) => !t.completed);
     const pendingHabits = routines.filter((r) => {
       const log = logs.find((l: any) => l.routineId === r.id || l.routine_id === r.id);
