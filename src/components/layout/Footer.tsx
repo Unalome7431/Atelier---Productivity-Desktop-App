@@ -1,5 +1,5 @@
 import React from 'react';
-import { Send, Wifi } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 
 export const Footer: React.FC = () => {
@@ -20,11 +20,6 @@ export const Footer: React.FC = () => {
               : 'Syncing mutations...'}
           </span>
         </div>
-        <span className="text-border">|</span>
-        <div className="flex items-center gap-1 text-mono-tag text-midGray">
-          <Wifi className="w-3 h-3 text-emerald-600" />
-          <span>Local SQLite Active</span>
-        </div>
       </div>
 
       <div className="flex items-center gap-4 text-mono-tag">
@@ -35,7 +30,6 @@ export const Footer: React.FC = () => {
           <Send className="w-3 h-3 text-sky-600" />
           <span>Telegram Sync & Config</span>
         </button>
-        <span className="font-mono text-midGray">v0.1.0-alpha</span>
       </div>
     </footer>
   );
