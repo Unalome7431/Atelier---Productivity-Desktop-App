@@ -119,6 +119,15 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
     if (item.colorAccent === 'mauve' || item.category === 'deadline') {
       return 'bg-[#F3E8EE] border-[#DFC5D6] text-[#4A2D40]';
     }
+    if (item.colorAccent === 'rose') {
+      return 'bg-[#FED7E8] border-[#F472B6]/60 text-[#831843]';
+    }
+    if (item.colorAccent === 'amber') {
+      return 'bg-[#FEF3C7] border-[#F59E0B]/50 text-[#78350F]';
+    }
+    if (item.colorAccent === 'emerald') {
+      return 'bg-[#D1FAE5] border-[#10B981]/50 text-[#064E3B]';
+    }
     return 'bg-accent-indigo/60 border-indigo-200/60';
   };
 
@@ -412,11 +421,6 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               })
             )}
           </div>
-
-          <p className="text-[10px] font-mono text-secondaryGray/75 px-1 pt-1 leading-tight">
-            Tasks scheduled for today automatically move to your Daily To Do List. Incomplete tasks
-            return to Inbox.
-          </p>
         </div>
       </div>
 

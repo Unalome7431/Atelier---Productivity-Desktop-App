@@ -36,13 +36,13 @@ export class CalendarService {
         if (e.color_token.includes('|')) {
           const [colorTag, ...rest] = e.color_token.split('|');
           const cleanTag = colorTag.replace('#', '').trim();
-          if (['lavender', 'mint', 'sand', 'blue', 'mauve'].includes(cleanTag)) {
+          if (['lavender', 'mint', 'sand', 'blue', 'mauve', 'rose', 'amber', 'emerald'].includes(cleanTag)) {
             colorAccent = cleanTag as any;
           }
           description = rest.join('|').trim();
-        } else if (e.color_token.startsWith('#')) {
+          } else if (e.color_token.startsWith('#')) {
           const cleanTag = e.color_token.replace('#', '').trim();
-          if (['lavender', 'mint', 'sand', 'blue', 'mauve'].includes(cleanTag)) {
+          if (['lavender', 'mint', 'sand', 'blue', 'mauve', 'rose', 'amber', 'emerald'].includes(cleanTag)) {
             colorAccent = cleanTag as any;
           }
         } else {

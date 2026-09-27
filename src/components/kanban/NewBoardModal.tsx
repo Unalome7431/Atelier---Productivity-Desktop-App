@@ -14,12 +14,11 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose, o
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pastelOptions = [
-    { color: '#818CF8', label: 'Indigo / Lavender' },
-    { color: '#34D399', label: 'Mint Green' },
-    { color: '#60A5FA', label: 'Sky Blue' },
-    { color: '#F472B6', label: 'Rose Pink' },
-    { color: '#FBBF24', label: 'Butter Tan' },
-    { color: '#A78BFA', label: 'Lilac' },
+    { color: '#818CF8', label: 'Lavender', bg: '#EEEDFD' },
+    { color: '#34D399', label: 'Mint', bg: '#D0F8E3' },
+    { color: '#60A5FA', label: 'Sky Blue', bg: '#D7E3FF' },
+    { color: '#FBBF24', label: 'Sand', bg: '#F5F0E6' },
+    { color: '#F472B6', label: 'Rose Pink', bg: '#FED7E8' },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,19 +63,22 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose, o
           <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
             Theme Tint Color
           </label>
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-3 pt-1">
             {pastelOptions.map((opt) => (
               <button
                 key={opt.color}
                 type="button"
                 onClick={() => setColorTag(opt.color)}
                 style={{ backgroundColor: opt.color }}
-                className={`w-6 h-6 rounded-full cursor-pointer transition-all hover:scale-110 ${
-                  colorTag === opt.color ? 'ring-2 ring-primaryDark ring-offset-2 scale-105' : ''
+                className={`w-6 h-6 rounded-full cursor-pointer transition-all hover:scale-110 relative ${
+                  colorTag === opt.color ? 'ring-2 ring-primaryDark ring-offset-2 scale-105' : 'opacity-85'
                 }`}
                 title={opt.label}
               />
             ))}
+            <span className="font-mono text-mono-xs text-secondaryGray ml-1">
+              {pastelOptions.find((o) => o.color === colorTag)?.label || 'Custom'}
+            </span>
           </div>
         </div>
 

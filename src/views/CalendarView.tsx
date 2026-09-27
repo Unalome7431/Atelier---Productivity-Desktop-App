@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
-import { Eyebrow } from '@/components/common/Badge';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { useTasksStore } from '@/stores/useTasksStore';
 import { CalendarEvent, RecurringWeeklyBlock, Task } from '@/types';
@@ -163,9 +162,6 @@ export const CalendarView: React.FC = () => {
           <h1 className="font-display font-bold text-display-1 text-primaryDark tracking-tight">
             Calendar
           </h1>
-          <p className="text-ui-rg-xs text-secondaryGray mt-0.5">
-            Schedule & Time-Blocking Calendar
-          </p>
         </div>
       </div>
 
@@ -178,7 +174,6 @@ export const CalendarView: React.FC = () => {
               <h2 className="font-display font-bold text-display-3 text-primaryDark tracking-tight">
                 {monthNames[currentMonth]} {currentYear}
               </h2>
-              <span className="text-ui-rg-xs text-secondaryGray">Monthly schedule (6×7 Grid)</span>
             </div>
           </div>
 
@@ -278,15 +273,21 @@ export const CalendarView: React.FC = () => {
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-mono">
                           <button type="button" onClick={() => { const now = new Date(); setPickerYear(now.getFullYear()); }} className="text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer">Current Year</button>
-                          <button type="button" onClick={() => { const now = new Date(); setCurrentMonth(now.getMonth()); setCurrentYear(now.getFullYear()); setIsMonthYearPickerOpen(false); }} className="text-primaryDark font-bold hover:underline cursor-pointer">Jump to Today</button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleToday();
+                              setIsMonthYearPickerOpen(false);
+                            }}
+                            className="text-primaryDark font-bold hover:underline cursor-pointer"
+                          >
+                            Jump to Today
+                          </button>
                         </div>
                       </div>
                     </>
                   )}
                 </div>
-                <Button variant="secondary" size="xs" onClick={handleToday} className="px-2.5 shrink-0">
-                  Today
-                </Button>
               </div>
             }
           />
@@ -298,15 +299,9 @@ export const CalendarView: React.FC = () => {
         {/* Weekly Header */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Eyebrow>REPEATABLE SCHEDULE</Eyebrow>
-            </div>
             <h3 className="font-display font-bold text-display-3 text-primaryDark tracking-tight">
               Weekly schedule
             </h3>
-            <span className="text-ui-rg-xs text-secondaryGray">
-              Class timetable, recurring focus blocks & work routines
-            </span>
           </div>
         </div>
 

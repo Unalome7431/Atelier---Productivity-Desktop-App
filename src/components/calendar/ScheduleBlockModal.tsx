@@ -192,7 +192,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
           <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
             Color Accent
           </label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
             {[
               {
                 id: 'mint',
@@ -204,19 +204,42 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
                 label: 'Lavender',
                 bg: 'bg-accent-indigo text-indigo-950 border-indigo-300',
               },
-              { id: 'sand', label: 'Sand', bg: 'bg-[#EFE9DC] text-[#4F483D] border-[#DDD5C8]' },
-              { id: 'blue', label: 'Sky Blue', bg: 'bg-accent-blue text-sky-950 border-sky-300' },
+              {
+                id: 'sand',
+                label: 'Sand',
+                bg: 'bg-[#EFE9DC] text-[#4F483D] border-[#DDD5C8]',
+              },
+              {
+                id: 'blue',
+                label: 'Sky Blue',
+                bg: 'bg-accent-blue text-sky-950 border-sky-300',
+              },
               {
                 id: 'mauve',
                 label: 'Mauve',
                 bg: 'bg-[#F3E8EE] text-[#4A2D40] border-[#DFC5D6]',
+              },
+              {
+                id: 'rose',
+                label: 'Rose Pink',
+                bg: 'bg-[#FED7E8] text-[#831843] border-[#F472B6]/60',
+              },
+              {
+                id: 'amber',
+                label: 'Amber',
+                bg: 'bg-[#FEF3C7] text-[#78350F] border-[#F59E0B]/50',
+              },
+              {
+                id: 'emerald',
+                label: 'Forest',
+                bg: 'bg-[#D1FAE5] text-[#064E3B] border-[#10B981]/50',
               },
             ].map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setColorAccent(c.id as any)}
-                className={`py-1.5 px-2 rounded-md border text-center text-xs font-sans font-medium transition-all cursor-pointer ${
+                className={`py-1.5 px-1.5 rounded-md border text-center text-[11px] font-sans font-medium transition-all cursor-pointer ${
                   c.bg
                 } ${colorAccent === c.id ? 'ring-2 ring-primaryDark shadow-xs font-bold' : 'opacity-80 hover:opacity-100'}`}
               >

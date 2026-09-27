@@ -34,9 +34,9 @@ export const Sidebar: React.FC = () => {
   ];
 
   const workspaceItems: NavItem[] = [
-    { id: 'canvas', label: 'Spatial Canvas', icon: Layers },
+    { id: 'canvas', label: 'Canvas', icon: Layers },
     { id: 'kanban', label: 'Kanban Board', icon: KanbanSquare },
-    { id: 'notes', label: 'Notes & Docs', icon: FileText },
+    { id: 'notes', label: 'Notes', icon: FileText },
   ];
 
   return (
