@@ -18,6 +18,7 @@ import { taskService } from '../services/taskService';
 import { useCalendarStore } from '../stores/useCalendarStore';
 import { db } from '../db/database';
 import { Task } from '../types';
+import { getTodayDateString } from '../lib/utils';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -229,13 +230,14 @@ async function runCalendarTests() {
   assert(mockTask.scheduledDate === null, 'Task starts unscheduled in inbox');
 
   // Schedule task via time-boxing
-  const scheduledTimeBox = await store.scheduleTask(mockTask, '2026-09-26', '10:00', 90);
+  const targetDate = getTodayDateString();
+  const scheduledTimeBox = await store.scheduleTask(mockTask, targetDate, '10:00', 90);
   assert(Boolean(scheduledTimeBox.id), 'scheduleTask created calendar event');
   assert(
     scheduledTimeBox.title === 'Profile Settings Redesign',
     'Calendar event title matches task'
   );
-  assert(scheduledTimeBox.date === '2026-09-26', 'Event date is 2026-09-26');
+  assert(scheduledTimeBox.date === targetDate, `Event date is ${targetDate}`);
   assert(scheduledTimeBox.startTime === '10:00', 'Event start time is 10:00');
   assert(scheduledTimeBox.endTime === '11:30', 'Event end time computed for 90m is 11:30');
   assert(
@@ -249,9 +251,9 @@ async function runCalendarTests() {
   assert(scheduledTimeBox.isFixed === false, 'Time-boxed task is marked as flexible work block');
 
   // Verify task was updated in database
-  const targetTasks = await taskService.getTodayTasks('2026-09-26');
+  const targetTasks = await taskService.getTodayTasks(targetDate);
   const matchingTask = targetTasks.find((t) => t.id === mockTask.id);
-  assert(Boolean(matchingTask), 'Task now scheduled in database for 2026-09-26');
+  assert(Boolean(matchingTask), `Task now scheduled in database for ${targetDate}`);
 
   // Verify past incomplete task rollover to Inbox
   const pastTask = await taskService.createTask({

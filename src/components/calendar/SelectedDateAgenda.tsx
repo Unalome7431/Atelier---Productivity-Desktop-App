@@ -1,7 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { ListFilter, Plus, Trash2, Calendar as CalendarIcon, X, ChevronDown } from 'lucide-react';
+import {
+  ListFilter,
+  Plus,
+  Trash2,
+  Calendar as CalendarIcon,
+  X,
+  ChevronDown,
+  CheckSquare,
+} from 'lucide-react';
 import { Eyebrow } from '@/components/common/Badge';
 import { CalendarEvent, Task } from '@/types';
+import { CreateTaskModal } from '@/components/cockpit/CreateTaskModal';
 import { cn } from '@/lib/utils';
 
 interface SelectedDateAgendaProps {
@@ -14,6 +23,10 @@ interface SelectedDateAgendaProps {
   onUnscheduleTask?: (taskId: string) => void;
   onQuickAddTask?: (title: string, date: string) => void;
   onAddSubtask?: (taskId: string, title: string) => void;
+  isTaskDrawerOpen?: boolean;
+  onToggleTaskDrawer?: () => void;
+  queueTasksCount?: number;
+  headerControls?: React.ReactNode;
 }
 
 export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
@@ -24,12 +37,15 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
   onDeleteEvent,
   onDropTask,
   onUnscheduleTask,
-  onQuickAddTask,
+  onQuickAddTask: _onQuickAddTask,
   onAddSubtask,
+  isTaskDrawerOpen,
+  onToggleTaskDrawer,
+  queueTasksCount,
+  headerControls,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isQuickAddingTask, setIsQuickAddingTask] = useState(false);
-  const [quickTaskTitle, setQuickTaskTitle] = useState('');
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [expandedSubtasks, setExpandedSubtasks] = useState<Record<string, boolean>>({});
   const [subtaskInputs, setSubtaskInputs] = useState<Record<string, string>>({});
 
@@ -90,16 +106,6 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
     }
   };
 
-  const handleQuickAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickTaskTitle.trim()) return;
-    if (onQuickAddTask) {
-      onQuickAddTask(quickTaskTitle.trim(), selectedDate);
-    }
-    setQuickTaskTitle('');
-    setIsQuickAddingTask(false);
-  };
-
   const getEventCardStyle = (item: CalendarEvent) => {
     if (item.colorAccent === 'mint' || item.category === 'focus') {
       return 'bg-accent-green/45 border-emerald-300/60';
@@ -108,10 +114,16 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
       return 'bg-accent-blue/50 border-sky-200/70';
     }
     if (item.colorAccent === 'sand') {
-      return 'bg-[#EFE9DC] border-amber-200/80';
+      return 'bg-[#EFE9DC] border-[#DDD5C8] text-[#4F483D]';
     }
     if (item.colorAccent === 'mauve' || item.category === 'deadline') {
-      return 'bg-accent-mauve/20 border-accent-mauve/40';
+      return 'bg-[#F3E8EE] border-[#DFC5D6] text-[#4A2D40]';
+    }
+    if (item.colorAccent === 'rose') {
+      return 'bg-[#FED7E8] border-[#F472B6]/60 text-[#831843]';
+    }
+    if (item.colorAccent === 'amber') {
+      return 'bg-[#FEF3C7] border-[#F59E0B]/50 text-[#78350F]';
     }
     return 'bg-accent-indigo/60 border-indigo-200/60';
   };
@@ -138,6 +150,9 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               {formattedSelectedDateHeading}
             </h3>
           </div>
+          {headerControls && (
+            <div className="shrink-0 ml-2">{headerControls}</div>
+          )}
         </div>
 
         {/* Drop zone alert when dragging */}
@@ -165,7 +180,7 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
             <button
               type="button"
               onClick={() => onOpenAddAgenda(selectedDate)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EFE9DC] hover:bg-[#E7E0D1] border border-border text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-surface border border-border-hover text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
               title="Add event on this date"
             >
               <Plus className="w-3 h-3" />
@@ -222,7 +237,7 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
 
         {/* Part 2: Schedule Tasks */}
         <div className="flex flex-col gap-2.5 bg-bg/50 border border-border/80 rounded-2xl p-3.5 flex-1 min-h-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
               <CalendarIcon className="w-3.5 h-3.5 text-secondaryGray" />
               <span className="font-mono text-mono-xs font-bold text-primaryDark uppercase tracking-wider">
@@ -233,44 +248,40 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsQuickAddingTask(!isQuickAddingTask)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-surface border border-border text-primaryDark text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
-              title="Quick schedule task for this date"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Schedule Task</span>
-            </button>
-          </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {onToggleTaskDrawer && (
+                <button
+                  type="button"
+                  onClick={onToggleTaskDrawer}
+                  className={cn(
+                    'flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs',
+                    isTaskDrawerOpen
+                      ? 'bg-primaryDark text-white border-transparent font-bold'
+                      : 'bg-white hover:bg-surface border-border-hover text-primaryDark'
+                  )}
+                  title="Open tasks queue to schedule tasks"
+                >
+                  <CheckSquare className="w-3 h-3" />
+                  <span>Tasks Queue</span>
+                  {typeof queueTasksCount === 'number' && (
+                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded-full bg-black/5 text-primaryDark ml-0.5 font-bold">
+                      {queueTasksCount}
+                    </span>
+                  )}
+                </button>
+              )}
 
-          {/* Inline Quick Add Task Form */}
-          {isQuickAddingTask && (
-            <form onSubmit={handleQuickAddSubmit} className="flex items-center gap-1.5">
-              <input
-                type="text"
-                autoFocus
-                value={quickTaskTitle}
-                onChange={(e) => setQuickTaskTitle(e.target.value)}
-                placeholder="Task title..."
-                className="flex-1 bg-white border border-border rounded-xl px-2.5 py-1 text-xs text-primaryDark outline-none focus:border-primaryDark"
-              />
-              <button
-                type="submit"
-                disabled={!quickTaskTitle.trim()}
-                className="px-2.5 py-1 rounded-xl bg-primaryDark text-white text-xs font-semibold disabled:opacity-40 cursor-pointer shrink-0"
-              >
-                Add
-              </button>
               <button
                 type="button"
-                onClick={() => setIsQuickAddingTask(false)}
-                className="p-1 text-secondaryGray hover:text-primaryDark cursor-pointer"
+                onClick={() => setIsCreateTaskModalOpen(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primaryDark hover:opacity-90 border border-transparent text-white text-[11px] font-sans font-semibold transition-colors cursor-pointer shadow-2xs"
+                title="Add task for this date"
               >
-                <X className="w-3 h-3" />
+                <Plus className="w-3 h-3" />
+                <span>Add Task</span>
               </button>
-            </form>
-          )}
+            </div>
+          </div>
 
           {/* Tasks List — Non-interactable, task name only */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
@@ -290,7 +301,7 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
                 return (
                   <div
                     key={task.id}
-                    className="px-3 py-2 bg-white border border-border/80 rounded-xl shadow-2xs flex flex-col gap-1.5 group select-none hover:border-[#D0C8BA] transition-all"
+                    className="px-3 py-2 bg-white border border-border/80 rounded-xl shadow-2xs flex flex-col gap-1.5 group select-none hover:border-border-hover transition-all"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-sans text-xs font-medium text-primaryDark block truncate flex-1 min-w-0">
@@ -407,13 +418,15 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               })
             )}
           </div>
-
-          <p className="text-[10px] font-mono text-secondaryGray/75 px-1 pt-1 leading-tight">
-            Tasks scheduled for today automatically move to your Daily To Do List. Incomplete tasks
-            return to Inbox.
-          </p>
         </div>
       </div>
+
+      {/* Task Creation Modal — same rich popup as To Do List */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={() => setIsCreateTaskModalOpen(false)}
+        scheduledDate={selectedDate}
+      />
     </div>
   );
 };

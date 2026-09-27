@@ -13,6 +13,7 @@ import {
   Sparkles,
   Code2,
   Quote,
+  Table as TableIcon,
   ChevronDown,
   CheckCircle2,
   AlertTriangle,
@@ -23,13 +24,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CalloutType } from './CalloutComponent';
+import { TableMakerPopover } from './TableMakerPopover';
 
 export const PASTEL_HIGHLIGHT_COLORS = [
-  { label: 'Yellow', color: '#FEF08A', dot: '#FACC15', bg: 'bg-[#FEF08A]' },
-  { label: 'Mint', color: '#A7F3D0', dot: '#34D399', bg: 'bg-[#A7F3D0]' },
-  { label: 'Lavender', color: '#DDD6FE', dot: '#A78BFA', bg: 'bg-[#DDD6FE]' },
-  { label: 'Sky Blue', color: '#BAE6FD', dot: '#60A5FA', bg: 'bg-[#BAE6FD]' },
-  { label: 'Rose Pink', color: '#FBCFE8', dot: '#F472B6', bg: 'bg-[#FBCFE8]' },
+  { label: 'Yellow', color: '#FEF08A', dot: '#FACC15', bg: 'bg-pastel-butter-border' },
+  { label: 'Mint', color: '#A7F3D0', dot: '#34D399', bg: 'bg-pastel-mint-border' },
+  { label: 'Lavender', color: '#DDD6FE', dot: '#A78BFA', bg: 'bg-pastel-lilac-border' },
+  { label: 'Sky Blue', color: '#BAE6FD', dot: '#60A5FA', bg: 'bg-pastel-blue-bg' },
+  { label: 'Rose Pink', color: '#FBCFE8', dot: '#F472B6', bg: 'bg-pastel-pink-bg' },
 ];
 
 interface EditorToolbarProps {
@@ -45,6 +47,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 }) => {
   const [isCalloutMenuOpen, setIsCalloutMenuOpen] = useState(false);
   const [isHighlightMenuOpen, setIsHighlightMenuOpen] = useState(false);
+  const [isTableMakerOpen, setIsTableMakerOpen] = useState(false);
 
   if (!editor) return null;
 
@@ -75,7 +78,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         content: [
           {
             type: 'paragraph',
-            content: [{ type: 'text', text: 'Document specific rationale, scope, or background details here...' }],
+            content: [
+              {
+                type: 'text',
+                text: 'Document specific rationale, scope, or background details here...',
+              },
+            ],
           },
         ],
       })
@@ -94,7 +102,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     setIsHighlightMenuOpen(false);
   };
 
-  const words = editor.storage?.characterCount?.words?.() ??
+  const words =
+    editor.storage?.characterCount?.words?.() ??
     editor.getText().trim().split(/\s+/).filter(Boolean).length;
 
   const readTimeMins = Math.max(1, Math.ceil(words / 200));
@@ -103,7 +112,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   const activeHighlightColor = editor.getAttributes('highlight')?.color;
 
   return (
-    <div className="w-full bg-[#F5EFE8]/70 border border-border/80 rounded-2xl p-1.5 flex items-center justify-between gap-2 shadow-xs select-none">
+    <div className="w-full bg-surface-warm/80 hover:bg-surface border border-border/80 rounded-2xl p-1.5 flex items-center justify-between gap-2 shadow-xs select-none transition-all">
       {/* Left Formatting Tools */}
       <div className="flex items-center gap-1 flex-wrap">
         {/* Bold */}
@@ -302,59 +311,59 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           </button>
 
           {isCalloutMenuOpen && (
-            <div className="absolute left-0 top-full mt-1.5 w-52 bg-white border border-border shadow-float rounded-2xl p-1.5 z-40 flex flex-col gap-1">
-              <div className="px-2 py-1 text-[10px] font-mono font-bold text-midGray uppercase tracking-wider border-b border-border/50">
-                Insert Pastel Callout
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setIsCalloutMenuOpen(false)} />
+              <div className="absolute left-0 top-full mt-1.5 bg-white border border-border shadow-float rounded-full p-1.5 z-40 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-100">
+                {(
+                  [
+                    {
+                      type: 'decision',
+                      icon: CheckCircle2,
+                      label: 'Decision Record',
+                      className:
+                        'bg-[#E8F8F0] hover:bg-[#D4F4E4] border border-emerald-300/80 text-emerald-700',
+                    },
+                    {
+                      type: 'caution',
+                      icon: AlertTriangle,
+                      label: 'Caution',
+                      className:
+                        'bg-[#FEF3E8] hover:bg-[#FDE7D2] border border-amber-300/80 text-amber-700',
+                    },
+                    {
+                      type: 'idea',
+                      icon: Lightbulb,
+                      label: 'Idea',
+                      className:
+                        'bg-[#F0EEFF] hover:bg-[#E2DEFC] border border-indigo-300/80 text-indigo-700',
+                    },
+                    {
+                      type: 'reference',
+                      icon: Bookmark,
+                      label: 'Reference',
+                      className:
+                        'bg-[#EBF6FE] hover:bg-[#D7EDFC] border border-sky-300/80 text-sky-700',
+                    },
+                  ] as const
+                ).map(({ type, icon: Icon, label, className }) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      insertCallout(type);
+                      setIsCalloutMenuOpen(false);
+                    }}
+                    title={label}
+                    className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer hover:scale-110 shadow-xs',
+                      className
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </button>
+                ))}
               </div>
-
-              <button
-                type="button"
-                onClick={() => insertCallout('decision')}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-sans text-left hover:bg-[#E8F8F0] transition-colors cursor-pointer text-emerald-950"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Decision Record</span>
-                  <span className="text-[10px] text-emerald-800">Mint architectural milestone</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => insertCallout('caution')}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-sans text-left hover:bg-[#FEF3E8] transition-colors cursor-pointer text-amber-950"
-              >
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Caution</span>
-                  <span className="text-[10px] text-amber-800">Warm warning & constraints</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => insertCallout('idea')}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-sans text-left hover:bg-[#F0EEFF] transition-colors cursor-pointer text-indigo-950"
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-indigo-700" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Idea</span>
-                  <span className="text-[10px] text-indigo-800">Soft lavender concept</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => insertCallout('reference')}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-sans text-left hover:bg-[#EBF6FE] transition-colors cursor-pointer text-sky-950"
-              >
-                <Bookmark className="w-3.5 h-3.5 text-sky-700" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Reference</span>
-                  <span className="text-[10px] text-sky-800">Sky blue documentation link</span>
-                </div>
-              </button>
-            </div>
+            </>
           )}
         </div>
 
@@ -387,6 +396,30 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <Quote className="w-3.5 h-3.5" />
         </button>
+
+        {/* Table Maker */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsTableMakerOpen(!isTableMakerOpen)}
+            title="Table Maker"
+            className={cn(
+              'px-2.5 py-1 rounded-xl text-xs font-sans transition-colors cursor-pointer flex items-center gap-1',
+              editor.isActive('table') || isTableMakerOpen
+                ? 'bg-white text-primaryDark shadow-xs font-semibold'
+                : 'text-secondaryGray hover:text-primaryDark hover:bg-white/60'
+            )}
+          >
+            <TableIcon className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium hidden sm:inline">Table</span>
+          </button>
+
+          <TableMakerPopover
+            editor={editor}
+            isOpen={isTableMakerOpen}
+            onClose={() => setIsTableMakerOpen(false)}
+          />
+        </div>
       </div>
 
       {/* Right Meta Stats & Autosave Indicator */}

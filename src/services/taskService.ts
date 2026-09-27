@@ -27,8 +27,7 @@ export class TaskService {
       [targetDate]
     );
 
-    const cleanedRows = await this.deduplicateTasks(rows);
-    return cleanedRows.map((t) => this.mapTask(t));
+    return rows.map((t) => this.mapTask(t));
   }
 
   async getInboxTasks(): Promise<Task[]> {
@@ -37,15 +36,13 @@ export class TaskService {
       `SELECT * FROM tasks WHERE scheduled_date IS NULL ORDER BY position_rank ASC`
     );
 
-    const cleanedRows = await this.deduplicateTasks(rows);
-    return cleanedRows.map((t) => this.mapTask(t));
+    return rows.map((t) => this.mapTask(t));
   }
 
   async getAllTasks(): Promise<Task[]> {
     await db.init();
     const rows = await db.select<any>(`SELECT * FROM tasks ORDER BY position_rank ASC`);
-    const cleanedRows = await this.deduplicateTasks(rows);
-    return cleanedRows.map((t) => this.mapTask(t));
+    return rows.map((t) => this.mapTask(t));
   }
 
   async rolloverIncompleteTasks(todayDate?: string): Promise<void> {
@@ -91,30 +88,6 @@ export class TaskService {
       createdAt: t.created_at,
       updatedAt: t.updated_at,
     };
-  }
-
-  private async deduplicateTasks(rows: any[]): Promise<any[]> {
-    const seen = new Set<string>();
-    const keep: any[] = [];
-    const deleteIds: string[] = [];
-
-    for (const row of rows) {
-      const key = `${row.title}__${row.scheduled_date || 'inbox'}`;
-      if (seen.has(key)) {
-        deleteIds.push(row.id);
-      } else {
-        seen.add(key);
-        keep.push(row);
-      }
-    }
-
-    if (deleteIds.length > 0) {
-      for (const id of deleteIds) {
-        await db.execute('DELETE FROM tasks WHERE id = ?', [id]);
-      }
-    }
-
-    return keep;
   }
 
   private async seedDefaultTasks(): Promise<void> {

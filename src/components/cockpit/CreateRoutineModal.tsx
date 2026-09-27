@@ -72,7 +72,7 @@ export const CreateRoutineModal: React.FC<CreateRoutineModalProps> = ({ isOpen, 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. 20-min Morning Movement, Code review..."
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 
@@ -145,7 +145,7 @@ export const CreateRoutineModal: React.FC<CreateRoutineModalProps> = ({ isOpen, 
               max={12}
               value={targetCount}
               onChange={(e) => setTargetCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              className="w-16 bg-surface border border-border rounded-md px-2.5 py-1 text-center font-mono font-bold text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="w-16 bg-surface border border-border rounded-md px-2.5 py-1 text-center font-mono font-bold text-primaryDark outline-none focus:border-border-focus"
             />
           </div>
         </div>

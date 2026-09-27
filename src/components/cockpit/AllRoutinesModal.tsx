@@ -131,7 +131,7 @@ export const AllRoutinesModal: React.FC<AllRoutinesModalProps> = ({
               return (
                 <div
                   key={routine.id}
-                  className="p-3.5 rounded-xl bg-bg border border-border flex items-center justify-between gap-4 group hover:border-[#D8D2C5] transition-all shadow-subtle"
+                  className="p-3.5 rounded-xl bg-bg border border-border flex items-center justify-between gap-4 group hover:border-border-hover transition-all shadow-subtle"
                 >
                   <div className="flex flex-col gap-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">

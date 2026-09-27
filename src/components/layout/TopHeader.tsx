@@ -124,7 +124,7 @@ export const TopHeader: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCommandPaletteOpen(true)}
-            className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-pill bg-surface border border-border text-secondaryGray hover:text-primaryDark hover:border-[#DED7C9] transition-all text-ui-rg-xs shadow-subtle cursor-pointer"
+            className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-pill bg-surface border border-border text-secondaryGray hover:text-primaryDark hover:border-border-hover transition-all text-ui-rg-xs shadow-subtle cursor-pointer"
           >
             <Search className="w-3.5 h-3.5 text-secondaryGray" />
             <span>Quick search or jump</span>
@@ -168,7 +168,7 @@ export const TopHeader: React.FC = () => {
                   className={cn(
                     'px-3 py-1.5 text-left text-mono-xs font-mono transition-colors flex items-center justify-between cursor-pointer',
                     mode === 'focus'
-                      ? 'bg-[#EBE7FF] text-primaryDark font-bold'
+                      ? 'bg-accent-indigo text-primaryDark font-bold'
                       : 'hover:bg-bg text-secondaryGray hover:text-primaryDark'
                   )}
                 >
@@ -186,7 +186,7 @@ export const TopHeader: React.FC = () => {
                   className={cn(
                     'px-3 py-1.5 text-left text-mono-xs font-mono transition-colors flex items-center justify-between cursor-pointer',
                     mode === 'shortBreak'
-                      ? 'bg-[#EBE7FF] text-primaryDark font-bold'
+                      ? 'bg-accent-indigo text-primaryDark font-bold'
                       : 'hover:bg-bg text-secondaryGray hover:text-primaryDark'
                   )}
                 >
@@ -204,7 +204,7 @@ export const TopHeader: React.FC = () => {
                   className={cn(
                     'px-3 py-1.5 text-left text-mono-xs font-mono transition-colors flex items-center justify-between cursor-pointer',
                     mode === 'longBreak'
-                      ? 'bg-[#EBE7FF] text-primaryDark font-bold'
+                      ? 'bg-accent-indigo text-primaryDark font-bold'
                       : 'hover:bg-bg text-secondaryGray hover:text-primaryDark'
                   )}
                 >
@@ -231,7 +231,7 @@ export const TopHeader: React.FC = () => {
                 'w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-subtle',
                 isRunning
                   ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-                  : 'bg-primaryDark text-bg hover:bg-[#1a1918]'
+                  : 'bg-primaryDark text-bg hover:opacity-90'
               )}
             >
               {isRunning ? (
@@ -286,7 +286,7 @@ export const TopHeader: React.FC = () => {
 
           {/* Task Binding Capsule */}
           {activeTarget ? (
-            <div className="flex items-center gap-1 bg-[#EBE7FF] hover:bg-[#E2DCFF] border border-[#D5CEF5] px-2.5 py-0.5 rounded-pill transition-colors group">
+            <div className="flex items-center gap-1 bg-accent-indigo hover:brightness-95 border border-pastel-lavender-border px-2.5 py-0.5 rounded-pill transition-colors group">
               <button
                 type="button"
                 onClick={() => setIsFocusDrawerOpen(true)}
@@ -335,7 +335,7 @@ export const TopHeader: React.FC = () => {
 
         {/* Right: Live Date & Clock Pill */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-[#D1FAE5]/60 border border-emerald-300/60 px-3.5 py-1.5 rounded-pill shadow-xs">
+          <div className="flex items-center gap-2 bg-accent-green/60 border border-emerald-300/60 px-3.5 py-1.5 rounded-pill shadow-xs">
             <span className="font-mono text-mono-xs font-bold text-emerald-950 tracking-wider">
               {formattedDatePill}
             </span>

@@ -106,7 +106,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Architecture Studio, CS 101, Deep Work..."
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 
@@ -119,7 +119,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
             <select
               value={dayOfWeek}
               onChange={(e) => setDayOfWeek(parseInt(e.target.value, 10))}
-              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             >
               <option value={0}>Sunday</option>
               <option value={1}>Monday</option>
@@ -145,7 +145,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
                 else if (cat === 'meeting' || cat === 'planning') setColorAccent('lavender');
                 else if (cat === 'review') setColorAccent('sand');
               }}
-              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+              className="bg-bg border border-border rounded-md px-3 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
             >
               <option value="class">Class / Lecture</option>
               <option value="work">Work Schedule</option>
@@ -169,7 +169,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
               required
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF] font-mono"
+              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus font-mono"
             />
           </div>
 
@@ -182,47 +182,103 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
               required
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF] font-mono"
+              className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus font-mono"
             />
           </div>
         </div>
 
         {/* Color Accent */}
         <div className="flex flex-col gap-1.5">
-          <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-            Color Accent
-          </label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="flex items-center justify-between">
+            <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
+              Color Accent
+            </label>
+            <span className="font-mono text-mono-xs text-secondaryGray font-medium">
+              {[
+                { id: 'mint', label: 'Mint' },
+                { id: 'lavender', label: 'Lavender' },
+                { id: 'sand', label: 'Sand' },
+                { id: 'blue', label: 'Sky Blue' },
+                { id: 'mauve', label: 'Mauve' },
+                { id: 'rose', label: 'Rose Pink' },
+                { id: 'amber', label: 'Amber' },
+              ].find((c) => c.id === colorAccent)?.label || 'Mint'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 pt-1 flex-wrap">
             {[
               {
                 id: 'mint',
                 label: 'Mint',
-                bg: 'bg-accent-green text-emerald-950 border-emerald-300',
+                dot: '#10B981',
+                bg: 'bg-accent-green',
+                border: 'border-emerald-300',
               },
               {
                 id: 'lavender',
                 label: 'Lavender',
-                bg: 'bg-accent-indigo text-indigo-950 border-indigo-300',
+                dot: '#818CF8',
+                bg: 'bg-accent-indigo',
+                border: 'border-indigo-300',
               },
-              { id: 'sand', label: 'Sand', bg: 'bg-[#EFE9DC] text-amber-950 border-amber-300' },
-              { id: 'blue', label: 'Sky Blue', bg: 'bg-accent-blue text-sky-950 border-sky-300' },
+              {
+                id: 'sand',
+                label: 'Sand',
+                dot: '#F59E0B',
+                bg: 'bg-[#EFE9DC]',
+                border: 'border-[#DDD5C8]',
+              },
+              {
+                id: 'blue',
+                label: 'Sky Blue',
+                dot: '#0284C7',
+                bg: 'bg-accent-blue',
+                border: 'border-sky-300',
+              },
               {
                 id: 'mauve',
                 label: 'Mauve',
-                bg: 'bg-accent-mauve/25 text-[#4A2D40] border-accent-mauve/40',
+                dot: '#9D174D',
+                bg: 'bg-[#F3E8EE]',
+                border: 'border-[#DFC5D6]',
               },
-            ].map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setColorAccent(c.id as any)}
-                className={`py-1.5 px-2 rounded-md border text-center text-xs font-sans font-medium transition-all cursor-pointer ${
-                  c.bg
-                } ${colorAccent === c.id ? 'ring-2 ring-primaryDark shadow-xs font-bold' : 'opacity-80 hover:opacity-100'}`}
-              >
-                {c.label}
-              </button>
-            ))}
+              {
+                id: 'rose',
+                label: 'Rose Pink',
+                dot: '#E11D48',
+                bg: 'bg-[#FED7E8]',
+                border: 'border-[#F472B6]',
+              },
+              {
+                id: 'amber',
+                label: 'Amber',
+                dot: '#D97706',
+                bg: 'bg-[#FEF3C7]',
+                border: 'border-[#FCD34D]',
+              },
+            ].map((c) => {
+              const isSelected = colorAccent === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setColorAccent(c.id as any)}
+                  className={`w-7 h-7 rounded-full cursor-pointer transition-all hover:scale-110 border flex items-center justify-center relative ${
+                    c.bg
+                  } ${c.border} ${
+                    isSelected
+                      ? 'ring-2 ring-primaryDark ring-offset-2 scale-110 shadow-xs'
+                      : 'opacity-85 hover:opacity-100'
+                  }`}
+                  title={c.label}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: c.dot }}
+                  />
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -236,7 +292,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Room 402 / Remote / Studio 3"
-            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-[#C5BDAF]"
+            className="bg-bg border border-border rounded-md px-3.5 py-2 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
           />
         </div>
 

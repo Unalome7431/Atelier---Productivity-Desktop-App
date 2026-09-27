@@ -94,11 +94,15 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
       case 'mint':
         return 'bg-accent-green/90 border border-emerald-300/80 text-emerald-950 shadow-subtle hover:border-emerald-400';
       case 'sand':
-        return 'bg-[#EFE9DC] border border-amber-200/80 text-amber-950 shadow-subtle hover:border-amber-300';
+        return 'bg-[#EFE9DC] border border-[#DDD5C8] text-[#4F483D] shadow-subtle hover:border-[#C8BFB0]';
       case 'blue':
         return 'bg-accent-blue/85 border border-sky-300/80 text-sky-950 shadow-subtle hover:border-sky-400';
       case 'mauve':
-        return 'bg-accent-mauve/20 border border-accent-mauve/40 text-[#4A2D40] shadow-subtle hover:border-accent-mauve';
+        return 'bg-[#F3E8EE] border border-[#DFC5D6] text-[#4A2D40] shadow-subtle hover:border-[#8E677E]';
+      case 'rose':
+        return 'bg-[#FED7E8] border border-[#F472B6]/60 text-[#831843] shadow-subtle hover:border-[#F472B6]';
+      case 'amber':
+        return 'bg-[#FEF3C7] border border-[#F59E0B]/50 text-[#78350F] shadow-subtle hover:border-[#F59E0B]';
       case 'lavender':
       default:
         return 'bg-accent-indigo/90 border border-indigo-200/80 text-indigo-950 shadow-subtle hover:border-indigo-300';
@@ -106,19 +110,19 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
   };
 
   return (
-    <div className="flex flex-col bg-surface border border-[#D4CBBF] rounded-panel overflow-hidden shadow-card">
+    <div className="flex flex-col bg-surface border border-border-dark rounded-panel overflow-hidden shadow-card">
       {/* Scrollable Timeline Container containing both Sticky Header and Grid for 100% Column Alignment */}
       <div className="overflow-y-auto overflow-x-auto max-h-[660px] relative bg-bg/40">
         <div className="min-w-[760px] flex flex-col">
           {/* 7-Day Header Strip (Pinned at top of scroll view with identical column widths) */}
-          <div className="grid grid-cols-[80px_repeat(7,1fr)] bg-surface border-b border-[#D4CBBF] sticky top-0 z-20 select-none shadow-xs">
-            <div className="p-3 font-mono text-mono-xs font-bold text-secondaryGray flex items-center justify-center border-r border-[#D4CBBF] uppercase tracking-wider bg-surface">
+          <div className="grid grid-cols-[80px_repeat(7,1fr)] bg-surface border-b border-border-dark sticky top-0 z-20 select-none shadow-xs">
+            <div className="p-3 font-mono text-mono-xs font-bold text-secondaryGray flex items-center justify-center border-r border-border-dark uppercase tracking-wider bg-surface">
               TIME
             </div>
             {DAYS.map((day) => (
               <div
                 key={day.index}
-                className="p-2.5 text-center border-r border-[#D4CBBF] last:border-r-0 flex items-center justify-center bg-surface"
+                className="p-2.5 text-center border-r border-border-dark last:border-r-0 flex items-center justify-center bg-surface"
               >
                 <span className="font-mono text-mono-xs font-bold text-primaryDark tracking-wider">
                   {day.label}
@@ -133,11 +137,11 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
             style={{ height: `${HOURS.length * ROW_HEIGHT}px` }}
           >
             {/* Left Time Column */}
-            <div className="border-r border-[#D4CBBF] bg-bg/70 select-none">
+            <div className="border-r border-border-dark bg-bg/70 select-none">
               {HOURS.map((hour) => (
                 <div
                   key={hour}
-                  className="font-mono text-mono-xs font-semibold text-secondaryGray px-2.5 flex items-start justify-end pt-1.5 border-b border-[#DDD5C8]"
+                  className="font-mono text-mono-xs font-semibold text-secondaryGray px-2.5 flex items-start justify-end pt-1.5 border-b border-border-dark"
                   style={{ height: `${ROW_HEIGHT}px` }}
                 >
                   <span>{hour}</span>
@@ -152,7 +156,7 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
               return (
                 <div
                   key={day.index}
-                  className="relative border-r border-[#D4CBBF] last:border-r-0"
+                  className="relative border-r border-border-dark last:border-r-0"
                 >
                   {/* Hourly Grid Slots */}
                   {HOURS.map((hour) => {
@@ -167,7 +171,7 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, day.index, hour)}
                         className={cn(
-                          'border-b border-[#DDD5C8] transition-colors cursor-pointer group relative',
+                          'border-b border-border-dark transition-colors cursor-pointer group relative',
                           isHoverTarget
                             ? 'bg-accent-green/25 ring-1 ring-emerald-400 z-10'
                             : 'hover:bg-surface/70'
@@ -189,9 +193,7 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
 
                   {/* Rendered Repeatable Schedule Blocks on Day Column */}
                   {dayBlocks.map((block) => {
-                    const startMin = timeToMinutesFromStart(
-                      block.startFormatted || block.timeSlot
-                    );
+                    const startMin = timeToMinutesFromStart(block.startFormatted || block.timeSlot);
                     const endMin = timeToMinutesFromStart(
                       block.endFormatted ||
                         `${parseInt((block.startFormatted || '09:00').split(':')[0], 10) + 1}:00`

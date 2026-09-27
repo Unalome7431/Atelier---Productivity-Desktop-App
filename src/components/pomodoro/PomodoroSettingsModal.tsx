@@ -368,7 +368,7 @@ export const PomodoroSettingsModal: React.FC<PomodoroSettingsModalProps> = ({
             </div>
 
             {testNotificationFeedback && (
-              <div className="bg-[#D1FAE5] border border-emerald-300 text-emerald-950 px-3 py-1.5 rounded-xl text-ui-rg-xs font-mono flex items-center gap-2">
+              <div className="bg-accent-green border border-emerald-300 text-emerald-950 px-3 py-1.5 rounded-xl text-ui-rg-xs font-mono flex items-center gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                 <span>{testNotificationFeedback}</span>
               </div>

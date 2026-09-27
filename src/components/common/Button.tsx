@@ -2,7 +2,14 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export type ButtonVariant =
-  'primary' | 'secondary' | 'ghost' | 'destructive' | 'mint' | 'lavender' | 'pill';
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'destructive'
+  | 'mint'
+  | 'lavender'
+  | 'pill'
+  | 'dark';
 
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
 
@@ -26,14 +33,17 @@ export const Button: React.FC<ButtonProps> = ({
     'inline-flex items-center justify-center font-sans font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none rounded-pill';
 
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-primaryDark text-white hover:bg-[#1a1918] shadow-subtle',
-    secondary: 'bg-surface text-primaryDark border border-border hover:bg-[#EFE9DC] shadow-subtle',
+    primary:
+      'bg-primaryDark text-white font-semibold hover:opacity-90 shadow-subtle',
+    secondary:
+      'bg-white text-primaryDark border border-border-hover hover:bg-surface shadow-subtle',
     ghost: 'bg-transparent text-secondaryGray hover:text-primaryDark hover:bg-border/50',
     destructive: 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100',
-    mint: 'bg-accent-green text-emerald-950 font-semibold hover:brightness-95 shadow-subtle border border-emerald-300/40',
+    mint: 'bg-primaryDark text-white font-semibold hover:opacity-90 shadow-subtle',
     lavender:
-      'bg-accent-indigo text-indigo-950 font-semibold hover:brightness-95 shadow-subtle border border-indigo-200/60',
-    pill: 'bg-surface text-primaryDark border border-border hover:bg-[#EFE9DC] hover:border-[#D0C8BA] shadow-subtle',
+      'bg-surface text-primaryDark border border-border hover:bg-surface-alt shadow-subtle',
+    pill: 'bg-surface text-primaryDark border border-border hover:bg-surface-alt hover:border-border-hover shadow-subtle',
+    dark: 'bg-primaryDark text-white font-semibold hover:opacity-90 shadow-subtle',
   };
 
   const sizes: Record<ButtonSize, string> = {

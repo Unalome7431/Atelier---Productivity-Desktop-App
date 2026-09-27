@@ -42,6 +42,8 @@ class DatabaseManager {
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_break_mins INTEGER DEFAULT 5;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_long_break_mins INTEGER DEFAULT 15;',
           'ALTER TABLE workspace_config ADD COLUMN pomodoro_daily_target INTEGER DEFAULT 4;',
+          'ALTER TABLE workspace_config ADD COLUMN telegram_bot_token TEXT;',
+          'ALTER TABLE workspace_config ADD COLUMN telegram_bot_username TEXT;',
           'ALTER TABLE kanban_cards ADD COLUMN checklist TEXT DEFAULT "[]";',
           'ALTER TABLE kanban_cards ADD COLUMN due_date TEXT;',
           'ALTER TABLE kanban_cards ADD COLUMN tag_label TEXT;',
@@ -171,6 +173,17 @@ class DatabaseManager {
       localStorage.setItem(`atelier_db_${table}`, JSON.stringify(data));
     } catch (storageErr) {
       console.warn(`[Atelier DB] Failed to persist table "${table}" to localStorage:`, storageErr);
+      if (table === 'client_sync_queue') {
+        try {
+          // Keep only recent mutations to prevent local storage quota overflow
+          const queue = this.fallbackMemoryStore.get('client_sync_queue') || [];
+          const trimmed = queue.slice(-20);
+          this.fallbackMemoryStore.set('client_sync_queue', trimmed);
+          localStorage.setItem('atelier_db_client_sync_queue', JSON.stringify(trimmed));
+        } catch {
+          // Ignore secondary storage error
+        }
+      }
     }
   }
 
@@ -255,16 +268,24 @@ class DatabaseManager {
         const setClause = match[2];
         const whereClause = match[3];
         const records = this.fallbackMemoryStore.get(table) || [];
-        const setCols = setClause.split(',').map((s) =>
-          s
-            .trim()
-            .split(/\s*=\s*/)[0]
-            .trim()
-        );
+        const setAssignments = setClause.split(',').map((s) => {
+          const parts = s.trim().split(/\s*=\s*/);
+          return { col: parts[0].trim(), valExpr: (parts[1] || '').trim() };
+        });
 
-        // Number of SET params = setCols.length, remainder are WHERE params
-        const setParams = params.slice(0, setCols.length);
-        const whereParams = params.slice(setCols.length);
+        let pIdx = 0;
+        const colSetters: { col: string; getVal: () => any }[] = [];
+        for (const a of setAssignments) {
+          if (a.valExpr === '?') {
+            const val = params[pIdx++];
+            colSetters.push({ col: a.col, getVal: () => val });
+          } else if (a.valExpr.toUpperCase() === 'NULL') {
+            colSetters.push({ col: a.col, getVal: () => null });
+          } else {
+            colSetters.push({ col: a.col, getVal: () => a.valExpr });
+          }
+        }
+        const whereParams = params.slice(pIdx);
 
         let affected = 0;
         for (const r of records) {
@@ -283,8 +304,8 @@ class DatabaseManager {
             matches = r.id === whereParams[0];
           }
           if (matches) {
-            setCols.forEach((col, idx) => {
-              r[col] = setParams[idx];
+            colSetters.forEach((setter) => {
+              r[setter.col] = setter.getVal();
             });
             affected++;
           }

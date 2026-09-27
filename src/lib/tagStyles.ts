@@ -15,58 +15,58 @@ export const PASTEL_TAG_COLORS: Record<
 > = {
   mint: {
     name: 'Mint',
-    bg: 'bg-[#D1FAE5]',
-    text: 'text-[#065F46]',
-    border: 'border-[#A7F3D0]',
+    bg: 'bg-pastel-mint-bg',
+    text: 'text-pastel-mint-text',
+    border: 'border-pastel-mint-border',
     preview: '#34D399',
   },
   lavender: {
     name: 'Lavender',
-    bg: 'bg-[#EBE7FF]',
-    text: 'text-[#4338CA]',
-    border: 'border-[#D5CEF5]',
+    bg: 'bg-pastel-lavender-bg',
+    text: 'text-pastel-lavender-text',
+    border: 'border-pastel-lavender-border',
     preview: '#818CF8',
   },
   lilac: {
     name: 'Lilac',
-    bg: 'bg-[#EBE9FE]',
-    text: 'text-[#6D28D9]',
-    border: 'border-[#DDD6FE]',
+    bg: 'bg-pastel-lilac-bg',
+    text: 'text-pastel-lilac-text',
+    border: 'border-pastel-lilac-border',
     preview: '#C084FC',
   },
   blue: {
     name: 'Sky Blue',
-    bg: 'bg-[#BAE6FD]',
-    text: 'text-[#0369A1]',
-    border: 'border-[#7DD3FC]',
+    bg: 'bg-pastel-blue-bg',
+    text: 'text-pastel-blue-text',
+    border: 'border-pastel-blue-border',
     preview: '#60A5FA',
   },
   butter: {
     name: 'Butter',
-    bg: 'bg-[#FCFCE8]',
-    text: 'text-[#854D0E]',
-    border: 'border-[#FEF08A]',
+    bg: 'bg-pastel-butter-bg',
+    text: 'text-pastel-butter-text',
+    border: 'border-pastel-butter-border',
     preview: '#FBBF24',
   },
   pink: {
     name: 'Rose Pink',
-    bg: 'bg-[#FFE4E6]',
-    text: 'text-[#9F1239]',
-    border: 'border-[#FECDD3]',
+    bg: 'bg-pastel-pink-bg',
+    text: 'text-pastel-pink-text',
+    border: 'border-pastel-pink-border',
     preview: '#F472B6',
   },
   mauve: {
     name: 'Mauve',
-    bg: 'bg-[#F3E8EE]',
-    text: 'text-[#8E677E]',
-    border: 'border-[#E5D5DF]',
+    bg: 'bg-pastel-mauve-bg',
+    text: 'text-pastel-mauve-text',
+    border: 'border-pastel-mauve-border',
     preview: '#8E677E',
   },
   sand: {
     name: 'Sand',
-    bg: 'bg-[#FAF7F0]',
-    text: 'text-[#787571]',
-    border: 'border-[#E8E2D5]',
+    bg: 'bg-pastel-sand-bg',
+    text: 'text-pastel-sand-text',
+    border: 'border-pastel-sand-border',
     preview: '#D4C5A9',
   },
 };
@@ -88,10 +88,10 @@ export function getTagStyle(tag?: string, colorName?: string): string {
   // Fallback to keyword matching for common terminology
   const lower = tag.toLowerCase();
   if (lower.includes('doc') || lower.includes('contract')) {
-    return 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]'; // mint
+    return 'bg-pastel-mint-bg text-pastel-mint-text border-pastel-mint-border';
   }
   if (lower.includes('design') || lower.includes('ui') || lower.includes('ux')) {
-    return 'bg-[#EBE7FF] text-[#4338CA] border-[#D5CEF5]'; // lavender
+    return 'bg-pastel-lavender-bg text-pastel-lavender-text border-pastel-lavender-border';
   }
   if (
     lower.includes('eng') ||
@@ -99,16 +99,16 @@ export function getTagStyle(tag?: string, colorName?: string): string {
     lower.includes('backend') ||
     lower.includes('infra')
   ) {
-    return 'bg-[#D1FAE5] text-[#047857] border-[#A7F3D0]'; // mint
+    return 'bg-pastel-mint-bg text-pastel-mint-text border-pastel-mint-border';
   }
   if (lower.includes('research') || lower.includes('interview')) {
-    return 'bg-[#EBE9FE] text-[#6D28D9] border-[#DDD6FE]'; // lilac
+    return 'bg-pastel-lilac-bg text-pastel-lilac-text border-pastel-lilac-border';
   }
   if (lower.includes('qa') || lower.includes('test') || lower.includes('sec')) {
-    return 'bg-[#BAE6FD] text-[#0369A1] border-[#7DD3FC]'; // sky blue
+    return 'bg-pastel-blue-bg text-pastel-blue-text border-pastel-blue-border';
   }
   if (lower.includes('content') || lower.includes('copy') || lower.includes('market')) {
-    return 'bg-[#FCFCE8] text-[#854D0E] border-[#FEF08A]'; // butter
+    return 'bg-pastel-butter-bg text-pastel-butter-text border-pastel-butter-border';
   }
 
   // Deterministic hash so user-created custom tags get a stable, beautiful pastel color
@@ -136,8 +136,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'sand',
     name: 'Warm Sand',
-    bgTint: 'bg-[#FAF7F0]',
-    borderClass: 'border-[#E8E2D5]',
+    bgTint: 'bg-pastel-sand-tint',
+    borderClass: 'border-pastel-sand-border',
     dotColor: '#D4C5A9',
     colorAccent: '#FCFCE8',
     previewColor: '#D4C5A9',
@@ -145,8 +145,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'blue',
     name: 'Soft Blue',
-    bgTint: 'bg-[#F0F3FF]',
-    borderClass: 'border-[#DCE4FF]',
+    bgTint: 'bg-pastel-lavender-tint',
+    borderClass: 'border-pastel-lavender-border',
     dotColor: '#818CF8',
     colorAccent: '#EBE7FF',
     previewColor: '#818CF8',
@@ -154,8 +154,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'lilac',
     name: 'Lilac',
-    bgTint: 'bg-[#F5F0FF]',
-    borderClass: 'border-[#E7DBFF]',
+    bgTint: 'bg-pastel-lilac-tint',
+    borderClass: 'border-pastel-lilac-border',
     dotColor: '#C084FC',
     colorAccent: '#EBE9FE',
     previewColor: '#C084FC',
@@ -163,8 +163,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'mint',
     name: 'Mint Green',
-    bgTint: 'bg-[#ECFDF5]',
-    borderClass: 'border-[#D1F2E2]',
+    bgTint: 'bg-pastel-mint-tint',
+    borderClass: 'border-pastel-mint-border',
     dotColor: '#34D399',
     colorAccent: '#D1FAE5',
     previewColor: '#34D399',
@@ -172,8 +172,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'pink',
     name: 'Rose Pink',
-    bgTint: 'bg-[#FFF1F2]',
-    borderClass: 'border-[#FFE4E6]',
+    bgTint: 'bg-pastel-pink-tint',
+    borderClass: 'border-pastel-pink-border',
     dotColor: '#F43F5E',
     colorAccent: '#FFE4E6',
     previewColor: '#F43F5E',
@@ -181,8 +181,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'butter',
     name: 'Butter Yellow',
-    bgTint: 'bg-[#FEFCE8]',
-    borderClass: 'border-[#FEF08A]',
+    bgTint: 'bg-pastel-butter-tint',
+    borderClass: 'border-pastel-butter-border',
     dotColor: '#EAB308',
     colorAccent: '#FEF9C3',
     previewColor: '#EAB308',
@@ -190,8 +190,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'sky',
     name: 'Sky Blue',
-    bgTint: 'bg-[#F0F9FF]',
-    borderClass: 'border-[#E0F2FE]',
+    bgTint: 'bg-pastel-blue-tint',
+    borderClass: 'border-pastel-blue-border',
     dotColor: '#0EA5E9',
     colorAccent: '#BAE6FD',
     previewColor: '#0EA5E9',
@@ -199,8 +199,8 @@ export const COLUMN_THEMES: ColumnThemeOption[] = [
   {
     id: 'parchment',
     name: 'Neutral Parchment',
-    bgTint: 'bg-[#F5F1E8]',
-    borderClass: 'border-[#EFEAE1]',
+    bgTint: 'bg-surface',
+    borderClass: 'border-border',
     dotColor: '#787571',
     colorAccent: '#FAF8F5',
     previewColor: '#787571',

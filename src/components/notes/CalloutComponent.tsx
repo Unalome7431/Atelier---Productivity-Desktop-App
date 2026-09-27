@@ -18,6 +18,9 @@ export interface CalloutConfig {
   icon: React.ElementType;
   containerClass: string;
   eyebrowClass: string;
+  iconColor: string;
+  bg: string;
+  border: string;
 }
 
 export const CALLOUT_CONFIGS: Record<CalloutType, CalloutConfig> = {
@@ -25,29 +28,41 @@ export const CALLOUT_CONFIGS: Record<CalloutType, CalloutConfig> = {
     label: 'Decision Record',
     defaultEyebrow: 'DECISION RECORD · 04',
     icon: CheckCircle2,
-    containerClass: 'bg-[#E8F8F0] border-emerald-200/90 text-emerald-950',
+    containerClass: 'bg-[#E8F8F0] border border-emerald-300/80 text-emerald-950',
     eyebrowClass: 'text-emerald-800',
+    iconColor: 'text-emerald-700',
+    bg: 'bg-[#E8F8F0]',
+    border: 'border-emerald-300/80',
   },
   caution: {
     label: 'Caution',
     defaultEyebrow: 'CAUTION',
     icon: AlertTriangle,
-    containerClass: 'bg-[#FEF3E8] border-amber-200/90 text-amber-950',
+    containerClass: 'bg-[#FEF3E8] border border-amber-300/80 text-amber-950',
     eyebrowClass: 'text-amber-800',
+    iconColor: 'text-amber-700',
+    bg: 'bg-[#FEF3E8]',
+    border: 'border-amber-300/80',
   },
   idea: {
     label: 'Idea',
     defaultEyebrow: 'IDEA',
     icon: Lightbulb,
-    containerClass: 'bg-[#F0EEFF] border-indigo-200/90 text-indigo-950',
+    containerClass: 'bg-[#F0EEFF] border border-indigo-300/80 text-indigo-950',
     eyebrowClass: 'text-indigo-800',
+    iconColor: 'text-indigo-700',
+    bg: 'bg-[#F0EEFF]',
+    border: 'border-indigo-300/80',
   },
   reference: {
     label: 'Reference',
     defaultEyebrow: 'REFERENCE',
     icon: Bookmark,
-    containerClass: 'bg-[#EBF6FE] border-sky-200/90 text-sky-950',
+    containerClass: 'bg-[#EBF6FE] border border-sky-300/80 text-sky-950',
     eyebrowClass: 'text-sky-800',
+    iconColor: 'text-sky-700',
+    bg: 'bg-[#EBF6FE]',
+    border: 'border-sky-300/80',
   },
 };
 
@@ -98,40 +113,48 @@ export const CalloutComponent: React.FC<NodeViewProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Type Switcher Dropdown */}
+            {/* Type Switcher Dropdown - Clean Icon Only */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsTypeMenuOpen(!isTypeMenuOpen)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/80 hover:bg-white text-[10px] font-mono font-medium text-primaryDark border border-black/10 transition-colors cursor-pointer shadow-xs"
+                className="flex items-center gap-1 px-1.5 py-1 rounded-full bg-white/80 hover:bg-white border border-black/10 transition-colors cursor-pointer shadow-xs"
+                title={config.label}
               >
-                <span>{config.label}</span>
-                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                <IconComponent className={cn('w-3.5 h-3.5', config.iconColor)} />
+                <ChevronDown className="w-2.5 h-2.5 opacity-60 text-primaryDark" />
               </button>
 
               {isTypeMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-border shadow-float rounded-xl p-1 z-30 flex flex-col gap-0.5">
-                  {(Object.keys(CALLOUT_CONFIGS) as CalloutType[]).map((t) => {
-                    const c = CALLOUT_CONFIGS[t];
-                    const ItemIcon = c.icon;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => handleTypeChange(t)}
-                        className={cn(
-                          'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-sans text-left transition-colors cursor-pointer',
-                          t === currentType
-                            ? 'bg-surface font-semibold text-primaryDark'
-                            : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
-                        )}
-                      >
-                        <ItemIcon className="w-3.5 h-3.5" />
-                        <span>{c.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setIsTypeMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-border shadow-float rounded-full p-1 z-30 flex items-center gap-1">
+                    {(Object.keys(CALLOUT_CONFIGS) as CalloutType[]).map((t) => {
+                      const c = CALLOUT_CONFIGS[t];
+                      const ItemIcon = c.icon;
+                      const isSelected = t === currentType;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => handleTypeChange(t)}
+                          title={c.label}
+                          className={cn(
+                            'w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer hover:scale-110 shadow-2xs',
+                            c.bg,
+                            c.border,
+                            c.iconColor,
+                            isSelected
+                              ? 'ring-2 ring-primaryDark/60 scale-105'
+                              : 'opacity-80 hover:opacity-100'
+                          )}
+                        >
+                          <ItemIcon className="w-3.5 h-3.5" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 

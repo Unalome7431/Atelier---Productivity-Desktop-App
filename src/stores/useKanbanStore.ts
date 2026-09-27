@@ -7,6 +7,7 @@ import {
   DomainTagOption,
 } from '@/types';
 import { kanbanService } from '@/services/kanbanService';
+import { getUniqueTitle } from '@/lib/utils';
 
 const DEFAULT_DOMAIN_TAGS: DomainTagOption[] = [];
 
@@ -138,8 +139,11 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     set({ activeBoardId: boardId });
   },
 
-  createBoard: async (title = 'New Project Board', colorTag = '#818CF8') => {
-    const newBoard = await kanbanService.createBoard(title, colorTag);
+  createBoard: async (title = 'New Project Board', colorTag = '#EEEDFD') => {
+    const existingTitles = get().boards.map((b) => b.title);
+    const uniqueTitle = getUniqueTitle(title, existingTitles);
+
+    const newBoard = await kanbanService.createBoard(uniqueTitle, colorTag);
     set((state) => ({
       boards: [...state.boards, newBoard],
       activeBoardId: newBoard.id,
@@ -148,10 +152,15 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   renameBoard: async (boardId: string, title: string) => {
+    const otherTitles = get()
+      .boards.filter((b) => b.id !== boardId)
+      .map((b) => b.title);
+    const uniqueTitle = getUniqueTitle(title, otherTitles);
+
     set((state) => ({
-      boards: state.boards.map((b) => (b.id === boardId ? { ...b, title } : b)),
+      boards: state.boards.map((b) => (b.id === boardId ? { ...b, title: uniqueTitle } : b)),
     }));
-    await kanbanService.renameBoard(boardId, title);
+    await kanbanService.renameBoard(boardId, uniqueTitle);
   },
 
   deleteBoard: async (boardId: string) => {

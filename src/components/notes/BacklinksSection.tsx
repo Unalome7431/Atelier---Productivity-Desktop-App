@@ -91,7 +91,9 @@ export const BacklinksSection: React.FC<BacklinksSectionProps> = ({ backlinks })
       {/* Backlinks Grid / List */}
       {backlinks.length === 0 ? (
         <div className="p-5 rounded-2xl border border-dashed border-border bg-surface/40 text-center flex flex-col items-center justify-center gap-1.5">
-          <span className="font-sans text-xs text-secondaryGray">No external references to this note yet.</span>
+          <span className="font-sans text-xs text-secondaryGray">
+            No external references to this note yet.
+          </span>
           <span className="font-mono text-[10px] text-midGray">
             Type @ in other notes, canvas nodes, or kanban tasks to establish bidirectional links.
           </span>
@@ -115,7 +117,12 @@ export const BacklinksSection: React.FC<BacklinksSectionProps> = ({ backlinks })
                       {item.title}
                     </span>
                   </div>
-                  <span className={cn('px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase shrink-0', details.badgeClass)}>
+                  <span
+                    className={cn(
+                      'px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase shrink-0',
+                      details.badgeClass
+                    )}
+                  >
                     {details.label}
                   </span>
                 </div>

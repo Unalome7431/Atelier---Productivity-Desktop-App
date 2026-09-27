@@ -38,7 +38,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, note 
     text = text.replace(/<em>(.*?)<\/em>/gi, '*$1*');
     text = text.replace(/<u>(.*?)<\/u>/gi, '$1');
     text = text.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
-    text = text.replace(/<div[^>]*data-type="callout"[^>]*data-eyebrow="([^"]*)"[^>]*data-title="([^"]*)"[^>]*>([\s\S]*?)<\/div>/gi, '> [!NOTE] $1\n> **$2**\n> $3\n\n');
+    text = text.replace(
+      /<div[^>]*data-type="callout"[^>]*data-eyebrow="([^"]*)"[^>]*data-title="([^"]*)"[^>]*>([\s\S]*?)<\/div>/gi,
+      '> [!NOTE] $1\n> **$2**\n> $3\n\n'
+    );
     text = text.replace(/<[^>]+>/g, '');
     text = text.replace(/&nbsp;/g, ' ');
     text = text.replace(/&amp;/g, '&');
@@ -89,7 +92,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, note 
               {note.title}
             </span>
             <span className="font-mono text-[10px] text-secondaryGray">
-              {note.folder || 'General'} · Last updated {new Date(note.updatedAt).toLocaleDateString()}
+              {note.folder || 'General'} · Last updated{' '}
+              {new Date(note.updatedAt).toLocaleDateString()}
             </span>
           </div>
           <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-accent-indigo text-indigo-950 font-bold uppercase">
@@ -156,7 +160,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, note 
             >
               <div className="flex items-center gap-2">
                 <Copy className="w-3.5 h-3.5 text-secondaryGray" />
-                <span className="font-sans text-xs font-medium text-primaryDark">Copy Markdown</span>
+                <span className="font-sans text-xs font-medium text-primaryDark">
+                  Copy Markdown
+                </span>
               </div>
               {copiedFormat === 'markdown' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
             </button>

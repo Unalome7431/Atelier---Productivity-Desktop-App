@@ -160,8 +160,8 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       className={cn(
                         'w-full text-left p-3 rounded-card border transition-all flex items-center justify-between group cursor-pointer',
                         isCurrent
-                          ? 'bg-[#EBE7FF]/50 border-accent-indigo'
-                          : 'bg-surface border-border hover:border-[#DED7C9] hover:bg-bg'
+                          ? 'bg-accent-indigo/50 border-accent-indigo'
+                          : 'bg-surface border-border hover:border-border-hover hover:bg-bg'
                       )}
                     >
                       <div className="flex flex-col min-w-0 pr-2">
@@ -188,7 +188,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-pill bg-accent-indigo border border-pastel-lavender-border text-indigo-950 text-mono-xs font-mono font-bold">
                             Current
                           </span>
                         ) : (
@@ -225,8 +225,8 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       className={cn(
                         'w-full text-left p-3 rounded-card border transition-all flex items-center justify-between group cursor-pointer',
                         isCurrent
-                          ? 'bg-[#EBE7FF]/50 border-accent-indigo'
-                          : 'bg-surface border-border hover:border-[#DED7C9] hover:bg-bg'
+                          ? 'bg-accent-indigo/50 border-accent-indigo'
+                          : 'bg-surface border-border hover:border-border-hover hover:bg-bg'
                       )}
                     >
                       <div className="flex flex-col min-w-0 pr-2">
@@ -239,7 +239,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-pill bg-accent-indigo border border-pastel-lavender-border text-indigo-950 text-mono-xs font-mono font-bold">
                             Current
                           </span>
                         ) : (
@@ -278,8 +278,8 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       className={cn(
                         'w-full text-left p-3 rounded-card border transition-all flex items-center justify-between group cursor-pointer',
                         isCurrent
-                          ? 'bg-[#EBE7FF]/50 border-accent-indigo'
-                          : 'bg-surface border-border hover:border-[#DED7C9] hover:bg-bg'
+                          ? 'bg-accent-indigo/50 border-accent-indigo'
+                          : 'bg-surface border-border hover:border-border-hover hover:bg-bg'
                       )}
                     >
                       <div className="flex flex-col min-w-0 pr-2">
@@ -292,7 +292,7 @@ export const SelectFocusTaskModal: React.FC<SelectFocusTaskModalProps> = ({ isOp
                       </div>
                       <div className="shrink-0">
                         {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-[#EBE7FF] border border-[#D5CEF5] text-indigo-950 text-mono-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-pill bg-accent-indigo border border-pastel-lavender-border text-indigo-950 text-mono-xs font-mono font-bold">
                             Current
                           </span>
                         ) : (

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { NoteDocument, BacklinkItem } from '@/types';
 import { noteService } from '@/services/noteService';
+import { getUniqueTitle } from '@/lib/utils';
 
 const FOLDERS_STORAGE_KEY = 'atelier_note_folders';
 
@@ -21,7 +22,8 @@ function loadStoredFolders(): string[] {
       if (Array.isArray(parsed)) {
         // Filter out any legacy pre-made folders
         const clean = parsed.filter(
-          (f: any) => typeof f === 'string' && f.trim() && !LEGACY_FOLDER_NAMES.has(f.trim().toLowerCase())
+          (f: any) =>
+            typeof f === 'string' && f.trim() && !LEGACY_FOLDER_NAMES.has(f.trim().toLowerCase())
         );
         persistStoredFolders(clean);
         return clean;
@@ -143,9 +145,14 @@ export const useNotesStore = create<NotesState>((set, get) => ({
       get().createFolder(chosenFolder);
     }
 
+    const existingTitles = get().notes.map((n) => n.title);
+    const uniqueTitle = getUniqueTitle(params.title || 'Untitled Note', existingTitles);
+
     const newNote = await noteService.createNote({
-      title: params.title || 'Untitled Note',
-      content: params.content || '<p>Start writing documentation, architecture decisions, or meeting notes...</p>',
+      title: uniqueTitle,
+      content:
+        params.content ||
+        '<p>Start writing documentation, architecture decisions, or meeting notes...</p>',
       folder: chosenFolder || undefined,
       categoryColor: params.categoryColor || '#EEEDFD',
       canvasId: params.canvasId,
@@ -165,19 +172,27 @@ export const useNotesStore = create<NotesState>((set, get) => ({
   updateNote: async (id: string, updates: Partial<NoteDocument>) => {
     const now = new Date().toISOString();
 
+    const finalUpdates = { ...updates };
+    if (finalUpdates.title !== undefined) {
+      const otherTitles = get()
+        .notes.filter((n) => n.id !== id)
+        .map((n) => n.title);
+      finalUpdates.title = getUniqueTitle(finalUpdates.title, otherTitles);
+    }
+
     // 1. Optimistic Local-First state update (0ms UI latency)
     set((state) => ({
-      notes: state.notes.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: now } : n)),
+      notes: state.notes.map((n) => (n.id === id ? { ...n, ...finalUpdates, updatedAt: now } : n)),
       isSaving: true,
     }));
 
-    if (updates.folder) {
-      get().createFolder(updates.folder);
+    if (finalUpdates.folder) {
+      get().createFolder(finalUpdates.folder);
     }
 
     try {
       // 2. Background database persistence
-      await noteService.updateNote(id, updates);
+      await noteService.updateNote(id, finalUpdates);
       set({
         isSaving: false,
         lastSavedAt: now,
@@ -247,12 +262,14 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     if (!trimmed || LEGACY_FOLDER_NAMES.has(trimmed.toLowerCase())) return '';
 
     const current = get().folders.filter((f) => !LEGACY_FOLDER_NAMES.has(f.toLowerCase()));
-    if (!current.includes(trimmed)) {
-      const next = [...current, trimmed].sort();
-      persistStoredFolders(next);
-      set({ folders: next });
-    }
-    return trimmed;
+    const existing = current.find((f) => f.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing;
+
+    const uniqueFolder = getUniqueTitle(trimmed, current);
+    const next = [...current, uniqueFolder].sort();
+    persistStoredFolders(next);
+    set({ folders: next });
+    return uniqueFolder;
   },
 
   deleteFolder: async (name: string) => {
@@ -262,7 +279,9 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     set({ folders: next });
 
     // Unfile all notes previously in this folder
-    const notesToUpdate = get().notes.filter((n) => n.folder?.toLowerCase() === trimmed.toLowerCase());
+    const notesToUpdate = get().notes.filter(
+      (n) => n.folder?.toLowerCase() === trimmed.toLowerCase()
+    );
     for (const n of notesToUpdate) {
       await get().updateNote(n.id, { folder: undefined });
     }
@@ -277,21 +296,25 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     const newTrimmed = newName.trim();
     if (!newTrimmed || oldTrimmed === newTrimmed) return;
 
-    const next = get()
-      .folders.filter((f) => !LEGACY_FOLDER_NAMES.has(f.toLowerCase()))
-      .map((f) => (f.toLowerCase() === oldTrimmed.toLowerCase() ? newTrimmed : f))
-      .sort();
+    const otherFolders = get().folders.filter(
+      (f) => f.toLowerCase() !== oldTrimmed.toLowerCase()
+    );
+    const uniqueFolderName = getUniqueTitle(newTrimmed, otherFolders);
+
+    const next = otherFolders.concat(uniqueFolderName).sort();
     persistStoredFolders(next);
     set({ folders: next });
 
     // Update all notes in this folder
-    const notesToUpdate = get().notes.filter((n) => n.folder?.toLowerCase() === oldTrimmed.toLowerCase());
+    const notesToUpdate = get().notes.filter(
+      (n) => n.folder?.toLowerCase() === oldTrimmed.toLowerCase()
+    );
     for (const n of notesToUpdate) {
-      await get().updateNote(n.id, { folder: newTrimmed });
+      await get().updateNote(n.id, { folder: uniqueFolderName });
     }
 
     if (get().activeFolder?.toLowerCase() === oldTrimmed.toLowerCase()) {
-      set({ activeFolder: newTrimmed });
+      set({ activeFolder: uniqueFolderName });
     }
   },
 }));

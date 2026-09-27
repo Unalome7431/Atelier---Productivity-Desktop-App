@@ -4,13 +4,14 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { Callout } from '@/components/notes/CalloutExtension';
 import { CustomMention } from '@/components/notes/MentionExtension';
 import { MentionList, MentionListRef } from '@/components/notes/MentionList';
 import { FloatingBubbleMenu } from '@/components/notes/FloatingBubbleMenu';
 import { EditorToolbar } from '@/components/notes/EditorToolbar';
 import { BacklinksSection } from '@/components/notes/BacklinksSection';
-import { NoteHeader } from '@/components/notes/NoteHeader';
+import { NoteHeaderActions, NoteTitleInput } from '@/components/notes/NoteHeader';
 import { useNotesStore } from '@/stores/useNotesStore';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useKanbanStore } from '@/stores/useKanbanStore';
@@ -210,12 +211,19 @@ export const NotesView: React.FC = () => {
       Highlight.configure({
         multicolor: true,
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Callout,
       CustomMention.configure({
         suggestion: mentionSuggestion,
       }),
       Placeholder.configure({
-        placeholder: 'Start writing specifications, architecture decisions, or type @ to link entities...',
+        placeholder:
+          'Start writing specifications, architecture decisions, or type @ to link entities...',
       }),
     ],
     content: activeNote?.content || '',
@@ -328,14 +336,19 @@ export const NotesView: React.FC = () => {
         </div>
       )}
 
-      {/* Main Document Workspace Canvas */}
-      <div className="flex-1 overflow-y-auto w-full p-6 md:p-10 lg:p-12">
-        <div className="max-w-4xl mx-auto flex flex-col gap-6">
-          {/* Note Header (matching Figma Note A + CANVAS A badge) */}
-          {activeNote && <NoteHeader note={activeNote} />}
-
-          {/* Top Sticky/Docked Formatting Toolbar (matching Figma) */}
+      {/* Top Floating Bar Suite - Fills 100% available remaining space */}
+      {activeNote && (
+        <div className="w-full bg-bg/95 backdrop-blur-md border-b border-border/70 px-6 md:px-10 lg:px-12 py-2.5 z-30 shadow-[0_4px_16px_rgba(45,44,42,0.03)] shrink-0 flex flex-col gap-2">
+          <NoteHeaderActions note={activeNote} />
           <EditorToolbar editor={editor} isSaving={isSaving} lastSavedAt={lastSavedAt} />
+        </div>
+      )}
+
+      {/* Main Document Workspace Canvas */}
+      <div className="flex-1 overflow-y-auto w-full px-6 md:px-10 lg:px-12">
+        <div className="max-w-4xl mx-auto flex flex-col gap-6 pt-6 pb-16 relative">
+          {/* Note Title Input (Non-floating: stays in document flow) */}
+          {activeNote && <NoteTitleInput note={activeNote} />}
 
           {/* Tiptap Rich Text Content Area */}
           <div onClick={handleEditorClick} className="relative">

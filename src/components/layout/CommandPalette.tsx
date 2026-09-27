@@ -189,7 +189,20 @@ export const CommandPalette: React.FC = () => {
         },
       })),
     ],
-    [setActiveTab, isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget, notes, setActiveNoteId, createNote]
+    [
+      setActiveTab,
+      isRunning,
+      play,
+      pause,
+      reset,
+      skipCycle,
+      setMode,
+      unbindTarget,
+      activeTarget,
+      notes,
+      setActiveNoteId,
+      createNote,
+    ]
   );
 
   const filteredCommands = useMemo(() => {

@@ -314,11 +314,11 @@ export const CanvasLinkedDrawer: React.FC = () => {
       <div className="p-4 border-b border-border bg-white/90 backdrop-blur-xs flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           {isNoteType ? (
-            <div className="w-7 h-7 rounded-lg bg-[#D1FAE5] flex items-center justify-center text-[#065F46] shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-accent-green flex items-center justify-center text-pastel-mint-text shrink-0">
               <FileText className="w-4 h-4" />
             </div>
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-[#EBE7FF] flex items-center justify-center text-[#4338CA] shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-accent-indigo flex items-center justify-center text-pastel-lavender-text shrink-0">
               <KanbanSquare className="w-4 h-4" />
             </div>
           )}
@@ -403,7 +403,7 @@ export const CanvasLinkedDrawer: React.FC = () => {
               <div className="bg-white p-4 rounded-2xl border border-border shadow-2xs flex flex-col gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   {currentNote.folder && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#FAF8F5] text-midGray border border-border flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-bg text-midGray border border-border flex items-center gap-1">
                       <Folder className="w-3 h-3 text-secondaryGray" />
                       <span>{currentNote.folder}</span>
                     </span>
@@ -418,7 +418,7 @@ export const CanvasLinkedDrawer: React.FC = () => {
                 </h2>
                 <div className="flex items-center justify-between font-mono text-[10px] text-midGray">
                   <span>Last updated {new Date(currentNote.updatedAt).toLocaleDateString()}</span>
-                  <span className="bg-[#FAF8F5] px-2 py-0.5 rounded text-[9px] border border-border/60">
+                  <span className="bg-bg px-2 py-0.5 rounded text-[9px] border border-border/60">
                     READ-ONLY PREVIEW
                   </span>
                 </div>

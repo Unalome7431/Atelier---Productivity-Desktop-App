@@ -137,22 +137,57 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
 
   // Background tint classes matching Figma & Custom themes
   const getColumnBg = () => {
+    const id = (column.id || '').toLowerCase();
+    const tint = column.bgTint || '';
+
+    if (
+      id === 'planned' ||
+      tint.includes('sand') ||
+      tint.includes('FAF7F0') ||
+      tint.includes('faf7f0')
+    ) {
+      return 'bg-[#FAF7F0] border-[#E8E2D5]';
+    }
+    if (
+      id === 'in_progress' ||
+      tint.includes('lavender') ||
+      tint.includes('blue') ||
+      tint.includes('F0F3FF') ||
+      tint.includes('f0f3ff')
+    ) {
+      return 'bg-[#F0F3FF] border-[#DCE4FF]';
+    }
+    if (
+      id === 'review' ||
+      tint.includes('lilac') ||
+      tint.includes('F5F0FF') ||
+      tint.includes('f5f0ff')
+    ) {
+      return 'bg-[#F5F0FF] border-[#E7DBFF]';
+    }
+    if (
+      id === 'done' ||
+      id === 'complete' ||
+      tint.includes('mint') ||
+      tint.includes('ECFDF5') ||
+      tint.includes('ecfdf5')
+    ) {
+      return 'bg-[#ECFDF5] border-[#D1F2E2]';
+    }
+    if (tint.includes('pink') || tint.includes('FFF1F2') || tint.includes('fff1f2')) {
+      return 'bg-[#FFF1F2] border-[#FFE4E6]';
+    }
+    if (tint.includes('butter') || tint.includes('FEFCE8') || tint.includes('fefce8')) {
+      return 'bg-[#FEFCE8] border-[#FEF08A]';
+    }
+    if (tint.includes('sky') || tint.includes('F0F9FF') || tint.includes('f0f9ff')) {
+      return 'bg-[#F0F9FF] border-[#E0F2FE]';
+    }
+
     if (column.bgTint) {
       return column.bgTint;
     }
-    switch (column.id) {
-      case 'planned':
-        return 'bg-[#FAF7F0] border-[#E8E2D5]';
-      case 'in_progress':
-        return 'bg-[#F0F3FF] border-[#DCE4FF]';
-      case 'review':
-        return 'bg-[#F5F0FF] border-[#E7DBFF]';
-      case 'done':
-      case 'complete':
-        return 'bg-[#ECFDF5] border-[#D1F2E2]';
-      default:
-        return 'bg-surface border-border';
-    }
+    return 'bg-surface border-border';
   };
 
   return (
@@ -220,7 +255,7 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => onOpenAddCard(column.id)}
-            className="w-6 h-6 rounded-full bg-white hover:bg-white/80 text-secondaryGray hover:text-primaryDark flex items-center justify-center border border-border/80 shadow-2xs transition-all cursor-pointer hover:scale-105"
+            className="w-6 h-6 rounded-full bg-white hover:bg-surface text-secondaryGray hover:text-primaryDark flex items-center justify-center border border-border-hover shadow-2xs transition-all cursor-pointer hover:scale-105"
             title={`Add card to ${column.title}`}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -230,7 +265,7 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowColumnMenu((prev) => !prev)}
-              className="w-6 h-6 rounded-full bg-white hover:bg-white/80 text-secondaryGray hover:text-primaryDark flex items-center justify-center border border-border/80 shadow-2xs transition-all cursor-pointer"
+              className="w-6 h-6 rounded-full bg-white hover:bg-surface text-secondaryGray hover:text-primaryDark flex items-center justify-center border border-border-hover shadow-2xs transition-all cursor-pointer"
               title="Column settings"
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
