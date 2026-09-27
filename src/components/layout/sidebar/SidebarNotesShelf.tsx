@@ -4,6 +4,21 @@ import { useNotesStore } from '@/stores/useNotesStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
 
+// Map pastel background token to its darker saturated accent dot
+const PASTEL_DARK_TINT_MAP: Record<string, string> = {
+  '#EEEDFD': '#818CF8', // Lavender
+  '#D0F8E3': '#34D399', // Mint
+  '#D7E3FF': '#60A5FA', // Sky Blue
+  '#F5F0E6': '#FBBF24', // Sand
+  '#FED7E8': '#F472B6', // Rose Pink
+};
+
+const getDarkerPastelTint = (pastel?: string) => {
+  if (!pastel) return '#818CF8';
+  const upper = pastel.toUpperCase();
+  return PASTEL_DARK_TINT_MAP[upper] || pastel;
+};
+
 export const SidebarNotesShelf: React.FC = () => {
   const { activeTab, setActiveTab } = useAppStore();
   const {
@@ -316,7 +331,10 @@ export const SidebarNotesShelf: React.FC = () => {
           .map((n) => {
             const isNoteActive = activeTab === 'notes' && activeNoteId === n.id;
             const bgTint = n.categoryColor || '#EEEDFD';
-            const dotColor = n.categoryColor || '#818CF8';
+            // Focused tab gets darker tint of pastel; unfocused gets neutral monochrome
+            const dotColor = isNoteActive
+              ? getDarkerPastelTint(n.categoryColor)
+              : '#A8A29E'; // monochrome stone-400
 
             return (
               <div
@@ -337,7 +355,10 @@ export const SidebarNotesShelf: React.FC = () => {
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div
-                    className="w-2 h-2 rounded-full flex-shrink-0 border border-black/10"
+                    className={cn(
+                      'w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors',
+                      isNoteActive ? 'opacity-100 ring-1 ring-black/10' : 'opacity-70'
+                    )}
                     style={{ backgroundColor: dotColor }}
                   />
                   {renamingNoteId === n.id ? (
