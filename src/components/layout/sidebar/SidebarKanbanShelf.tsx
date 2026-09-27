@@ -6,7 +6,7 @@ import { NewBoardModal } from '@/components/kanban/NewBoardModal';
 import { cn } from '@/lib/utils';
 
 export const SidebarKanbanShelf: React.FC = () => {
-  const { setActiveTab } = useAppStore();
+  const { activeTab, setActiveTab } = useAppStore();
   const { boards, activeBoardId, setActiveBoardId, createBoard, renameBoard, deleteBoard } =
     useKanbanStore();
 
@@ -50,7 +50,7 @@ export const SidebarKanbanShelf: React.FC = () => {
 
       <div className="bg-surface-warm/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-44 overflow-y-auto">
         {boards.map((b) => {
-          const isBoardActive = activeBoardId === b.id;
+          const isBoardActive = activeTab === 'kanban' && activeBoardId === b.id;
           const bgTint = b.colorTag || '#EEEDFD';
           const dotColor = b.colorTag || '#818CF8';
 
@@ -73,7 +73,7 @@ export const SidebarKanbanShelf: React.FC = () => {
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  className="w-2 h-2 rounded-full flex-shrink-0 border border-black/10"
                   style={{ backgroundColor: dotColor }}
                 />
                 {renamingBoardId === b.id ? (

@@ -5,7 +5,7 @@ import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
 
 export const SidebarNotesShelf: React.FC = () => {
-  const { setActiveTab } = useAppStore();
+  const { activeTab, setActiveTab } = useAppStore();
   const {
     notes,
     activeNoteId,
@@ -314,8 +314,9 @@ export const SidebarNotesShelf: React.FC = () => {
         {notes
           .filter((n) => !activeFolder || n.folder === activeFolder)
           .map((n) => {
-            const isNoteActive = activeNoteId === n.id;
+            const isNoteActive = activeTab === 'notes' && activeNoteId === n.id;
             const bgTint = n.categoryColor || '#EEEDFD';
+            const dotColor = n.categoryColor || '#818CF8';
 
             return (
               <div
@@ -336,8 +337,8 @@ export const SidebarNotesShelf: React.FC = () => {
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: isNoteActive ? '#818CF8' : '#A8A29E' }}
+                    className="w-2 h-2 rounded-full flex-shrink-0 border border-black/10"
+                    style={{ backgroundColor: dotColor }}
                   />
                   {renamingNoteId === n.id ? (
                     <input

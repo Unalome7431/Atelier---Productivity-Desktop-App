@@ -5,7 +5,7 @@ import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
 
 export const SidebarCanvasShelf: React.FC = () => {
-  const { setActiveTab } = useAppStore();
+  const { activeTab, setActiveTab } = useAppStore();
   const { canvases, activeCanvasId, setActiveCanvasId, createCanvas, renameCanvas, deleteCanvas } =
     useCanvasStore();
 
@@ -31,7 +31,6 @@ export const SidebarCanvasShelf: React.FC = () => {
   };
 
   const pastelColors = ['#EEEDFD', '#D0F8E3', '#D7E3FF', '#F5F0E6', '#FED7E8'];
-  const dotColors = ['#818CF8', '#34D399', '#60A5FA', '#FBBF24', '#F472B6'];
 
   return (
     <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
@@ -51,9 +50,9 @@ export const SidebarCanvasShelf: React.FC = () => {
 
       <div className="bg-surface-warm/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-44 overflow-y-auto">
         {canvases.map((c, index) => {
-          const isCanvasActive = activeCanvasId === c.id;
+          const isCanvasActive = activeTab === 'canvas' && activeCanvasId === c.id;
           const bgTint = pastelColors[index % pastelColors.length];
-          const dotColor = dotColors[index % dotColors.length];
+          const dotColor = bgTint;
 
           return (
             <div
@@ -74,7 +73,7 @@ export const SidebarCanvasShelf: React.FC = () => {
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  className="w-2 h-2 rounded-full flex-shrink-0 border border-black/10"
                   style={{ backgroundColor: dotColor }}
                 />
                 {renamingId === c.id ? (
