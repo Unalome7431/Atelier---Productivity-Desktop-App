@@ -192,7 +192,7 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
           <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
             Color Accent
           </label>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
             {[
               {
                 id: 'mint',
@@ -228,11 +228,6 @@ export const ScheduleBlockModal: React.FC<ScheduleBlockModalProps> = ({
                 id: 'amber',
                 label: 'Amber',
                 bg: 'bg-[#FEF3C7] text-[#78350F] border-[#F59E0B]/50',
-              },
-              {
-                id: 'emerald',
-                label: 'Forest',
-                bg: 'bg-[#D1FAE5] text-[#064E3B] border-[#10B981]/50',
               },
             ].map((c) => (
               <button

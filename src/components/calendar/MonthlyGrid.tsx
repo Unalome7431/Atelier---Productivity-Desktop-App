@@ -136,9 +136,6 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
     if (ev.colorAccent === 'amber') {
       return 'bg-[#FEF3C7] text-[#78350F] border border-[#F59E0B]/50';
     }
-    if (ev.colorAccent === 'emerald') {
-      return 'bg-[#D1FAE5] text-[#064E3B] border border-[#10B981]/50';
-    }
     return 'bg-accent-indigo/90 text-indigo-950 border border-indigo-200/50';
   };
 

@@ -125,9 +125,6 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
     if (item.colorAccent === 'amber') {
       return 'bg-[#FEF3C7] border-[#F59E0B]/50 text-[#78350F]';
     }
-    if (item.colorAccent === 'emerald') {
-      return 'bg-[#D1FAE5] border-[#10B981]/50 text-[#064E3B]';
-    }
     return 'bg-accent-indigo/60 border-indigo-200/60';
   };
 

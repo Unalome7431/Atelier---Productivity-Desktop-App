@@ -232,7 +232,7 @@ export interface CalendarEvent {
   date: string; // YYYY-MM-DD
   description?: string;
   location?: string;
-  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve' | 'rose' | 'amber' | 'emerald';
+  colorAccent?: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve' | 'rose' | 'amber';
   taskId?: string;
   isFixed?: boolean;
 }
@@ -245,7 +245,7 @@ export interface RecurringWeeklyBlock {
   startFormatted: string; // e.g. "09:00"
   endFormatted: string; // e.g. "09:45"
   category: 'meeting' | 'focus' | 'review' | 'build' | 'planning' | 'class' | 'work';
-  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve' | 'rose' | 'amber' | 'emerald';
+  colorAccent: 'lavender' | 'mint' | 'sand' | 'blue' | 'mauve' | 'rose' | 'amber';
   description?: string;
 }
 

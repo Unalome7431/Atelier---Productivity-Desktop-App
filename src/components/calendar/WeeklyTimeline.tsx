@@ -103,8 +103,6 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
         return 'bg-[#FED7E8] border border-[#F472B6]/60 text-[#831843] shadow-subtle hover:border-[#F472B6]';
       case 'amber':
         return 'bg-[#FEF3C7] border border-[#F59E0B]/50 text-[#78350F] shadow-subtle hover:border-[#F59E0B]';
-      case 'emerald':
-        return 'bg-[#D1FAE5] border border-[#10B981]/50 text-[#064E3B] shadow-subtle hover:border-[#10B981]';
       case 'lavender':
       default:
         return 'bg-accent-indigo/90 border border-indigo-200/80 text-indigo-950 shadow-subtle hover:border-indigo-300';
