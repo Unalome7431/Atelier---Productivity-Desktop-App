@@ -133,7 +133,7 @@ export const SidebarKanbanShelf: React.FC = () => {
                       e.stopPropagation();
                       deleteBoard(b.id);
                     }}
-                    className="p-1 text-secondaryGray hover:text-red-500 rounded hover:bg-white transition-colors"
+                    className="p-1 text-secondaryGray hover:text-red-500 rounded transition-colors"
                     title="Delete board"
                   >
                     <Trash2 className="w-3 h-3" />
