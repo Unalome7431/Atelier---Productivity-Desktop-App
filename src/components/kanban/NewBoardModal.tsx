@@ -71,21 +71,21 @@ export const NewBoardModal: React.FC<NewBoardModalProps> = ({ isOpen, onClose, o
                 key={opt.color}
                 type="button"
                 onClick={() => setColorTag(opt.color)}
-                style={{ backgroundColor: opt.color, borderColor: opt.dot }}
-                className={`w-6 h-6 rounded-full cursor-pointer transition-all hover:scale-110 border relative flex items-center justify-center ${
+                style={{ backgroundColor: opt.color }}
+                className={`w-7 h-7 rounded-full cursor-pointer transition-all hover:scale-110 border relative flex items-center justify-center shadow-xs ${
                   colorTag === opt.color
-                    ? 'ring-2 ring-primaryDark ring-offset-2 scale-105'
-                    : 'opacity-85'
+                    ? 'ring-2 ring-primaryDark ring-offset-2 scale-110'
+                    : 'opacity-90 hover:opacity-100'
                 }`}
                 title={opt.label}
               >
                 <span
-                  className="w-2 h-2 rounded-full"
+                  className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: opt.dot }}
                 />
               </button>
             ))}
-            <span className="font-mono text-mono-xs text-secondaryGray ml-1">
+            <span className="font-mono text-mono-xs text-secondaryGray font-medium ml-1">
               {pastelOptions.find((o) => o.color === colorTag)?.label || 'Custom'}
             </span>
           </div>
