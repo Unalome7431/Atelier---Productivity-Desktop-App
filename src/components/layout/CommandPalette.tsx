@@ -11,16 +11,20 @@ import {
   Plus,
   Send,
   RotateCcw,
+  SkipForward,
+  Sparkles,
+  Coffee,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { useNotesStore } from '@/stores/useNotesStore';
 import { NavigationTab } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface CommandItem {
   id: string;
   title: string;
-  category: 'Navigation' | 'Actions' | 'Focus' | 'Settings';
+  category: 'Navigation' | 'Actions' | 'Focus' | 'Settings' | 'Notes';
   icon: React.ElementType;
   shortcut?: string;
   perform: () => void;
@@ -28,7 +32,9 @@ interface CommandItem {
 
 export const CommandPalette: React.FC = () => {
   const { isCommandPaletteOpen, setCommandPaletteOpen, setActiveTab } = useAppStore();
-  const { isRunning, play, pause, reset } = usePomodoroStore();
+  const { isRunning, play, pause, reset, skipCycle, setMode, unbindTarget, activeTarget } =
+    usePomodoroStore();
+  const { notes, setActiveNoteId, createNote } = useNotesStore();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +97,45 @@ export const CommandPalette: React.FC = () => {
         perform: () => reset(),
       },
       {
+        id: 'action-focus-skip',
+        title: 'Skip Current Focus / Break Cycle',
+        category: 'Focus',
+        icon: SkipForward,
+        perform: () => skipCycle(),
+      },
+      {
+        id: 'action-focus-mode-focus',
+        title: 'Switch Mode: Focus Block (25m)',
+        category: 'Focus',
+        icon: Sparkles,
+        perform: () => setMode('focus'),
+      },
+      {
+        id: 'action-focus-mode-short',
+        title: 'Switch Mode: Short Break (5m)',
+        category: 'Focus',
+        icon: Coffee,
+        perform: () => setMode('shortBreak'),
+      },
+      {
+        id: 'action-focus-mode-long',
+        title: 'Switch Mode: Long Break (15m)',
+        category: 'Focus',
+        icon: Coffee,
+        perform: () => setMode('longBreak'),
+      },
+      ...(activeTarget
+        ? [
+            {
+              id: 'action-focus-unbind',
+              title: `Unbind Focus Task: "${activeTarget.title}"`,
+              category: 'Focus' as const,
+              icon: Sparkles,
+              perform: () => unbindTarget(),
+            },
+          ]
+        : []),
+      {
         id: 'action-new-task',
         title: 'Add New Tactical Task to Today',
         category: 'Actions',
@@ -117,17 +162,54 @@ export const CommandPalette: React.FC = () => {
         icon: CheckCircle2,
         perform: () => {},
       },
+      {
+        id: 'action-new-note',
+        title: 'Create New Knowledge Note',
+        category: 'Actions',
+        icon: Plus,
+        shortcut: 'N',
+        perform: async () => {
+          const newNote = await createNote({
+            title: 'New Note',
+            folder: 'General',
+          });
+          setActiveNoteId(newNote.id);
+          setActiveTab('notes' as NavigationTab);
+        },
+      },
+      ...notes.map((n) => ({
+        id: `note-${n.id}`,
+        title: `Open Note: ${n.title}`,
+        category: 'Notes' as const,
+        icon: FileText,
+        shortcut: n.folder || 'Note',
+        perform: () => {
+          setActiveNoteId(n.id);
+          setActiveTab('notes' as NavigationTab);
+        },
+      })),
     ],
-    [setActiveTab, isRunning, play, pause, reset]
+    [
+      setActiveTab,
+      isRunning,
+      play,
+      pause,
+      reset,
+      skipCycle,
+      setMode,
+      unbindTarget,
+      activeTarget,
+      notes,
+      setActiveNoteId,
+      createNote,
+    ]
   );
 
   const filteredCommands = useMemo(() => {
     if (!query.trim()) return commands;
     const lower = query.toLowerCase();
     return commands.filter(
-      (c) =>
-        c.title.toLowerCase().includes(lower) ||
-        c.category.toLowerCase().includes(lower)
+      (c) => c.title.toLowerCase().includes(lower) || c.category.toLowerCase().includes(lower)
     );
   }, [query, commands]);
 
@@ -149,14 +231,10 @@ export const CommandPalette: React.FC = () => {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < filteredCommands.length - 1 ? prev + 1 : 0
-        );
+        setSelectedIndex((prev) => (prev < filteredCommands.length - 1 ? prev + 1 : 0));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : filteredCommands.length - 1
-        );
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredCommands.length - 1));
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredCommands[selectedIndex]) {
@@ -229,17 +307,13 @@ export const CommandPalette: React.FC = () => {
                     <div
                       className={cn(
                         'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
-                        isSelected
-                          ? 'bg-bg text-primaryDark'
-                          : 'bg-bg/80 text-secondaryGray'
+                        isSelected ? 'bg-bg text-primaryDark' : 'bg-bg/80 text-secondaryGray'
                       )}
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <span className="text-ui-md-sm text-primaryDark">
-                        {cmd.title}
-                      </span>
+                      <span className="text-ui-md-sm text-primaryDark">{cmd.title}</span>
                       <span className="text-mono-tag text-midGray ml-2 font-mono uppercase">
                         [{cmd.category}]
                       </span>

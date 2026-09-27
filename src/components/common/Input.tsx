@@ -20,7 +20,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           className={cn(
-            'w-full bg-bg border border-border text-primaryDark placeholder:text-midGray transition-all outline-none font-sans text-ui-rg-sm focus:border-[#C5BDAF]',
+            'w-full bg-bg border border-border text-primaryDark placeholder:text-midGray transition-all outline-none font-sans text-ui-rg-sm focus:border-border-focus',
             variant === 'pill' ? 'rounded-pill px-4 py-2' : 'rounded-md px-3.5 py-2',
             leftIcon ? 'pl-9' : '',
             rightElement ? 'pr-12' : '',
@@ -28,9 +28,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {rightElement && (
-          <div className="absolute right-3 flex items-center">{rightElement}</div>
-        )}
+        {rightElement && <div className="absolute right-3 flex items-center">{rightElement}</div>}
       </div>
     );
   }

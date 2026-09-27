@@ -60,14 +60,10 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="flex items-start justify-between">
             <div>
               {title && (
-                <h3 className="font-display font-bold text-display-4 text-primaryDark">
-                  {title}
-                </h3>
+                <h3 className="font-display font-bold text-display-4 text-primaryDark">{title}</h3>
               )}
               {description && (
-                <p className="text-ui-rg-xs text-secondaryGray mt-0.5">
-                  {description}
-                </p>
+                <p className="text-ui-rg-xs text-secondaryGray mt-0.5">{description}</p>
               )}
             </div>
             {showCloseButton && (

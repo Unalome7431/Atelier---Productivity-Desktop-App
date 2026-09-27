@@ -1,55 +1,219 @@
-import React from 'react';
-import { Layers, Plus, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
-import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
+import React, { useEffect, useCallback, useMemo } from 'react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  BackgroundVariant,
+  ConnectionMode,
+  Viewport,
+  Node,
+} from '@xyflow/react';
+import { useCanvasStore } from '@/stores/useCanvasStore';
+import { SimpleTextNode } from '@/components/canvas/SimpleTextNode';
+import { KanbanNode } from '@/components/canvas/KanbanNode';
+import { NoteNode } from '@/components/canvas/NoteNode';
+import { MediaNode } from '@/components/canvas/MediaNode';
+import { SectionNode } from '@/components/canvas/SectionNode';
+import { CustomEdge } from '@/components/canvas/CustomEdge';
+import { CanvasHeader } from '@/components/canvas/CanvasHeader';
+import { CanvasToolbar } from '@/components/canvas/CanvasToolbar';
+import { CanvasLinkedDrawer } from '@/components/canvas/CanvasLinkedDrawer';
+import { useNotesStore } from '@/stores/useNotesStore';
+import { useKanbanStore } from '@/stores/useKanbanStore';
+import { cn } from '@/lib/utils';
 
-export const CanvasView: React.FC = () => {
+const CanvasFlowInner: React.FC = () => {
+  const {
+    canvases,
+    activeCanvasId,
+    loadCanvases,
+    gridEnabled,
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onReconnect,
+    setIsConnecting,
+    updateViewport,
+    isFullscreen,
+    activeTool,
+    setActiveSidebarNode,
+  } = useCanvasStore();
+
+  const activeCanvas = useMemo(() => {
+    return canvases.find((c) => c.id === activeCanvasId) || canvases[0];
+  }, [canvases, activeCanvasId]);
+
+  // Initial load: ensure canvases, notes, and boards are ready in memory
+  useEffect(() => {
+    loadCanvases();
+    useNotesStore.getState().loadNotes();
+    useKanbanStore.getState().loadBoards();
+  }, [loadCanvases]);
+
+  // Viewport pan/zoom change listener
+  const onMoveEnd = useCallback(
+    (_event: any, viewport: Viewport) => {
+      updateViewport(viewport);
+    },
+    [updateViewport]
+  );
+
+  // Pane click: deselect and close sidebars without spawning nodes
+  const onPaneClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.classList.contains('react-flow__pane')) {
+        setActiveSidebarNode(null);
+      }
+    },
+    [setActiveSidebarNode]
+  );
+
+  // Node drag stop: when a non-section node is dragged into or out of a section, update its section attachment
+  const onNodeDragStop = useCallback((_event: MouseEvent | TouchEvent, node: Node) => {
+    if (node.type === 'section' || node.type === 'group') return;
+    const { nodes, updateNodeData } = useCanvasStore.getState();
+    const sections = nodes.filter((n) => n.type === 'section' || n.type === 'group');
+    let targetSectionId: string | undefined = undefined;
+
+    for (const sec of sections) {
+      const secLeft = sec.position.x;
+      const secTop = sec.position.y;
+      const secWidth =
+        sec.width || (sec as any).measured?.width || (sec.data as any)?.width || 1040;
+      const secHeight =
+        sec.height || (sec as any).measured?.height || (sec.data as any)?.height || 600;
+
+      const nodeW = node.width || (node as any).measured?.width || 260;
+      const nodeH = node.height || (node as any).measured?.height || 160;
+      const centerX = node.position.x + nodeW / 2;
+      const centerY = node.position.y + nodeH / 2;
+
+      const isInside =
+        (node.position.x >= secLeft &&
+          node.position.x <= secLeft + secWidth &&
+          node.position.y >= secTop &&
+          node.position.y <= secTop + secHeight) ||
+        (centerX >= secLeft &&
+          centerX <= secLeft + secWidth &&
+          centerY >= secTop &&
+          centerY <= secTop + secHeight);
+
+      if (isInside) {
+        targetSectionId = sec.id;
+        break;
+      }
+    }
+
+    const currentSectionId = (node.data as any)?.sectionId || (node.data as any)?.parentId;
+    if (currentSectionId !== targetSectionId) {
+      updateNodeData(node.id, {
+        sectionId: targetSectionId,
+        parentId: targetSectionId,
+      });
+    }
+  }, []);
+
+  // Memoized custom node types map
+  const nodeTypes = useMemo(
+    () => ({
+      simple_text: SimpleTextNode,
+      text: SimpleTextNode,
+      kanban: KanbanNode,
+      note: NoteNode,
+      media: MediaNode,
+      section: SectionNode,
+      group: SectionNode,
+    }),
+    []
+  );
+
+  // Memoized custom edge types map
+  const edgeTypes = useMemo(
+    () => ({
+      custom: CustomEdge,
+      default: CustomEdge,
+    }),
+    []
+  );
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#F6F4F0] relative overflow-hidden">
-      {/* Canvas Controls Header */}
-      <div className="absolute top-4 left-6 z-10 flex items-center gap-3">
-        <div className="bg-surface/90 border border-border px-4 py-2 rounded-pill shadow-subtle flex items-center gap-3">
-          <span className="font-display font-bold text-display-6 text-primaryDark">
-            Spatial Concept Canvas
-          </span>
-          <Badge variant="mint">v0.1 Ready</Badge>
-        </div>
-      </div>
+    <div className="flex-1 flex flex-col h-full bg-bg relative overflow-hidden p-3.5 select-none">
+      {/* Outer Board Frame matching Figma */}
+      <div
+        className={cn(
+          'flex-1 w-full h-full bg-white rounded-3xl border border-border shadow-subtle relative overflow-hidden flex flex-col transition-all duration-200',
+          isFullscreen && 'fixed inset-0 z-50 rounded-none border-none p-0'
+        )}
+      >
+        {/* Canvas Header Controls */}
+        <CanvasHeader />
 
-      <div className="absolute top-4 right-6 z-10 flex items-center gap-2">
-        <div className="bg-surface/90 border border-border p-1 rounded-pill shadow-subtle flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="w-8 h-8">
-            <ZoomIn className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="w-8 h-8">
-            <ZoomOut className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="w-8 h-8">
-            <Maximize2 className="w-4 h-4" />
-          </Button>
-        </div>
-        <Button variant="primary" size="sm" className="gap-1.5 shadow-subtle">
-          <Plus className="w-3.5 h-3.5" />
-          <span>Add Node</span>
-        </Button>
-      </div>
+        {/* Floating Tool Palette */}
+        <CanvasToolbar />
 
-      {/* Spatial Dot Grid Background */}
-      <div className="w-full h-full flex items-center justify-center relative">
-        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#787571_1px,transparent_1px)] [background-size:24px_24px]" />
-
-        <div className="z-10 text-center flex flex-col items-center gap-3 max-w-md p-6 bg-surface/90 rounded-panel border border-border shadow-float">
-          <div className="w-12 h-12 rounded-full bg-accent-purple flex items-center justify-center text-primaryDark">
-            <Layers className="w-6 h-6" />
-          </div>
-          <h3 className="font-display font-bold text-display-3 text-primaryDark">
-            Infinite Spatial Canvas
-          </h3>
-          <p className="text-ui-rg-sm text-secondaryGray">
-            Spatial node graphing powered by <span className="font-mono text-mono-md font-semibold text-primaryDark">@xyflow/react</span>. Connect concept notes, cards, and architecture diagrams.
-          </p>
+        {/* Core React Flow Viewport */}
+        <div className="flex-1 w-full h-full relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onReconnect={onReconnect}
+            onReconnectStart={() => setIsConnecting(true)}
+            onReconnectEnd={() => setIsConnecting(false)}
+            onConnectStart={() => setIsConnecting(true)}
+            onConnectEnd={() => setIsConnecting(false)}
+            edgesReconnectable={true}
+            reconnectRadius={40}
+            onMoveEnd={onMoveEnd}
+            onPaneClick={onPaneClick}
+            onNodeDragStop={onNodeDragStop}
+            onNodeClick={(_event, node) => {
+              if (node.type === 'note') {
+                setActiveSidebarNode({ type: 'note', nodeId: node.id });
+              } else if (node.type === 'kanban') {
+                setActiveSidebarNode({ type: 'kanban', nodeId: node.id });
+              }
+            }}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            connectionMode={ConnectionMode.Loose}
+            minZoom={0.1}
+            maxZoom={2.0}
+            defaultViewport={activeCanvas?.viewport || { x: 80, y: 50, zoom: 0.95 }}
+            fitViewOptions={{ padding: 0.2 }}
+            proOptions={{ hideAttribution: true }}
+            className={cn('bg-transparent', activeTool !== 'select' && 'cursor-crosshair')}
+          >
+            {gridEnabled && (
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={24}
+                size={1.5}
+                color="#D6CFC3"
+                className="opacity-70"
+              />
+            )}
+          </ReactFlow>
         </div>
+
+        {/* Linked Node Inspector Drawer (for Note & Kanban) */}
+        <CanvasLinkedDrawer />
       </div>
     </div>
   );
 };
+
+export const CanvasView: React.FC = () => {
+  return (
+    <ReactFlowProvider>
+      <CanvasFlowInner />
+    </ReactFlowProvider>
+  );
+};
+
+export default CanvasView;

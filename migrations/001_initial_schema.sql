@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS workspace_config (
     pairing_code TEXT,
     pairing_code_expires_at TIMESTAMPTZ,
     theme TEXT DEFAULT 'parchment',
+    pomodoro_focus_mins INTEGER DEFAULT 25,
+    pomodoro_break_mins INTEGER DEFAULT 5,
+    pomodoro_long_break_mins INTEGER DEFAULT 15,
+    pomodoro_daily_target INTEGER DEFAULT 4,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -23,11 +27,12 @@ CREATE TABLE IF NOT EXISTS routines (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
-    category TEXT NOT NULL DEFAULT '#general',
+    category TEXT DEFAULT '',
     cadence TEXT NOT NULL DEFAULT 'daily', -- 'daily', 'weekdays', 'custom'
     custom_days JSONB DEFAULT '[]'::jsonb, -- e.g., [1, 3, 5] for Mon/Wed/Fri
     icon TEXT,
     color TEXT,
+    target_count INTEGER DEFAULT 1,
     position_rank TEXT NOT NULL DEFAULT '0',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -39,6 +44,7 @@ CREATE TABLE IF NOT EXISTS routine_logs (
     routine_id TEXT REFERENCES routines(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     completed BOOLEAN DEFAULT FALSE,
+    current_count INTEGER DEFAULT 0,
     completed_at TIMESTAMPTZ,
     UNIQUE(routine_id, date)
 );
@@ -54,7 +60,11 @@ CREATE TABLE IF NOT EXISTS tasks (
     scheduled_start_time TIME,
     scheduled_end_time TIME,
     kanban_card_id TEXT,
-    category_tag TEXT,
+    category_tag TEXT DEFAULT '',
+    icon_type TEXT DEFAULT 'default',
+    subtasks JSONB DEFAULT '[]'::jsonb,
+    pomodoro_cycles_completed INTEGER DEFAULT 0,
+    pomodoro_cycles_estimated INTEGER DEFAULT 1,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -65,7 +75,10 @@ CREATE TABLE IF NOT EXISTS kanban_boards (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     color_tag TEXT,
-    position_rank TEXT NOT NULL,
+    linked_canvas_id TEXT,
+    linked_canvas_title TEXT,
+    position_rank TEXT NOT NULL DEFAULT '0',
+    columns_config JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -73,14 +86,16 @@ CREATE TABLE IF NOT EXISTS kanban_boards (
 CREATE TABLE IF NOT EXISTS kanban_cards (
     id TEXT PRIMARY KEY,
     board_id TEXT REFERENCES kanban_boards(id) ON DELETE CASCADE,
-    column_id TEXT NOT NULL, -- 'planned', 'in_progress', 'review', 'done'
+    column_id TEXT NOT NULL, -- 'planned', 'in_progress', 'review', 'done', 'complete'
     title TEXT NOT NULL,
     description TEXT,
     tag_label TEXT,
     tag_color TEXT,
-    position_rank TEXT NOT NULL, -- fractional indexing key (Lexorank)
+    position_rank TEXT NOT NULL DEFAULT '0', -- fractional indexing key (Lexorank)
     checklist JSONB DEFAULT '[]'::jsonb,
-    due_date DATE,
+    due_date TEXT,
+    comments_count INTEGER DEFAULT 0,
+    completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -125,6 +140,9 @@ CREATE TABLE IF NOT EXISTS notes (
     content_json JSONB DEFAULT '{}'::jsonb,
     folder TEXT,
     category_color TEXT,
+    canvas_id TEXT,
+    canvas_title TEXT,
+    is_pinned BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -133,7 +151,7 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE TABLE IF NOT EXISTS calendar_events (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
-    event_type TEXT NOT NULL DEFAULT 'focus_block', -- 'meeting', 'focus_block', 'reminder'
+    event_type TEXT NOT NULL DEFAULT 'focus_block', -- 'meeting', 'focus', 'personal', 'deadline', 'review'
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
     color_token TEXT,

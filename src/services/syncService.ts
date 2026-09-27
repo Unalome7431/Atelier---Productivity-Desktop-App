@@ -32,21 +32,28 @@ class SyncService {
     operation: 'INSERT' | 'UPDATE' | 'DELETE',
     data: Record<string, any>
   ): Promise<void> {
-    const mutationId = `mut_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const now = new Date().toISOString();
+    try {
+      const mutationId = `mut_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const now = new Date().toISOString();
 
-    await db.execute(
-      `INSERT INTO client_sync_queue (mutation_id, entity_table, entity_id, operation, payload, created_at, synced_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [mutationId, table, id, operation, JSON.stringify(data), now, null]
-    );
+      await db.execute(
+        `INSERT INTO client_sync_queue (mutation_id, entity_table, entity_id, operation, payload, created_at, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [mutationId, table, id, operation, JSON.stringify(data), now, null]
+      );
 
-    const pending = await this.getPendingMutationsCount();
-    this.notify({
-      state: 'synced',
-      pendingMutationsCount: pending,
-      lastSyncedAt: now,
-    });
+      const pending = await this.getPendingMutationsCount();
+      this.notify({
+        state: 'synced',
+        pendingMutationsCount: pending,
+        lastSyncedAt: now,
+      });
+    } catch (err) {
+      console.warn(
+        `[SyncService] Failed to enqueue mutation for ${table}:${id} (continuing):`,
+        err
+      );
+    }
   }
 
   async getPendingMutations(): Promise<SyncMutation[]> {
@@ -79,10 +86,10 @@ class SyncService {
       // Simulate remote PostgreSQL batch push with LWW conflict resolution
       const now = new Date().toISOString();
       for (const mut of pending) {
-        await db.execute(
-          `UPDATE client_sync_queue SET synced_at = ? WHERE mutation_id = ?`,
-          [now, mut.mutation_id]
-        );
+        await db.execute(`UPDATE client_sync_queue SET synced_at = ? WHERE mutation_id = ?`, [
+          now,
+          mut.mutation_id,
+        ]);
       }
 
       this.notify({

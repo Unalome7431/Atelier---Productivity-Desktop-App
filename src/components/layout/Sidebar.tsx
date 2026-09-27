@@ -1,15 +1,12 @@
-import React from 'react';
-import {
-  Sparkles,
-  LayoutDashboard,
-  Calendar,
-  Layers,
-  KanbanSquare,
-  FileText,
-  Settings,
-  Flame,
-} from 'lucide-react';
+import React, { useEffect } from 'react';
+import { LayoutDashboard, Calendar, Layers, KanbanSquare, FileText, Settings } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
+import { useCanvasStore } from '@/stores/useCanvasStore';
+import { useKanbanStore } from '@/stores/useKanbanStore';
+import { useNotesStore } from '@/stores/useNotesStore';
+import { SidebarCanvasShelf } from './sidebar/SidebarCanvasShelf';
+import { SidebarKanbanShelf } from './sidebar/SidebarKanbanShelf';
+import { SidebarNotesShelf } from './sidebar/SidebarNotesShelf';
 import { NavigationTab } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +18,15 @@ interface NavItem {
 
 export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab } = useAppStore();
+  const { loadCanvases } = useCanvasStore();
+  const { loadBoards } = useKanbanStore();
+  const { loadNotes } = useNotesStore();
+
+  useEffect(() => {
+    loadCanvases();
+    loadBoards();
+    loadNotes();
+  }, [loadCanvases, loadBoards, loadNotes]);
 
   const menuItems: NavItem[] = [
     { id: 'cockpit', label: 'Daily Cockpit', icon: LayoutDashboard },
@@ -28,27 +34,22 @@ export const Sidebar: React.FC = () => {
   ];
 
   const workspaceItems: NavItem[] = [
-    { id: 'canvas', label: 'Spatial Canvas', icon: Layers },
+    { id: 'canvas', label: 'Canvas', icon: Layers },
     { id: 'kanban', label: 'Kanban Board', icon: KanbanSquare },
-    { id: 'notes', label: 'Notes & Docs', icon: FileText },
+    { id: 'notes', label: 'Notes', icon: FileText },
   ];
 
   return (
     <aside className="w-56 h-screen flex flex-col justify-between border-r border-border bg-surface select-none p-3.5 z-20">
-      {/* Brand Header */}
+      {/* Brand Wordmark & Nav List */}
       <div className="flex flex-col gap-6">
+        {/* Top Wordmark & Logo */}
         <div className="flex items-center justify-between px-2 pt-1.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primaryDark flex items-center justify-center text-bg shadow-subtle">
-              <Sparkles className="w-4 h-4 text-accent-green" />
-            </div>
+            <img src="/favicon.png" alt="Atelier" className="w-7 h-7 object-contain" />
             <span className="font-display font-bold text-lg tracking-tight text-primaryDark">
               Atelier
             </span>
-          </div>
-          <div className="flex items-center gap-1 bg-amber-100/80 border border-amber-200/60 px-2 py-0.5 rounded-pill text-amber-900 text-mono-xs font-mono font-semibold">
-            <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-            <span>5d</span>
           </div>
         </div>
 
@@ -119,6 +120,15 @@ export const Sidebar: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Multi-Canvas Manager Shelf */}
+          {activeTab === 'canvas' && <SidebarCanvasShelf />}
+
+          {/* Kanban Board Manager Shelf */}
+          {activeTab === 'kanban' && <SidebarKanbanShelf />}
+
+          {/* Notes Shelf */}
+          {activeTab === 'notes' && <SidebarNotesShelf />}
         </div>
       </div>
 

@@ -8,7 +8,8 @@ export type ButtonVariant =
   | 'destructive'
   | 'mint'
   | 'lavender'
-  | 'pill';
+  | 'pill'
+  | 'dark';
 
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
 
@@ -33,19 +34,16 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variants: Record<ButtonVariant, string> = {
     primary:
-      'bg-primaryDark text-bg hover:bg-[#1a1918] shadow-subtle',
+      'bg-primaryDark text-white font-semibold hover:opacity-90 shadow-subtle',
     secondary:
-      'bg-surface text-primaryDark border border-border hover:bg-[#EFE9DC] shadow-subtle',
-    ghost:
-      'bg-transparent text-secondaryGray hover:text-primaryDark hover:bg-border/50',
-    destructive:
-      'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100',
-    mint:
-      'bg-accent-green text-emerald-950 font-semibold hover:brightness-95 shadow-subtle border border-emerald-300/40',
+      'bg-white text-primaryDark border border-border-hover hover:bg-surface shadow-subtle',
+    ghost: 'bg-transparent text-secondaryGray hover:text-primaryDark hover:bg-border/50',
+    destructive: 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100',
+    mint: 'bg-primaryDark text-white font-semibold hover:opacity-90 shadow-subtle',
     lavender:
-      'bg-accent-indigo text-indigo-950 font-semibold hover:brightness-95 shadow-subtle border border-indigo-200/60',
-    pill:
-      'bg-surface text-secondaryGray border border-border hover:text-primaryDark hover:border-[#D0C8BA] shadow-subtle',
+      'bg-surface text-primaryDark border border-border hover:bg-surface-alt shadow-subtle',
+    pill: 'bg-surface text-primaryDark border border-border hover:bg-surface-alt hover:border-border-hover shadow-subtle',
+    dark: 'bg-primaryDark text-white font-semibold hover:opacity-90 shadow-subtle',
   };
 
   const sizes: Record<ButtonSize, string> = {
@@ -58,10 +56,7 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <button
-      className={cn(baseStyles, variants[variant], sizes[size], className)}
-      {...props}
-    >
+    <button className={cn(baseStyles, variants[variant], sizes[size], className)} {...props}>
       {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
       {children}
       {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}

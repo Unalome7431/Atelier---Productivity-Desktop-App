@@ -4,9 +4,15 @@ export const SQLITE_SCHEMA_QUERIES = [
     id TEXT PRIMARY KEY,
     user_name TEXT NOT NULL DEFAULT 'Creator',
     telegram_chat_id TEXT,
+    telegram_bot_token TEXT,
+    telegram_bot_username TEXT,
     pairing_code TEXT,
     pairing_code_expires_at TEXT,
     theme TEXT DEFAULT 'parchment',
+    pomodoro_focus_mins INTEGER DEFAULT 25,
+    pomodoro_break_mins INTEGER DEFAULT 5,
+    pomodoro_long_break_mins INTEGER DEFAULT 15,
+    pomodoro_daily_target INTEGER DEFAULT 4,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -16,11 +22,12 @@ export const SQLITE_SCHEMA_QUERIES = [
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
-    category TEXT NOT NULL DEFAULT '#general',
+    category TEXT DEFAULT '',
     cadence TEXT NOT NULL DEFAULT 'daily',
     custom_days TEXT DEFAULT '[]',
     icon TEXT,
     color TEXT,
+    target_count INTEGER DEFAULT 1,
     position_rank TEXT NOT NULL DEFAULT '0',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -32,6 +39,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     routine_id TEXT NOT NULL,
     date TEXT NOT NULL,
     completed INTEGER DEFAULT 0,
+    current_count INTEGER DEFAULT 0,
     completed_at TEXT,
     FOREIGN KEY(routine_id) REFERENCES routines(id) ON DELETE CASCADE,
     UNIQUE(routine_id, date)
@@ -45,10 +53,12 @@ export const SQLITE_SCHEMA_QUERIES = [
     status TEXT NOT NULL DEFAULT 'todo',
     position_rank TEXT NOT NULL DEFAULT '0',
     scheduled_date TEXT,
-    scheduled_start_time TEXT,
-    scheduled_end_time TEXT,
     kanban_card_id TEXT,
-    category_tag TEXT DEFAULT '#work',
+    category_tag TEXT DEFAULT '',
+    icon_type TEXT DEFAULT 'default',
+    subtasks TEXT DEFAULT '[]',
+    pomodoro_cycles_completed INTEGER DEFAULT 0,
+    pomodoro_cycles_estimated INTEGER DEFAULT 1,
     completed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -59,7 +69,10 @@ export const SQLITE_SCHEMA_QUERIES = [
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     color_tag TEXT,
+    linked_canvas_id TEXT,
+    linked_canvas_title TEXT,
     position_rank TEXT NOT NULL DEFAULT '0',
+    columns_config TEXT DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -75,6 +88,8 @@ export const SQLITE_SCHEMA_QUERIES = [
     position_rank TEXT NOT NULL DEFAULT '0',
     checklist TEXT DEFAULT '[]',
     due_date TEXT,
+    comments_count INTEGER DEFAULT 0,
+    completed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(board_id) REFERENCES kanban_boards(id) ON DELETE CASCADE
@@ -122,6 +137,9 @@ export const SQLITE_SCHEMA_QUERIES = [
     content_json TEXT DEFAULT '{}',
     folder TEXT,
     category_color TEXT,
+    canvas_id TEXT,
+    canvas_title TEXT,
+    is_pinned INTEGER DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -149,5 +167,5 @@ export const SQLITE_SCHEMA_QUERIES = [
     payload TEXT NOT NULL,
     created_at TEXT NOT NULL,
     synced_at TEXT
-  );`
+  );`,
 ];
