@@ -47,3 +47,32 @@ export function getTodayDateString(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Generates an unconditionally unique title among a collection of existing names.
+ * If the candidate name already exists, appends incrementing integer (e.g. "Project A (2)", "Project A (3)").
+ */
+export function getUniqueTitle(candidate: string, existingTitles: string[], currentId?: string, idMap?: Record<string, string>): string {
+  const clean = candidate.trim() || 'Untitled';
+  const existingSet = new Set(
+    existingTitles
+      .map((t) => t.trim().toLowerCase())
+      .filter((t) => {
+        // If an idMap is provided, ignore the title of the item currently being edited
+        if (currentId && idMap && idMap[currentId] && idMap[currentId].trim().toLowerCase() === t) {
+          return false;
+        }
+        return true;
+      })
+  );
+
+  if (!existingSet.has(clean.toLowerCase())) {
+    return clean;
+  }
+
+  let counter = 2;
+  while (existingSet.has(`${clean} (${counter})`.toLowerCase())) {
+    counter++;
+  }
+  return `${clean} (${counter})`;
+}

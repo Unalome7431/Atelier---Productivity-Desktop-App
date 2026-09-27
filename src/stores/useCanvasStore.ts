@@ -13,6 +13,7 @@ import {
 } from '@xyflow/react';
 import { CanvasDocument, CanvasViewport } from '@/types';
 import { canvasService } from '@/services/canvasService';
+import { getUniqueTitle } from '@/lib/utils';
 
 export type CanvasToolType = 'select' | 'text' | 'kanban' | 'note' | 'media' | 'section';
 
@@ -446,9 +447,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   createCanvas: async (title?: string) => {
+    const existingTitles = get().canvases.map((c) => c.title);
     const count = get().canvases.length;
-    const defaultTitle = title || `Canvas ${String.fromCharCode(65 + count)}`;
-    const created = await canvasService.createCanvas(defaultTitle);
+    const baseCandidate = title || `Canvas ${String.fromCharCode(65 + count)}`;
+    const uniqueTitle = getUniqueTitle(baseCandidate, existingTitles);
+
+    const created = await canvasService.createCanvas(uniqueTitle);
 
     set((state) => ({
       canvases: [...state.canvases, created],
@@ -462,10 +466,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   renameCanvas: async (id: string, title: string) => {
+    const otherTitles = get()
+      .canvases.filter((c) => c.id !== id)
+      .map((c) => c.title);
+    const uniqueTitle = getUniqueTitle(title, otherTitles);
+
     set((state) => ({
-      canvases: state.canvases.map((c) => (c.id === id ? { ...c, title } : c)),
+      canvases: state.canvases.map((c) => (c.id === id ? { ...c, title: uniqueTitle } : c)),
     }));
-    await canvasService.renameCanvas(id, title);
+    await canvasService.renameCanvas(id, uniqueTitle);
   },
 
   deleteCanvas: async (id: string) => {
