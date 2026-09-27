@@ -224,7 +224,7 @@ export const NoteHeaderActions: React.FC<NoteHeaderProps> = ({ note }) => {
           {isColorMenuOpen && (
             <div className="absolute left-0 top-full mt-1 w-36 bg-white border border-border shadow-float rounded-2xl p-1.5 z-30 flex flex-col gap-1">
               <div className="px-2 py-1 text-[10px] font-mono font-bold text-midGray uppercase">
-                Pastel Color
+                Color
               </div>
               {PASTEL_COLORS.map((c) => (
                 <button

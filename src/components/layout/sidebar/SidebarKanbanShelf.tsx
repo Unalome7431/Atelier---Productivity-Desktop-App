@@ -32,8 +32,6 @@ export const SidebarKanbanShelf: React.FC = () => {
     setActiveTab('kanban');
   };
 
-  const pastelColors = ['#EEEDFD', '#D0F8E3', '#D7E3FF', '#F5F0E6', '#FED7E8'];
-
   return (
     <div className="flex flex-col gap-1.5 pt-3 border-t border-border/60">
       <div className="flex items-center justify-between px-2">
@@ -51,9 +49,9 @@ export const SidebarKanbanShelf: React.FC = () => {
       </div>
 
       <div className="bg-surface-warm/80 rounded-2xl p-1.5 border border-border/70 flex flex-col gap-1 max-h-44 overflow-y-auto">
-        {boards.map((b, index) => {
+        {boards.map((b) => {
           const isBoardActive = activeBoardId === b.id;
-          const bgTint = pastelColors[index % pastelColors.length];
+          const bgTint = b.colorTag || '#EEEDFD';
           const dotColor = b.colorTag || '#818CF8';
 
           return (
