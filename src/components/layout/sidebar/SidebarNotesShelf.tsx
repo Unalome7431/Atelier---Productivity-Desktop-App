@@ -396,14 +396,14 @@ export const SidebarNotesShelf: React.FC = () => {
                   >
                     <Edit2 className="w-2.5 h-2.5" />
                   </button>
-                  {notes.length > 1 && (
+                  {notes.length > 0 && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteNote(n.id);
                       }}
                       className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
-                      title="Delete"
+                      title="Delete note"
                     >
                       <Trash2 className="w-2.5 h-2.5" />
                     </button>

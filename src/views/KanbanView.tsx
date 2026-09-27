@@ -173,12 +173,19 @@ export const KanbanView: React.FC = () => {
         <div className="w-12 h-12 rounded-2xl bg-accent-blue flex items-center justify-center text-sky-800 shadow-xs">
           <Layers className="w-6 h-6" />
         </div>
-        <h3 className="font-display font-bold text-display-3 text-primaryDark">
-          Loading Kanban Board...
-        </h3>
+        <h3 className="font-display font-bold text-display-3 text-primaryDark">No Boards Yet</h3>
         <p className="font-sans text-xs text-secondaryGray max-w-sm text-center">
-          Preparing your sprint deliverable lanes and board cards.
+          Create your first Kanban board to organize sprints, tasks, and project deliverables.
         </p>
+        <button
+          onClick={() => {
+            useKanbanStore.getState().createBoard('Project Board', '#EEEDFD');
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 mt-2 rounded-full bg-primaryDark hover:opacity-90 text-white font-sans font-semibold text-xs transition-all cursor-pointer shadow-2xs hover:scale-102"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create Board</span>
+        </button>
       </div>
     );
   }

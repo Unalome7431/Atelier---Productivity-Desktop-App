@@ -26,7 +26,6 @@ export const KanbanNode: React.FC<NodeProps> = memo(({ id, data, selected }) => 
   // Link directly to the referenced Kanban board
   const linkedBoard =
     boards.find((b) => b.id === nodeData.boardId) ||
-    boards.find((b) => b.id === 'board_default') ||
     boards[0];
 
   const currentColor = nodeData.color || linkedBoard?.colorTag || '#DEE5FD';

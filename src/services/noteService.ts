@@ -3,21 +3,8 @@ import { syncService } from './syncService';
 import { NoteDocument, BacklinkItem } from '@/types';
 
 export class NoteService {
-  private seedingPromise: Promise<void> | null = null;
-
   async getNotes(): Promise<NoteDocument[]> {
     const notes = await db.select<any>('SELECT * FROM notes ORDER BY updated_at DESC');
-    if (notes.length === 0) {
-      if (!this.seedingPromise) {
-        this.seedingPromise = this.seedDefaultNotes().finally(() => {
-          this.seedingPromise = null;
-        });
-      }
-      await this.seedingPromise;
-      const seeded = await db.select<any>('SELECT * FROM notes ORDER BY updated_at DESC');
-      return this.mapRows(seeded);
-    }
-
     return this.mapRows(notes);
   }
 
@@ -68,7 +55,7 @@ export class NoteService {
       });
   }
 
-  private async seedDefaultNotes(): Promise<void> {
+  async seedDefaultNotes(): Promise<void> {
     const now = new Date().toISOString();
     const defaultNotes = [
       {

@@ -125,6 +125,7 @@ async function runTelegramTests() {
 
   // Test 8: Command 2 — /habit (Only habits active for today, toggle & increment)
   console.log("\n--- Test 8: Command /habit (Only Today's Active Habits, Toggle & Increment) ---");
+  await routineService.seedDefaultRoutines();
   const allRoutines = await routineService.getAllRoutines();
   assert(allRoutines.length > 0, 'Routines exist in database');
   const todayActiveRoutines = allRoutines.filter((r) => routineService.isRoutineActiveOnDate(r, todayStr));
@@ -137,6 +138,7 @@ async function runTelegramTests() {
 
   // Test 9: Command 3 — /today (Daily tasks, habits, events)
   console.log('\n--- Test 9: Command /today (Today Tasks, Habits & Events) ---');
+  await taskService.seedDefaultTasks();
   const todayTasks = await taskService.getTodayTasks(todayStr);
   assert(todayTasks.length > 0, 'Today tasks retrieved for /today overview');
   const events = await calendarService.getEvents();

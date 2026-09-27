@@ -127,16 +127,16 @@ export const SidebarKanbanShelf: React.FC = () => {
                 >
                   <Edit2 className="w-2.5 h-2.5" />
                 </button>
-                {boards.length > 1 && (
+                {boards.length > 0 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteBoard(b.id);
                     }}
-                    className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
+                    className="p-1 text-secondaryGray hover:text-red-500 rounded hover:bg-white transition-colors"
                     title="Delete board"
                   >
-                    <Trash2 className="w-2.5 h-2.5" />
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 )}
               </div>

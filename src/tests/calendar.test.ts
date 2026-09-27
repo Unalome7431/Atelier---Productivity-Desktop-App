@@ -38,6 +38,7 @@ async function runCalendarTests() {
   // Test 1: Calendar Event Seeding & Figma Alignment
   // -------------------------------------------------------------
   console.log('--- Test 1: Calendar Event Seeding & Figma Alignment ---');
+  await calendarService.seedDefaultEvents();
   const seededEvents = await calendarService.getEvents();
   assert(
     seededEvents.length >= 8,

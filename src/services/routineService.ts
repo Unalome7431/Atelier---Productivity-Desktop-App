@@ -4,8 +4,6 @@ import { Routine, RoutineLog } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
 export class RoutineService {
-  private seedingPromise: Promise<void> | null = null;
-
   isRoutineActiveOnDate(routine: Routine, dateStr: string): boolean {
     const [year, month, day] = dateStr.split('-').map(Number);
     const d = new Date(year, month - 1, day);
@@ -21,16 +19,6 @@ export class RoutineService {
 
   async getAllRoutines(): Promise<Routine[]> {
     const rows = await db.select<any>('SELECT * FROM routines ORDER BY position_rank ASC');
-    if (rows.length === 0) {
-      if (!this.seedingPromise) {
-        this.seedingPromise = this.seedDefaultRoutines().finally(() => {
-          this.seedingPromise = null;
-        });
-      }
-      await this.seedingPromise;
-      const seeded = await db.select<any>('SELECT * FROM routines ORDER BY position_rank ASC');
-      return this.mapCleanRoutines(seeded);
-    }
     return this.mapCleanRoutines(rows);
   }
 
@@ -81,7 +69,7 @@ export class RoutineService {
     });
   }
 
-  private async seedDefaultRoutines(): Promise<void> {
+  async seedDefaultRoutines(): Promise<void> {
     const today = getTodayDateString();
     const now = new Date().toISOString();
 

@@ -37,6 +37,7 @@ async function runNotesTests() {
   // Test 1: Note Seeding & Figma Alignment
   // -------------------------------------------------------------
   console.log('--- Test 1: Note Seeding & Figma Alignment ---');
+  await noteService.seedDefaultNotes();
   const seededNotes = await noteService.getNotes();
   assert(seededNotes.length >= 3, `Seeded at least 3 default notes (got: ${seededNotes.length})`);
 

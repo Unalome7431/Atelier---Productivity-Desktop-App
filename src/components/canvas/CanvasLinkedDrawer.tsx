@@ -207,8 +207,8 @@ export const CanvasLinkedDrawer: React.FC = () => {
   // --- Note Data Resolution ---
   const currentNote = isNoteType
     ? notes.find((n) => n.id === nodeData.referenceId) ||
-      notes.find((n) => n.id === 'n_note_a') ||
-      notes[0]
+      notes[0] ||
+      null
     : null;
 
   const handleSelectNote = async (noteId: string) => {
@@ -240,8 +240,8 @@ export const CanvasLinkedDrawer: React.FC = () => {
   // --- Kanban Board Data Resolution ---
   const currentBoard = !isNoteType
     ? boards.find((b) => b.id === nodeData.boardId) ||
-      boards.find((b) => b.id === 'board_default') ||
-      boards[0]
+      boards[0] ||
+      null
     : null;
 
   const handleSelectBoard = async (boardId: string) => {

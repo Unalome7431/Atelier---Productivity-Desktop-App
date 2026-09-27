@@ -26,7 +26,6 @@ export const NoteNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
   // Link directly to the referenced note in Knowledge Notes
   const referencedNote =
     notes.find((n) => n.id === nodeData.referenceId) ||
-    notes.find((n) => n.id === 'n_note_a') ||
     notes[0];
 
   const currentColor = referencedNote?.categoryColor || nodeData.color || '#D1FBE3';

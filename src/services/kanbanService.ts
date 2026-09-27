@@ -43,23 +43,7 @@ export const KANBAN_DEFAULT_COLUMNS: KanbanColumn[] = [
 ];
 
 export class KanbanService {
-  private seedingPromise: Promise<void> | null = null;
-
   async getBoards(): Promise<KanbanBoard[]> {
-    const boards = await db.select<any>('SELECT * FROM kanban_boards ORDER BY position_rank ASC');
-    if (
-      boards.length === 0 ||
-      (boards.length === 1 && boards[0].title === 'Productivity OS Roadmap')
-    ) {
-      if (!this.seedingPromise) {
-        this.seedingPromise = this.seedDefaultBoards().finally(() => {
-          this.seedingPromise = null;
-        });
-      }
-      await this.seedingPromise;
-      return await this.fetchBoards();
-    }
-
     return await this.fetchBoards();
   }
 
@@ -608,12 +592,8 @@ export class KanbanService {
     }
 
     if (!boards[0]) {
-      try {
-        await this.seedDefaultBoards();
-        boards = await db.select<any>('SELECT * FROM kanban_boards WHERE id = ?', [boardId]);
-      } catch {
-        // continue
-      }
+      // Board does not exist, return null or handle gracefully
+      return null as any;
     }
 
     const boardRow = boards[0] || {};
@@ -796,9 +776,11 @@ export class KanbanService {
     try {
       const boards = await db.select<any>('SELECT id FROM kanban_boards WHERE id = ?', [boardId]);
       if (!boards[0]) {
-        await this.seedDefaultBoards();
+        // Board not found
+        throw new Error(`Board ${boardId} not found`);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('not found')) throw err;
       // ignore
     }
 

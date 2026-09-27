@@ -3,20 +3,7 @@ import { syncService } from './syncService';
 import { CalendarEvent, RecurringWeeklyBlock } from '@/types';
 
 export class CalendarService {
-  private seedingPromise: Promise<void> | null = null;
-
   async getEvents(): Promise<CalendarEvent[]> {
-    const events = await db.select<any>('SELECT * FROM calendar_events ORDER BY start_time ASC');
-    if (events.length === 0) {
-      if (!this.seedingPromise) {
-        this.seedingPromise = this.seedDefaultEvents().finally(() => {
-          this.seedingPromise = null;
-        });
-      }
-      await this.seedingPromise;
-      return await this.fetchEvents();
-    }
-
     return await this.fetchEvents();
   }
 
@@ -75,7 +62,7 @@ export class CalendarService {
     });
   }
 
-  private async seedDefaultEvents(): Promise<void> {
+  async seedDefaultEvents(): Promise<void> {
     const now = new Date().toISOString();
 
     const defaultEvents: {

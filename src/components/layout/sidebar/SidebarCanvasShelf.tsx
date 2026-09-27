@@ -127,14 +127,14 @@ export const SidebarCanvasShelf: React.FC = () => {
                 >
                   <Edit2 className="w-2.5 h-2.5" />
                 </button>
-                {canvases.length > 1 && (
+                {canvases.length > 0 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteCanvas(c.id);
                     }}
                     className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
-                    title="Delete"
+                    title="Delete canvas"
                   >
                     <Trash2 className="w-2.5 h-2.5" />
                   </button>

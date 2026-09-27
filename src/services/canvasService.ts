@@ -3,20 +3,7 @@ import { syncService } from './syncService';
 import { CanvasDocument, CanvasViewport } from '@/types';
 
 export class CanvasService {
-  private seedingPromise: Promise<void> | null = null;
-
   async getCanvases(): Promise<CanvasDocument[]> {
-    const canvases = await db.select<any>('SELECT * FROM canvases ORDER BY created_at ASC');
-    if (canvases.length === 0) {
-      if (!this.seedingPromise) {
-        this.seedingPromise = this.seedDefaultCanvases().finally(() => {
-          this.seedingPromise = null;
-        });
-      }
-      await this.seedingPromise;
-      return await this.fetchCanvases();
-    }
-
     return await this.fetchCanvases();
   }
 
@@ -195,7 +182,7 @@ export class CanvasService {
     });
   }
 
-  private async seedDefaultCanvases(): Promise<void> {
+  async seedDefaultCanvases(): Promise<void> {
     const now = new Date().toISOString();
 
     // 1. Canvas A - Master Concept from Figma Design

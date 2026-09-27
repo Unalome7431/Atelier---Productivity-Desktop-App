@@ -31,6 +31,7 @@ async function runTests() {
 
   // Test 1: Service default seeding (Figma Canvas A, B, C)
   console.log('--- Test 1: Canvas Seed & Entity Schema ---');
+  await canvasService.seedDefaultCanvases();
   const initialCanvases = await canvasService.getCanvases();
   assert(
     initialCanvases.length >= 3,

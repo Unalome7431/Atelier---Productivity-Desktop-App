@@ -89,6 +89,7 @@ async function runKanbanTests() {
   // -------------------------------------------------------------
   console.log('\n--- Test 2: Multi-Board Architecture & Default Seeding ---');
 
+  await kanbanService.seedDefaultBoards();
   const boards = await kanbanService.getBoards();
   assert(boards.length >= 3, `Seeded at least 3 default boards (got: ${boards.length})`);
 

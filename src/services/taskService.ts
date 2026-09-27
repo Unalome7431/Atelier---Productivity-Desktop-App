@@ -4,20 +4,8 @@ import { Task, TaskSubtask } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
 export class TaskService {
-  private seedingPromise: Promise<void> | null = null;
-
   async getTodayTasks(date?: string): Promise<Task[]> {
     const targetDate = date || getTodayDateString();
-
-    const allRows = await db.select<any>('SELECT id FROM tasks');
-    if (allRows.length === 0) {
-      if (!this.seedingPromise) {
-        this.seedingPromise = this.seedDefaultTasks().finally(() => {
-          this.seedingPromise = null;
-        });
-      }
-      await this.seedingPromise;
-    }
 
     // Automatically rollover incomplete tasks from past dates back to Inbox
     await this.rolloverIncompleteTasks(targetDate);
@@ -90,7 +78,7 @@ export class TaskService {
     };
   }
 
-  private async seedDefaultTasks(): Promise<void> {
+  async seedDefaultTasks(): Promise<void> {
     const today = getTodayDateString();
     const now = new Date().toISOString();
 
