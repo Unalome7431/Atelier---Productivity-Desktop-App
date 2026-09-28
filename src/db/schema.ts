@@ -29,6 +29,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     color TEXT,
     target_count INTEGER DEFAULT 1,
     position_rank TEXT NOT NULL DEFAULT '0',
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -60,6 +61,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     pomodoro_cycles_completed INTEGER DEFAULT 0,
     pomodoro_cycles_estimated INTEGER DEFAULT 1,
     completed_at TEXT,
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -73,6 +75,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     linked_canvas_title TEXT,
     position_rank TEXT NOT NULL DEFAULT '0',
     columns_config TEXT DEFAULT '[]',
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -90,6 +93,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     due_date TEXT,
     comments_count INTEGER DEFAULT 0,
     completed_at TEXT,
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(board_id) REFERENCES kanban_boards(id) ON DELETE CASCADE
@@ -100,6 +104,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     viewport TEXT DEFAULT '{"x": 0, "y": 0, "zoom": 1}',
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -140,6 +145,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     canvas_id TEXT,
     canvas_title TEXT,
     is_pinned INTEGER DEFAULT 0,
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );`,
@@ -153,6 +159,7 @@ export const SQLITE_SCHEMA_QUERIES = [
     end_time TEXT NOT NULL,
     color_token TEXT,
     task_id TEXT,
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE SET NULL

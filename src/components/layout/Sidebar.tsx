@@ -17,7 +17,7 @@ interface NavItem {
 }
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab } = useAppStore();
+  const { activeTab, setActiveTab, setSettingsModalOpen } = useAppStore();
   const { loadCanvases } = useCanvasStore();
   const { loadBoards } = useKanbanStore();
   const { loadNotes } = useNotesStore();
@@ -134,9 +134,12 @@ export const Sidebar: React.FC = () => {
 
       {/* Footer Settings */}
       <div className="flex flex-col gap-2 pt-3 border-t border-border/80">
-        <button className="flex items-center gap-2.5 px-3 py-1.5 rounded-md font-sans text-ui-rg-sm text-secondaryGray hover:text-primaryDark hover:bg-border/50 transition-all text-left cursor-pointer">
+        <button
+          onClick={() => setSettingsModalOpen(true)}
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-md font-sans text-ui-rg-sm text-secondaryGray hover:text-primaryDark hover:bg-border/50 transition-all text-left cursor-pointer"
+        >
           <Settings className="w-4 h-4" />
-          <span>Preferences</span>
+          <span>Setting</span>
         </button>
       </div>
     </aside>

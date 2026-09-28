@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { cn } from '@/lib/utils';
 
 // Map pastel background token to its darker saturated accent dot
@@ -26,6 +27,7 @@ export const SidebarCanvasShelf: React.FC = () => {
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
+  const [canvasToDelete, setCanvasToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const handleCreateCanvas = async () => {
     const id = await createCanvas();
@@ -131,10 +133,10 @@ export const SidebarCanvasShelf: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteCanvas(c.id);
+                      setCanvasToDelete({ id: c.id, title: c.title });
                     }}
                     className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
-                    title="Delete canvas"
+                    title="Move to trash"
                   >
                     <Trash2 className="w-2.5 h-2.5" />
                   </button>
@@ -144,6 +146,21 @@ export const SidebarCanvasShelf: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(canvasToDelete)}
+        onClose={() => setCanvasToDelete(null)}
+        onConfirm={async () => {
+          if (canvasToDelete) {
+            await deleteCanvas(canvasToDelete.id);
+            setCanvasToDelete(null);
+          }
+        }}
+        title="Move Canvas to Trash"
+        description={`Are you sure you want to move "${canvasToDelete?.title}" to the Trash Bin? You can restore it anytime within 30 days in Setting.`}
+        confirmText="Move to Trash"
+      />
     </div>
   );
 };

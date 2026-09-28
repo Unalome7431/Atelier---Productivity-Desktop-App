@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, MoreHorizontal, Edit2, Trash2, Check } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit2, Trash2, Check, GripVertical } from 'lucide-react';
 import { KanbanColumn, KanbanCard } from '@/types';
 import { KanbanCardItem } from './KanbanCardItem';
 import { getRankBetween, getInitialRank } from '@/lib/lexorank';
@@ -16,6 +16,7 @@ interface KanbanColumnLaneProps {
   onMoveCard: (cardId: string, targetColumnId: string, newRank: string) => void;
   onRenameColumn?: (columnId: string, newTitle: string) => void;
   onDeleteColumn?: (columnId: string) => void;
+  onReorderColumn?: (draggedColId: string, targetColId: string) => void;
 }
 
 export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
@@ -29,8 +30,11 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
   onMoveCard,
   onRenameColumn,
   onDeleteColumn,
+  onReorderColumn,
 }) => {
   const [isOverColumn, setIsOverColumn] = useState(false);
+  const [isOverColumnLane, setIsOverColumnLane] = useState(false);
+  const [isDraggingColumn, setIsDraggingColumn] = useState(false);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [columnTitleInput, setColumnTitleInput] = useState(column.title);
@@ -45,8 +49,26 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
     return rankA - rankB;
   });
 
+  const handleColumnDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData(
+      'application/x-atelier-column',
+      JSON.stringify({ columnId: column.id })
+    );
+    setIsDraggingColumn(true);
+  };
+
+  const handleColumnDragEnd = () => {
+    setIsDraggingColumn(false);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (e.dataTransfer.types.includes('application/x-atelier-column')) {
+      e.dataTransfer.dropEffect = 'move';
+      setIsOverColumnLane(true);
+      return;
+    }
     e.dataTransfer.dropEffect = 'move';
     setIsOverColumn(true);
   };
@@ -55,11 +77,13 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
     // Only deactivate when leaving the column container
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsOverColumn(false);
+      setIsOverColumnLane(false);
       setDropIndex(null);
     }
   };
 
   const handleCardDragOver = (e: React.DragEvent, index: number) => {
+    if (e.dataTransfer.types.includes('application/x-atelier-column')) return;
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
@@ -74,6 +98,23 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsOverColumn(false);
+    setIsOverColumnLane(false);
+
+    // Handle Column Reorder Drop
+    if (e.dataTransfer.types.includes('application/x-atelier-column')) {
+      try {
+        const raw = e.dataTransfer.getData('application/x-atelier-column');
+        if (raw) {
+          const payload = JSON.parse(raw);
+          if (payload?.columnId && payload.columnId !== column.id) {
+            onReorderColumn?.(payload.columnId, column.id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse column drag drop payload:', err);
+      }
+      return;
+    }
 
     try {
       const payload = JSON.parse(e.dataTransfer.getData('application/json'));
@@ -198,12 +239,23 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
       className={cn(
         'w-[360px] min-w-[360px] max-w-[380px] rounded-3xl border p-4 flex flex-col gap-3 shadow-[0_2px_12px_rgba(45,44,42,0.03)] transition-all flex-shrink-0 h-full max-h-full',
         getColumnBg(),
-        isOverColumn && 'ring-2 ring-primaryDark/20 border-primaryDark/40'
+        isOverColumn && 'ring-2 ring-primaryDark/20 border-primaryDark/40',
+        isOverColumnLane && 'ring-2 ring-indigo-400 border-indigo-400 bg-pastel-lavender-tint/40 scale-[1.01]',
+        isDraggingColumn && 'opacity-40'
       )}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between px-1.5 pt-1 pb-1">
-        <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+      <div
+        draggable={!isEditingTitle}
+        onDragStart={handleColumnDragStart}
+        onDragEnd={handleColumnDragEnd}
+        title="Drag column header to reorder"
+        className="flex items-center justify-between px-1.5 pt-1 pb-1 cursor-grab active:cursor-grabbing select-none group/colheader"
+      >
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 pr-2">
+          {/* Drag Handle Icon */}
+          <GripVertical className="w-3.5 h-3.5 text-secondaryGray/50 group-hover/colheader:text-primaryDark transition-colors shrink-0" />
+
           {/* Status Dot */}
           <span
             className="w-2.5 h-2.5 rounded-full shadow-2xs shrink-0"

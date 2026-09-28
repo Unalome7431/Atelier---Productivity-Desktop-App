@@ -91,7 +91,7 @@ export const NoteHeaderActions: React.FC<NoteHeaderProps> = ({ note }) => {
           </button>
 
           {isFolderMenuOpen && (
-            <div className="absolute left-0 top-full mt-1 w-56 bg-white border border-border shadow-float rounded-2xl p-2 z-40 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-border shadow-float rounded-2xl p-2 z-40 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-100">
               <div className="flex items-center justify-between px-1 border-b border-border/50 pb-1">
                 <span className="text-[10px] font-mono font-bold text-midGray uppercase">
                   Folder
@@ -176,7 +176,7 @@ export const NoteHeaderActions: React.FC<NoteHeaderProps> = ({ note }) => {
                       }
                     }}
                     placeholder="Folder name..."
-                    className="bg-bg border border-border rounded-lg px-2 py-1 text-xs text-primaryDark outline-none w-full"
+                    className="flex-1 min-w-0 bg-bg border border-border rounded-lg px-2 py-1 text-xs text-primaryDark outline-none"
                   />
                   <button
                     type="submit"
@@ -298,8 +298,8 @@ export const NoteHeaderActions: React.FC<NoteHeaderProps> = ({ note }) => {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete Document"
-        description="Are you sure you want to delete this note? This action cannot be undone."
+        title="Move Note to Trash"
+        description="Are you sure you want to move this note to the Trash Bin? You can restore it anytime within 30 days in Setting."
       >
         <div className="flex justify-end gap-2 pt-3">
           <Button variant="secondary" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
@@ -313,7 +313,7 @@ export const NoteHeaderActions: React.FC<NoteHeaderProps> = ({ note }) => {
               setIsDeleteModalOpen(false);
             }}
           >
-            Delete Note
+            Move to Trash
           </Button>
         </div>
       </Modal>

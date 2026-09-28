@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS routines (
     custom_days JSONB DEFAULT '[]'::jsonb,
     target_count INT DEFAULT 1,
     position_rank TEXT NOT NULL DEFAULT '0',
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     pomodoro_cycles_estimated INT DEFAULT 1,
     kanban_card_id TEXT,
     completed_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -76,6 +78,7 @@ CREATE TABLE IF NOT EXISTS kanban_boards (
     linked_canvas_title TEXT,
     position_rank TEXT NOT NULL,
     columns_config JSONB NOT NULL,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -91,6 +94,7 @@ CREATE TABLE IF NOT EXISTS kanban_cards (
     checklist JSONB DEFAULT '[]'::jsonb,
     due_date TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -102,6 +106,7 @@ CREATE TABLE IF NOT EXISTS canvases (
     viewport JSONB DEFAULT '{"x": 0, "y": 0, "zoom": 1}'::jsonb,
     nodes JSONB DEFAULT '[]'::jsonb,
     edges JSONB DEFAULT '[]'::jsonb,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -116,6 +121,7 @@ CREATE TABLE IF NOT EXISTS notes (
     canvas_id TEXT,
     canvas_title TEXT,
     is_pinned BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -129,6 +135,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     end_time TIMESTAMPTZ NOT NULL,
     color_token TEXT,
     task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

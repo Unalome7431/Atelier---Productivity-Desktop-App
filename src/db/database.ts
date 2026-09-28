@@ -57,6 +57,13 @@ class DatabaseManager {
           'ALTER TABLE notes ADD COLUMN canvas_id TEXT;',
           'ALTER TABLE notes ADD COLUMN canvas_title TEXT;',
           'ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;',
+          'ALTER TABLE notes ADD COLUMN deleted_at TEXT;',
+          'ALTER TABLE canvases ADD COLUMN deleted_at TEXT;',
+          'ALTER TABLE kanban_boards ADD COLUMN deleted_at TEXT;',
+          'ALTER TABLE kanban_cards ADD COLUMN deleted_at TEXT;',
+          'ALTER TABLE tasks ADD COLUMN deleted_at TEXT;',
+          'ALTER TABLE routines ADD COLUMN deleted_at TEXT;',
+          'ALTER TABLE calendar_events ADD COLUMN deleted_at TEXT;',
         ];
         for (const migration of safeColumnMigrations) {
           try {

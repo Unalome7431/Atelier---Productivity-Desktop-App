@@ -8,6 +8,8 @@ interface AppState {
   setSyncStatus: (status: SyncStatus) => void;
   isCommandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+  isSettingsModalOpen: boolean;
+  setSettingsModalOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -21,4 +23,6 @@ export const useAppStore = create<AppState>((set) => ({
   setSyncStatus: (syncStatus) => set({ syncStatus }),
   isCommandPaletteOpen: false,
   setCommandPaletteOpen: (isCommandPaletteOpen) => set({ isCommandPaletteOpen }),
+  isSettingsModalOpen: false,
+  setSettingsModalOpen: (isSettingsModalOpen) => set({ isSettingsModalOpen }),
 }));

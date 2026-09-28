@@ -1,11 +1,12 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
+import { trashService } from './trashService';
 import { NoteDocument, BacklinkItem } from '@/types';
 
 export class NoteService {
   async getNotes(): Promise<NoteDocument[]> {
-    const notes = await db.select<any>('SELECT * FROM notes ORDER BY updated_at DESC');
-    return this.mapRows(notes);
+    const notes = await db.select<any>('SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY updated_at DESC');
+    return this.mapRows(notes.filter((r: any) => !r.deleted_at));
   }
 
   private mapRows(rows: any[]): NoteDocument[] {
@@ -273,8 +274,7 @@ export class NoteService {
   }
 
   async deleteNote(id: string): Promise<void> {
-    await db.execute('DELETE FROM notes WHERE id = ?', [id]);
-    await syncService.enqueueMutation('notes', id, 'DELETE', { id });
+    await trashService.softDelete('notes', id);
   }
 
   async getBacklinks(

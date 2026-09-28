@@ -1,5 +1,6 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
+import { trashService } from './trashService';
 import { CalendarEvent, RecurringWeeklyBlock } from '@/types';
 
 export class CalendarService {
@@ -8,7 +9,8 @@ export class CalendarService {
   }
 
   private async fetchEvents(): Promise<CalendarEvent[]> {
-    const events = await db.select<any>('SELECT * FROM calendar_events ORDER BY start_time ASC');
+    const rawEvents = await db.select<any>('SELECT * FROM calendar_events WHERE deleted_at IS NULL ORDER BY start_time ASC');
+    const events = rawEvents.filter((e: any) => !e.deleted_at);
     return events.map((e) => {
       const rawStart = e.start_time || '';
       const rawEnd = e.end_time || '';
@@ -294,8 +296,7 @@ export class CalendarService {
   }
 
   async deleteEvent(eventId: string): Promise<void> {
-    await db.execute(`DELETE FROM calendar_events WHERE id = ?`, [eventId]);
-    await syncService.enqueueMutation('calendar_events', eventId, 'DELETE', { id: eventId });
+    await trashService.softDelete('calendar_events', eventId);
   }
 
   async scheduleTaskAsEvent(

@@ -58,6 +58,7 @@ interface KanbanState {
 
   // Column operations
   addColumn: (boardId: string, title: string, themeId?: string) => Promise<KanbanColumn>;
+  reorderColumns: (boardId: string, orderedColumnIds: string[]) => Promise<void>;
   renameColumn: (boardId: string, columnId: string, newTitle: string) => Promise<void>;
   deleteColumn: (boardId: string, columnId: string, fallbackColumnId?: string) => Promise<void>;
 
@@ -189,6 +190,26 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       ),
     }));
     return newCol;
+  },
+
+  reorderColumns: async (boardId: string, orderedColumnIds: string[]) => {
+    set((state) => ({
+      boards: state.boards.map((b) => {
+        if (b.id !== boardId) return b;
+        const colMap = new Map((b.columns || []).map((c) => [c.id, c]));
+        const newCols: KanbanColumn[] = [];
+        orderedColumnIds.forEach((id, idx) => {
+          const col = colMap.get(id);
+          if (col) {
+            newCols.push({ ...col, orderIndex: idx });
+            colMap.delete(id);
+          }
+        });
+        colMap.forEach((col) => newCols.push({ ...col, orderIndex: newCols.length }));
+        return { ...b, columns: newCols };
+      }),
+    }));
+    await kanbanService.reorderColumns(boardId, orderedColumnIds);
   },
 
   renameColumn: async (boardId: string, columnId: string, newTitle: string) => {

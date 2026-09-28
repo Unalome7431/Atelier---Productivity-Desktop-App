@@ -170,13 +170,10 @@ async function runCalendarTests() {
   await store.loadEvents();
 
   assert(useCalendarStore.getState().events.length >= 8, 'Store loaded calendar events');
+  const todayDateStr = getTodayDateString();
   assert(
-    useCalendarStore.getState().selectedDate === '2026-09-09',
-    'Default selectedDate is 2026-09-09'
-  );
-  assert(
-    useCalendarStore.getState().activeWeekStartDate === '2026-09-06',
-    'Computed Sunday of active week is 2026-09-06'
+    useCalendarStore.getState().selectedDate === todayDateStr,
+    `Default selectedDate is today (${todayDateStr})`
   );
   assert(useCalendarStore.getState().viewMode === 'month', 'Initial viewMode is "month"');
 

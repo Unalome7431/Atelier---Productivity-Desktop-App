@@ -4,6 +4,7 @@ import { TopHeader } from '@/components/layout/TopHeader';
 import { Footer } from '@/components/layout/Footer';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { TelegramConfigModal } from '@/components/layout/TelegramConfigModal';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import { CockpitView } from '@/views/CockpitView';
 import { CalendarView } from '@/views/CalendarView';
 import { CanvasView } from '@/views/CanvasView';
@@ -13,7 +14,13 @@ import { useAppStore } from '@/stores/useAppStore';
 import { telegramService } from '@/services/telegramService';
 
 export const App: React.FC = () => {
-  const { activeTab, isCommandPaletteOpen, setCommandPaletteOpen } = useAppStore();
+  const {
+    activeTab,
+    isCommandPaletteOpen,
+    setCommandPaletteOpen,
+    isSettingsModalOpen,
+    setSettingsModalOpen,
+  } = useAppStore();
 
   useEffect(() => {
     void telegramService.startPolling();
@@ -65,6 +72,7 @@ export const App: React.FC = () => {
       {/* Global ⌘K Command Hub & Modals */}
       <CommandPalette />
       <TelegramConfigModal />
+      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setSettingsModalOpen(false)} />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
+import { trashService } from './trashService';
 import { Routine, RoutineLog } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
@@ -18,8 +19,8 @@ export class RoutineService {
   }
 
   async getAllRoutines(): Promise<Routine[]> {
-    const rows = await db.select<any>('SELECT * FROM routines ORDER BY position_rank ASC');
-    return this.mapCleanRoutines(rows);
+    const rows = await db.select<any>('SELECT * FROM routines WHERE deleted_at IS NULL ORDER BY position_rank ASC');
+    return this.mapCleanRoutines(rows.filter((r: any) => !r.deleted_at));
   }
 
   private async mapCleanRoutines(rows: any[]): Promise<Routine[]> {
@@ -390,9 +391,7 @@ export class RoutineService {
   }
 
   async deleteRoutine(routineId: string): Promise<void> {
-    await db.execute(`DELETE FROM routine_logs WHERE routine_id = ?`, [routineId]);
-    await db.execute(`DELETE FROM routines WHERE id = ?`, [routineId]);
-    await syncService.enqueueMutation('routines', routineId, 'DELETE', { id: routineId });
+    await trashService.softDelete('routines', routineId);
   }
 
   async calculateStreak(): Promise<number> {

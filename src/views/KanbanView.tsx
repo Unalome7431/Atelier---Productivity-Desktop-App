@@ -18,6 +18,7 @@ export const KanbanView: React.FC = () => {
     moveCard,
     addCard,
     addColumn,
+    reorderColumns,
     renameColumn,
     deleteColumn,
     selectedCardId,
@@ -123,6 +124,18 @@ export const KanbanView: React.FC = () => {
     await deleteColumn(activeBoard.id, columnId);
     setToastMessage(`Deleted column "${colToDelete?.title || ''}"`);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleReorderColumn = async (sourceColId: string, targetColId: string) => {
+    if (!activeBoard || sourceColId === targetColId) return;
+    const colIds = (activeBoard.columns || []).map((c) => c.id);
+    const srcIdx = colIds.indexOf(sourceColId);
+    const dstIdx = colIds.indexOf(targetColId);
+    if (srcIdx === -1 || dstIdx === -1) return;
+    const newColIds = [...colIds];
+    newColIds.splice(srcIdx, 1);
+    newColIds.splice(dstIdx, 0, sourceColId);
+    await reorderColumns(activeBoard.id, newColIds);
   };
 
   const handleJumpToCanvas = (canvasId?: string) => {
@@ -359,6 +372,7 @@ export const KanbanView: React.FC = () => {
             onMoveCard={handleMoveCard}
             onRenameColumn={handleRenameColumn}
             onDeleteColumn={handleDeleteColumn}
+            onReorderColumn={handleReorderColumn}
           />
         ))}
 

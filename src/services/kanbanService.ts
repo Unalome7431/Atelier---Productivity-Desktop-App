@@ -1,6 +1,7 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
 import { taskService } from './taskService';
+import { trashService } from './trashService';
 import { KanbanBoard, KanbanCard, KanbanColumn, KanbanChecklistItem } from '@/types';
 import { getInitialRank, getRankBetween } from '@/lib/lexorank';
 import { COLUMN_THEMES } from '@/lib/tagStyles';
@@ -48,8 +49,10 @@ export class KanbanService {
   }
 
   async fetchBoards(): Promise<KanbanBoard[]> {
-    const boards = await db.select<any>('SELECT * FROM kanban_boards ORDER BY position_rank ASC');
-    const cards = await db.select<any>('SELECT * FROM kanban_cards ORDER BY position_rank ASC');
+    const rawBoards = await db.select<any>('SELECT * FROM kanban_boards WHERE deleted_at IS NULL ORDER BY position_rank ASC');
+    const boards = rawBoards.filter((b: any) => !b.deleted_at);
+    const rawCards = await db.select<any>('SELECT * FROM kanban_cards WHERE deleted_at IS NULL ORDER BY position_rank ASC');
+    const cards = rawCards.filter((c: any) => !c.deleted_at);
 
     return boards.map((b) => {
       const boardCards = cards
@@ -568,17 +571,7 @@ export class KanbanService {
   }
 
   async deleteBoard(boardId: string): Promise<void> {
-    // Check total boards — prevent deleting the last board
-    const boards = await db.select<any>('SELECT id FROM kanban_boards');
-    if (boards.length <= 1) {
-      throw new Error('Cannot delete the only remaining Kanban board.');
-    }
-
-    // Delete cards belonging to board
-    await db.execute(`DELETE FROM kanban_cards WHERE board_id = ?`, [boardId]);
-    await db.execute(`DELETE FROM kanban_boards WHERE id = ?`, [boardId]);
-
-    await syncService.enqueueMutation('kanban_boards', boardId, 'DELETE', { id: boardId });
+    await trashService.softDelete('kanban_boards', boardId);
   }
 
   // --- Multi-Column Customization CRUD ---
@@ -643,6 +636,58 @@ export class KanbanService {
     }
 
     return newColumn;
+  }
+
+  async reorderColumns(boardId: string, orderedColumnIds: string[]): Promise<void> {
+    const boards = await db.select<any>('SELECT * FROM kanban_boards WHERE id = ?', [boardId]);
+    if (!boards[0]) return;
+
+    const boardRow = boards[0];
+    let columns: KanbanColumn[] = KANBAN_DEFAULT_COLUMNS;
+    if (boardRow.columns_config) {
+      try {
+        const parsed =
+          typeof boardRow.columns_config === 'string'
+            ? JSON.parse(boardRow.columns_config)
+            : boardRow.columns_config;
+        if (Array.isArray(parsed) && parsed.length > 0) columns = parsed;
+      } catch {
+        columns = KANBAN_DEFAULT_COLUMNS;
+      }
+    }
+
+    const colMap = new Map(columns.map((c) => [c.id, c]));
+    const updatedColumns: KanbanColumn[] = [];
+    orderedColumnIds.forEach((id, idx) => {
+      const col = colMap.get(id);
+      if (col) {
+        updatedColumns.push({ ...col, orderIndex: idx });
+        colMap.delete(id);
+      }
+    });
+    colMap.forEach((col) => {
+      updatedColumns.push({ ...col, orderIndex: updatedColumns.length });
+    });
+
+    const now = new Date().toISOString();
+    try {
+      await db.execute('UPDATE kanban_boards SET columns_config = ?, updated_at = ? WHERE id = ?', [
+        JSON.stringify(updatedColumns),
+        now,
+        boardId,
+      ]);
+    } catch (err) {
+      console.warn('[KanbanService] Failed to persist reordered columns to DB:', err);
+    }
+
+    try {
+      await syncService.enqueueMutation('kanban_boards', boardId, 'UPDATE', {
+        columns_config: JSON.stringify(updatedColumns),
+        updated_at: now,
+      });
+    } catch {
+      // ignore
+    }
   }
 
   async renameColumn(boardId: string, columnId: string, newTitle: string): Promise<void> {
@@ -929,8 +974,7 @@ export class KanbanService {
   }
 
   async deleteCard(cardId: string): Promise<void> {
-    await db.execute(`DELETE FROM kanban_cards WHERE id = ?`, [cardId]);
-    await syncService.enqueueMutation('kanban_cards', cardId, 'DELETE', { id: cardId });
+    await trashService.softDelete('kanban_cards', cardId);
   }
 
   // --- Checklist Subtask Operations ---

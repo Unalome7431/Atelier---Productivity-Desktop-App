@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Pin, Folder, ChevronDown, Search, X } from 'lucide-react';
 import { useNotesStore } from '@/stores/useNotesStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { cn } from '@/lib/utils';
 
 // Map pastel background token to its darker saturated accent dot
@@ -41,6 +42,7 @@ export const SidebarNotesShelf: React.FC = () => {
   const [sidebarFolderName, setSidebarFolderName] = useState('');
   const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
   const [folderSearchQuery, setFolderSearchQuery] = useState('');
+  const [noteToDelete, setNoteToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const sidebarFolders = getFolders();
   const filteredSidebarFolders = useMemo(() => {
@@ -400,10 +402,10 @@ export const SidebarNotesShelf: React.FC = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteNote(n.id);
+                        setNoteToDelete({ id: n.id, title: n.title });
                       }}
                       className="p-1 hover:text-rose-600 text-secondaryGray/70 rounded cursor-pointer"
-                      title="Delete note"
+                      title="Move to trash"
                     >
                       <Trash2 className="w-2.5 h-2.5" />
                     </button>
@@ -413,6 +415,21 @@ export const SidebarNotesShelf: React.FC = () => {
             );
           })}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(noteToDelete)}
+        onClose={() => setNoteToDelete(null)}
+        onConfirm={async () => {
+          if (noteToDelete) {
+            await deleteNote(noteToDelete.id);
+            setNoteToDelete(null);
+          }
+        }}
+        title="Move Note to Trash"
+        description={`Are you sure you want to move "${noteToDelete?.title}" to the Trash Bin? You can restore it anytime within 30 days in Setting.`}
+        confirmText="Move to Trash"
+      />
     </div>
   );
 };

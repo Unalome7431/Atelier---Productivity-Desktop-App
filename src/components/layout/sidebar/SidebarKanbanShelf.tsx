@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { useKanbanStore } from '@/stores/useKanbanStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { NewBoardModal } from '@/components/kanban/NewBoardModal';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { cn } from '@/lib/utils';
 
 // Map pastel background token to its darker saturated accent dot
@@ -28,6 +29,7 @@ export const SidebarKanbanShelf: React.FC = () => {
   const [renamingBoardId, setRenamingBoardId] = useState<string | null>(null);
   const [renameBoardInput, setRenameBoardInput] = useState('');
   const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
+  const [boardToDelete, setBoardToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const startRenameBoard = (id: string, currentTitle: string) => {
     setRenamingBoardId(id);
@@ -131,10 +133,10 @@ export const SidebarKanbanShelf: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteBoard(b.id);
+                      setBoardToDelete({ id: b.id, title: b.title });
                     }}
                     className="p-1 text-secondaryGray hover:text-red-500 rounded transition-colors"
-                    title="Delete board"
+                    title="Move to trash"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -149,6 +151,21 @@ export const SidebarKanbanShelf: React.FC = () => {
         isOpen={isNewBoardModalOpen}
         onClose={() => setIsNewBoardModalOpen(false)}
         onCreate={handleCreateBoardSubmit}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(boardToDelete)}
+        onClose={() => setBoardToDelete(null)}
+        onConfirm={async () => {
+          if (boardToDelete) {
+            await deleteBoard(boardToDelete.id);
+            setBoardToDelete(null);
+          }
+        }}
+        title="Move Board to Trash"
+        description={`Are you sure you want to move "${boardToDelete?.title}" to the Trash Bin? You can restore it anytime within 30 days in Setting.`}
+        confirmText="Move to Trash"
       />
     </div>
   );

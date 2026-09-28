@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { VpsReminderEngine } from './reminderEngine';
 
 dotenv.config();
 
@@ -184,4 +185,8 @@ app.post('/api/sync/push', requireAuth, async (req: Request, res: Response) => {
 
 app.listen(port, () => {
   console.log(`[Atelier Server] Sync Bridge running on port ${port}`);
+
+  // Start 24/7 background reminder worker
+  const reminderEngine = new VpsReminderEngine(pool);
+  reminderEngine.start();
 });

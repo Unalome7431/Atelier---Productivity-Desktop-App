@@ -1,5 +1,6 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
+import { trashService } from './trashService';
 import { Task, TaskSubtask } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 
@@ -11,26 +12,26 @@ export class TaskService {
     await this.rolloverIncompleteTasks(targetDate);
 
     const rows = await db.select<any>(
-      `SELECT * FROM tasks WHERE scheduled_date = ? ORDER BY position_rank ASC`,
+      `SELECT * FROM tasks WHERE scheduled_date = ? AND deleted_at IS NULL ORDER BY position_rank ASC`,
       [targetDate]
     );
 
-    return rows.map((t) => this.mapTask(t));
+    return rows.filter((r: any) => !r.deleted_at).map((t) => this.mapTask(t));
   }
 
   async getInboxTasks(): Promise<Task[]> {
     await db.init();
     const rows = await db.select<any>(
-      `SELECT * FROM tasks WHERE scheduled_date IS NULL ORDER BY position_rank ASC`
+      `SELECT * FROM tasks WHERE scheduled_date IS NULL AND deleted_at IS NULL ORDER BY position_rank ASC`
     );
 
-    return rows.map((t) => this.mapTask(t));
+    return rows.filter((r: any) => !r.deleted_at).map((t) => this.mapTask(t));
   }
 
   async getAllTasks(): Promise<Task[]> {
     await db.init();
-    const rows = await db.select<any>(`SELECT * FROM tasks ORDER BY position_rank ASC`);
-    return rows.map((t) => this.mapTask(t));
+    const rows = await db.select<any>(`SELECT * FROM tasks WHERE deleted_at IS NULL ORDER BY position_rank ASC`);
+    return rows.filter((r: any) => !r.deleted_at).map((t) => this.mapTask(t));
   }
 
   async rolloverIncompleteTasks(todayDate?: string): Promise<void> {
@@ -377,8 +378,7 @@ export class TaskService {
   }
 
   async deleteTask(taskId: string): Promise<void> {
-    await db.execute(`DELETE FROM tasks WHERE id = ?`, [taskId]);
-    await syncService.enqueueMutation('tasks', taskId, 'DELETE', { id: taskId });
+    await trashService.softDelete('tasks', taskId);
   }
 }
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { CalendarEvent, RecurringWeeklyBlock, Task } from '@/types';
 import { calendarService } from '@/services/calendarService';
 import { useTasksStore } from './useTasksStore';
+import { getTodayDateString } from '@/lib/utils';
 
 function getSundayOfWeek(dateStr: string): string {
   const parts = dateStr.split('-').map(Number);
@@ -55,10 +56,12 @@ interface CalendarState {
   deleteWeeklyBlock: (blockId: string) => void;
 }
 
+const initialToday = getTodayDateString();
+
 export const useCalendarStore = create<CalendarState>((set, get) => ({
   events: [],
-  selectedDate: '2026-09-09', // Matches Figma Design focus date
-  activeWeekStartDate: getSundayOfWeek('2026-09-09'),
+  selectedDate: initialToday,
+  activeWeekStartDate: getSundayOfWeek(initialToday),
   viewMode: 'month',
   isTaskDrawerOpen: false,
   weeklyBlocks: [],

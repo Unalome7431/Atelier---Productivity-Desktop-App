@@ -14,6 +14,7 @@ import { useKanbanStore } from '@/stores/useKanbanStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { getTagStyle } from '@/lib/tagStyles';
 import { formatDueDateTime } from '@/lib/dateTimeUtils';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { cn } from '@/lib/utils';
 
 interface KanbanCardItemProps {
@@ -41,6 +42,7 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
   const { activeTaskId, bindTarget, unbindTarget } = usePomodoroStore();
   const [showMenu, setShowMenu] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   const isCurrentFocus = activeTaskId === card.id;
 
@@ -67,7 +69,7 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowMenu(false);
-    deleteCard(card.id);
+    setIsConfirmDeleteOpen(true);
   };
 
   // Checklist computation
@@ -289,6 +291,19 @@ export const KanbanCardItem: React.FC<KanbanCardItemProps> = ({
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={async () => {
+          await deleteCard(card.id);
+          setIsConfirmDeleteOpen(false);
+        }}
+        title="Move Card to Trash"
+        description={`Are you sure you want to move "${card.title}" to the Trash Bin? You can restore it anytime within 30 days in Setting.`}
+        confirmText="Move to Trash"
+      />
     </div>
   );
 };

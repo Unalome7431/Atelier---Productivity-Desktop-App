@@ -1,5 +1,6 @@
 import { db } from '@/db/database';
 import { syncService } from './syncService';
+import { trashService } from './trashService';
 import { CanvasDocument, CanvasViewport } from '@/types';
 
 export class CanvasService {
@@ -8,7 +9,8 @@ export class CanvasService {
   }
 
   private async fetchCanvases(): Promise<CanvasDocument[]> {
-    const canvases = await db.select<any>('SELECT * FROM canvases ORDER BY created_at ASC');
+    const rawCanvases = await db.select<any>('SELECT * FROM canvases WHERE deleted_at IS NULL ORDER BY created_at ASC');
+    const canvases = rawCanvases.filter((c: any) => !c.deleted_at);
     const nodes = await db.select<any>('SELECT * FROM canvas_nodes');
     const edges = await db.select<any>('SELECT * FROM canvas_edges');
 
@@ -104,11 +106,7 @@ export class CanvasService {
   }
 
   async deleteCanvas(canvasId: string): Promise<void> {
-    await db.execute(`DELETE FROM canvas_edges WHERE canvas_id = ?`, [canvasId]);
-    await db.execute(`DELETE FROM canvas_nodes WHERE canvas_id = ?`, [canvasId]);
-    await db.execute(`DELETE FROM canvases WHERE id = ?`, [canvasId]);
-
-    await syncService.enqueueMutation('canvases', canvasId, 'DELETE', { id: canvasId });
+    await trashService.softDelete('canvases', canvasId);
   }
 
   async saveCanvasViewport(canvasId: string, viewport: CanvasViewport): Promise<void> {
