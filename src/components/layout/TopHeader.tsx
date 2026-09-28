@@ -119,7 +119,7 @@ export const TopHeader: React.FC = () => {
 
   return (
     <>
-      <header className="h-14 border-b border-border bg-bg/90 px-6 flex items-center justify-between select-none z-10">
+      <header className="h-14 border-b border-border bg-bg px-6 flex items-center justify-between select-none z-10">
         {/* Left: Global Search & Command Trigger */}
         <div className="flex items-center gap-3">
           <button

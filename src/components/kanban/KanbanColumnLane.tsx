@@ -246,7 +246,7 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
         'w-[360px] min-w-[360px] max-w-[380px] rounded-3xl border p-4 flex flex-col gap-3 shadow-[0_2px_12px_rgba(45,44,42,0.03)] transition-all flex-shrink-0 h-full max-h-full',
         getColumnBg(),
         isOverColumn && 'ring-2 ring-primaryDark/20 border-primaryDark/40',
-        isDraggingColumn && 'opacity-40'
+        isDraggingColumn && 'ring-1 ring-border-hover shadow-subtle'
       )}
     >
       {/* Column Header */}

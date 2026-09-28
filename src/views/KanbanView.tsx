@@ -204,7 +204,7 @@ export const KanbanView: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 overflow-x-auto p-8 flex flex-col gap-6 bg-bg h-full select-none">
+    <div className="flex-1 overflow-hidden p-8 flex flex-col gap-6 bg-bg h-full select-none">
       {/* Workspace Header & Actions (Figma Style) */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Left: Project Title & Linked Canvas Chip */}
@@ -358,7 +358,7 @@ export const KanbanView: React.FC = () => {
       )}
 
       {/* Horizontal Columns Lane Grid */}
-      <div className="flex gap-6 items-start flex-1 min-h-0 overflow-x-auto pb-4">
+      <div className="flex gap-6 items-start flex-1 min-h-0 overflow-x-auto px-1.5 py-1.5 pb-4">
         {activeBoard.columns.map((column) => (
           <KanbanColumnLane
             key={column.id}
