@@ -236,11 +236,16 @@ export const KanbanColumnLane: React.FC<KanbanColumnLaneProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={{
+        borderColor: isOverColumnLane ? (column.dotColor || '#818CF8') : undefined,
+        boxShadow: isOverColumnLane
+          ? `0 0 0 2px ${column.dotColor || '#818CF8'}`
+          : undefined,
+      }}
       className={cn(
         'w-[360px] min-w-[360px] max-w-[380px] rounded-3xl border p-4 flex flex-col gap-3 shadow-[0_2px_12px_rgba(45,44,42,0.03)] transition-all flex-shrink-0 h-full max-h-full',
         getColumnBg(),
         isOverColumn && 'ring-2 ring-primaryDark/20 border-primaryDark/40',
-        isOverColumnLane && 'ring-2 ring-primaryDark/30 border-primaryDark/50 bg-pastel-lavender-tint/20',
         isDraggingColumn && 'opacity-40'
       )}
     >

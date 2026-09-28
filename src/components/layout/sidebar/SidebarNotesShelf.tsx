@@ -204,11 +204,14 @@ export const SidebarNotesShelf: React.FC = () => {
                       : 'text-secondaryGray hover:text-primaryDark hover:bg-bg'
                   )}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Folder className="w-3.5 h-3.5 text-secondaryGray shrink-0" />
                     <span className="truncate">All Notes</span>
                   </div>
-                  <span className="font-mono text-[10px] text-secondaryGray">{notes.length}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-mono text-[10px] text-secondaryGray">{notes.length}</span>
+                    <span className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  </div>
                 </button>
 
                 {/* Filtered Folders */}
@@ -244,7 +247,7 @@ export const SidebarNotesShelf: React.FC = () => {
                             e.stopPropagation();
                             deleteFolder(f);
                           }}
-                          className="opacity-0 group-hover/item:opacity-100 p-0.5 hover:text-rose-600 rounded text-secondaryGray transition-opacity cursor-pointer"
+                          className="opacity-0 group-hover/item:opacity-100 p-0.5 hover:text-rose-600 rounded text-secondaryGray transition-opacity cursor-pointer w-4 h-4 flex items-center justify-center shrink-0"
                           title={`Delete folder "${f}"`}
                         >
                           <Trash2 className="w-3 h-3" />
