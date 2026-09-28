@@ -164,7 +164,7 @@ export const SidebarNotesShelf: React.FC = () => {
                 setFolderSearchQuery('');
               }}
             />
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border shadow-float rounded-2xl p-2 z-40 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-100 font-sans text-xs">
+            <div className="absolute left-0 top-full mt-1 w-64 max-w-[270px] bg-white border border-border shadow-float rounded-2xl p-2.5 z-40 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-100 font-sans text-xs">
               {/* Search Mechanic */}
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-secondaryGray absolute left-2.5 top-2" />
@@ -283,7 +283,7 @@ export const SidebarNotesShelf: React.FC = () => {
                     handleCreateSidebarFolder();
                     setIsFolderDropdownOpen(false);
                   }}
-                  className="pt-1.5 border-t border-border/60 flex items-center gap-1"
+                  className="pt-2 border-t border-border/60 flex items-center gap-1.5 w-full min-w-0"
                 >
                   <input
                     type="text"
@@ -291,7 +291,7 @@ export const SidebarNotesShelf: React.FC = () => {
                     value={sidebarFolderName}
                     onChange={(e) => setSidebarFolderName(e.target.value)}
                     placeholder="Folder name..."
-                    className="flex-1 bg-surface border border-border rounded-lg px-2 py-1 text-xs text-primaryDark outline-none"
+                    className="flex-1 min-w-0 bg-surface border border-border rounded-lg px-2 py-1 text-xs text-primaryDark outline-none focus:border-primaryDark"
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') setIsCreatingSidebarFolder(false);
                     }}
@@ -299,16 +299,16 @@ export const SidebarNotesShelf: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!sidebarFolderName.trim()}
-                    className="px-2 py-1 rounded-lg bg-primaryDark text-white text-[11px] font-semibold disabled:opacity-40 cursor-pointer shrink-0"
+                    className="px-2.5 py-1 rounded-lg bg-primaryDark text-white text-[11px] font-semibold disabled:opacity-40 cursor-pointer shrink-0 transition-opacity"
                   >
                     Add
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsCreatingSidebarFolder(false)}
-                    className="p-1 text-secondaryGray hover:text-primaryDark cursor-pointer shrink-0"
+                    className="p-1 rounded-md text-secondaryGray hover:text-primaryDark hover:bg-surface cursor-pointer shrink-0 transition-colors"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </form>
               ) : (
