@@ -49,11 +49,18 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
   const [expandedSubtasks, setExpandedSubtasks] = useState<Record<string, boolean>>({});
   const [subtaskInputs, setSubtaskInputs] = useState<Record<string, string>>({});
 
-  // Selected date events sorted by startTime
+  // Selected date events sorted by startTime (untimed / all-day events first)
   const selectedDateEvents = useMemo(() => {
     return events
       .filter((e) => e.date === selectedDate)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+      .sort((a, b) => {
+        const aTime = a.startTime || '';
+        const bTime = b.startTime || '';
+        if (!aTime && !bTime) return 0;
+        if (!aTime) return -1;
+        if (!bTime) return 1;
+        return aTime.localeCompare(bTime);
+      });
   }, [events, selectedDate]);
 
   // Selected date scheduled tasks
@@ -150,9 +157,7 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
               {formattedSelectedDateHeading}
             </h3>
           </div>
-          {headerControls && (
-            <div className="shrink-0 ml-2">{headerControls}</div>
-          )}
+          {headerControls && <div className="shrink-0 ml-2">{headerControls}</div>}
         </div>
 
         {/* Drop zone alert when dragging */}
@@ -206,7 +211,11 @@ export const SelectedDateAgenda: React.FC<SelectedDateAgendaProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-bold text-mono-xs text-primaryDark">
-                      {item.startTime} – {item.endTime}
+                      {item.startTime
+                        ? item.endTime
+                          ? `${item.startTime} – ${item.endTime}`
+                          : item.startTime
+                        : 'All Day'}
                     </span>
 
                     <button

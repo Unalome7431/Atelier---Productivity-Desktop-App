@@ -16,6 +16,7 @@ import { PomodoroSettingsModal } from '@/components/pomodoro/PomodoroSettingsMod
 import { SelectFocusTaskModal } from '@/components/pomodoro/SelectFocusTaskModal';
 import { FocusTaskDrawer } from '@/components/pomodoro/FocusTaskDrawer';
 import { formatTime, cn } from '@/lib/utils';
+import { formatShortcut } from '@/lib/platform';
 
 export const TopHeader: React.FC = () => {
   const { setCommandPaletteOpen } = useAppStore();
@@ -129,7 +130,7 @@ export const TopHeader: React.FC = () => {
             <Search className="w-3.5 h-3.5 text-secondaryGray" />
             <span>Quick search or jump</span>
             <kbd className="font-mono text-mono-xs bg-bg px-1.5 py-0.5 rounded-sm border border-border text-midGray">
-              ⌘K
+              {formatShortcut('⌘K')}
             </kbd>
           </button>
         </div>

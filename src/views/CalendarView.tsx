@@ -35,19 +35,38 @@ export const CalendarView: React.FC = () => {
   const { tasks, inboxTasks, allTasks, loadTasks, setTaskScheduledDate, addTask, addSubtask } =
     useTasksStore();
 
-  // Navigation state (Defaulting to September 2026 matching Figma design)
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(8); // 8 = September (0-indexed)
+  // Navigation state (Defaulting to current date / selectedDate)
+  const [currentYear, setCurrentYear] = useState(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[0])) return parts[0];
+    }
+    return new Date().getFullYear();
+  });
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[1])) return parts[1] - 1;
+    }
+    return new Date().getMonth();
+  });
   const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
-  const [pickerYear, setPickerYear] = useState(2026);
+  const [pickerYear, setPickerYear] = useState(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[0])) return parts[0];
+    }
+    return new Date().getFullYear();
+  });
 
   // Single Add Event Modal state (for date-bound calendar events)
   const [isAddAgendaModalOpen, setIsAddAgendaModalOpen] = useState(false);
   const [agendaTitle, setAgendaTitle] = useState('');
   const [agendaColor, setAgendaColor] = useState<CalendarEvent['colorAccent']>('lavender');
   const [agendaDate, setAgendaDate] = useState(selectedDate);
+  const [hasTimeline, setHasTimeline] = useState(false);
   const [agendaStart, setAgendaStart] = useState('09:30');
-  const [agendaEnd, setAgendaEnd] = useState('10:15');
+  const [agendaEnd, setAgendaEnd] = useState('');
   const [agendaDesc, setAgendaDesc] = useState('');
 
   // Schedule Block Modal state (for repeatable weekly schedule blocks)
@@ -109,12 +128,13 @@ export const CalendarView: React.FC = () => {
   };
 
   // Open Add Event modal helper (from Selected Date Agenda)
-  const handleOpenAddAgenda = (date = selectedDate, start = '09:30', end = '10:15') => {
+  const handleOpenAddAgenda = (date = selectedDate, start = '', end = '') => {
     setAgendaDate(date);
     setAgendaTitle('');
     setAgendaDesc('');
-    setAgendaStart(start);
-    setAgendaEnd(end);
+    setHasTimeline(Boolean(start));
+    setAgendaStart(start || '09:30');
+    setAgendaEnd(end || '');
     setAgendaColor('lavender');
     setIsAddAgendaModalOpen(true);
   };
@@ -122,6 +142,9 @@ export const CalendarView: React.FC = () => {
   const handleSaveAgenda = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agendaTitle.trim()) return;
+
+    const finalStart = hasTimeline && agendaStart.trim() ? agendaStart.trim() : undefined;
+    const finalEnd = finalStart && agendaEnd.trim() ? agendaEnd.trim() : undefined;
 
     await addEvent(
       agendaTitle.trim(),
@@ -133,8 +156,8 @@ export const CalendarView: React.FC = () => {
             ? 'personal'
             : 'meeting') as any,
       agendaDate,
-      agendaStart,
-      agendaEnd,
+      finalStart,
+      finalEnd,
       agendaDesc.trim() || undefined,
       {
         colorAccent: agendaColor,
@@ -246,18 +269,37 @@ export const CalendarView: React.FC = () => {
                   {/* Month & Year Picker Popover */}
                   {isMonthYearPickerOpen && (
                     <>
-                      <div className="fixed inset-0 z-30" onClick={() => setIsMonthYearPickerOpen(false)} />
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setIsMonthYearPickerOpen(false)}
+                      />
                       <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-border shadow-float rounded-2xl p-4 z-40 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-100 select-none">
                         <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                          <button type="button" onClick={() => setPickerYear((y) => y - 1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer" title="Previous Year">
+                          <button
+                            type="button"
+                            onClick={() => setPickerYear((y) => y - 1)}
+                            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
+                            title="Previous Year"
+                          >
                             <ChevronLeft className="w-4 h-4" />
                           </button>
-                          <select value={pickerYear} onChange={(e) => setPickerYear(parseInt(e.target.value, 10))} className="font-mono text-sm font-bold text-primaryDark bg-surface border border-border/70 rounded-lg px-2.5 py-1 outline-none cursor-pointer">
+                          <select
+                            value={pickerYear}
+                            onChange={(e) => setPickerYear(parseInt(e.target.value, 10))}
+                            className="font-mono text-sm font-bold text-primaryDark bg-surface border border-border/70 rounded-lg px-2.5 py-1 outline-none cursor-pointer"
+                          >
                             {Array.from({ length: 21 }, (_, i) => 2020 + i).map((y) => (
-                              <option key={y} value={y}>{y}</option>
+                              <option key={y} value={y}>
+                                {y}
+                              </option>
                             ))}
                           </select>
-                          <button type="button" onClick={() => setPickerYear((y) => y + 1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer" title="Next Year">
+                          <button
+                            type="button"
+                            onClick={() => setPickerYear((y) => y + 1)}
+                            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
+                            title="Next Year"
+                          >
                             <ChevronRight className="w-4 h-4" />
                           </button>
                         </div>
@@ -265,14 +307,37 @@ export const CalendarView: React.FC = () => {
                           {monthNames.map((name, index) => {
                             const isSelected = currentMonth === index && currentYear === pickerYear;
                             return (
-                              <button key={name} type="button" onClick={() => { setCurrentMonth(index); setCurrentYear(pickerYear); setIsMonthYearPickerOpen(false); }} className={cn('py-2 px-1 rounded-xl text-xs font-mono transition-all text-center cursor-pointer', isSelected ? 'bg-primaryDark text-white font-bold shadow-xs' : 'bg-surface/60 hover:bg-surface text-primaryDark hover:font-bold')}>
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => {
+                                  setCurrentMonth(index);
+                                  setCurrentYear(pickerYear);
+                                  setIsMonthYearPickerOpen(false);
+                                }}
+                                className={cn(
+                                  'py-2 px-1 rounded-xl text-xs font-mono transition-all text-center cursor-pointer',
+                                  isSelected
+                                    ? 'bg-primaryDark text-white font-bold shadow-xs'
+                                    : 'bg-surface/60 hover:bg-surface text-primaryDark hover:font-bold'
+                                )}
+                              >
                                 {name.substring(0, 3).toUpperCase()}
                               </button>
                             );
                           })}
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-mono">
-                          <button type="button" onClick={() => { const now = new Date(); setPickerYear(now.getFullYear()); }} className="text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer">Current Year</button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const now = new Date();
+                              setPickerYear(now.getFullYear());
+                            }}
+                            className="text-secondaryGray hover:text-primaryDark transition-colors cursor-pointer"
+                          >
+                            Current Year
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -414,44 +479,109 @@ export const CalendarView: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-                Date
-              </label>
-              <input
-                type="date"
-                required
-                value={agendaDate}
-                onChange={(e) => setAgendaDate(e.target.value)}
-                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
-              />
+          {/* Date & Timeline Toggle Section */}
+          <div className="flex flex-col gap-3 p-3 rounded-lg border border-border bg-bg/50">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
+                  Event Timeline
+                </span>
+                <span className="text-[11px] text-secondaryGray font-sans">
+                  {hasTimeline ? 'Specific start time (end time optional)' : 'All-day event (No timeline)'}
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hasTimeline}
+                onClick={() => {
+                  if (hasTimeline) {
+                    setHasTimeline(false);
+                  } else {
+                    setHasTimeline(true);
+                    if (!agendaStart) setAgendaStart('09:30');
+                  }
+                }}
+                className={cn(
+                  'w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer',
+                  hasTimeline ? 'bg-primaryDark' : 'bg-midGray/30'
+                )}
+                title="Toggle timeline"
+              >
+                <div
+                  className={cn(
+                    'bg-surface w-4 h-4 rounded-full shadow-subtle transform transition-transform',
+                    hasTimeline ? 'translate-x-4' : 'translate-x-0'
+                  )}
+                />
+              </button>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-                Start Time
-              </label>
-              <input
-                type="time"
-                required
-                value={agendaStart}
-                onChange={(e) => setAgendaStart(e.target.value)}
-                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
-              />
-            </div>
+            <div className={cn('grid gap-3', hasTimeline ? 'grid-cols-3' : 'grid-cols-1')}>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between h-4">
+                  <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase whitespace-nowrap">
+                    Date
+                  </label>
+                </div>
+                <input
+                  type="date"
+                  required
+                  value={agendaDate}
+                  onChange={(e) => setAgendaDate(e.target.value)}
+                  className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
+                />
+              </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase">
-                End Time
-              </label>
-              <input
-                type="time"
-                required
-                value={agendaEnd}
-                onChange={(e) => setAgendaEnd(e.target.value)}
-                className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
-              />
+              {hasTimeline && (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-4">
+                      <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase whitespace-nowrap">
+                        Start Time
+                      </label>
+                    </div>
+                    <input
+                      type="time"
+                      required={hasTimeline}
+                      value={agendaStart}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAgendaStart(val);
+                        if (!val) setAgendaEnd('');
+                      }}
+                      className="bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-4">
+                      <label className="font-mono text-mono-xs font-semibold text-primaryDark uppercase whitespace-nowrap">
+                        End Time
+                      </label>
+                      {agendaEnd && (
+                        <button
+                          type="button"
+                          onClick={() => setAgendaEnd('')}
+                          className="text-[10px] text-secondaryGray hover:text-accent-red underline cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="time"
+                      disabled={!agendaStart}
+                      value={agendaEnd}
+                      onChange={(e) => setAgendaEnd(e.target.value)}
+                      className={cn(
+                        'bg-bg border border-border rounded-md px-3 py-1.5 text-ui-rg-sm text-primaryDark outline-none focus:border-border-focus',
+                        !agendaStart && 'opacity-40 cursor-not-allowed bg-surface'
+                      )}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

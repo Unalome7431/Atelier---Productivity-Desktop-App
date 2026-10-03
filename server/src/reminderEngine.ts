@@ -46,28 +46,46 @@ export class VpsReminderEngine {
     }
   }
 
-  private getTodayDateString(): string {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  private getLocalTimeInfo(): { now: Date; todayStr: string; hours: number } {
+    const tz = process.env.TIMEZONE || 'Asia/Jakarta';
+    const now = new Date();
+    try {
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      const parts = formatter.formatToParts(now);
+      const partMap: Record<string, string> = {};
+      for (const p of parts) partMap[p.type] = p.value;
+      const todayStr = `${partMap.year}-${partMap.month}-${partMap.day}`;
+      const hours = parseInt(partMap.hour, 10);
+      return { now, todayStr, hours };
+    } catch {
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return { now, todayStr: `${year}-${month}-${day}`, hours: now.getHours() };
+    }
   }
 
-  private async checkReminders(): Promise<void> {
+  public async checkReminders(): Promise<{ executed: boolean; alertsSent: number }> {
+    let alertsSent = 0;
     try {
       // 1. Fetch workspace config (bot token & chat ID)
       const cfgRes = await this.pool.query(
         'SELECT telegram_bot_token, telegram_chat_id FROM workspace_config WHERE telegram_bot_token IS NOT NULL AND telegram_chat_id IS NOT NULL LIMIT 1'
       );
 
-      if (cfgRes.rows.length === 0) return;
+      if (cfgRes.rows.length === 0) return { executed: false, alertsSent: 0 };
       const { telegram_bot_token: token, telegram_chat_id: chatId } = cfgRes.rows[0];
-      if (!token || !chatId) return;
+      if (!token || !chatId) return { executed: false, alertsSent: 0 };
 
-      const now = new Date();
-      const hours = now.getHours();
-      const todayStr = this.getTodayDateString();
+      const { now, todayStr, hours } = this.getLocalTimeInfo();
 
       // Clean up sent keys from previous days
       for (const key of this.sentReminders) {
@@ -81,6 +99,7 @@ export class VpsReminderEngine {
       if (hours === 6 && !this.sentReminders.has(key0600)) {
         this.sentReminders.add(key0600);
         await this.sendMorningBriefing(token, chatId, todayStr);
+        alertsSent++;
       }
 
       // 2. Afternoon 16:00 Unfinished Items Check-in
@@ -88,6 +107,7 @@ export class VpsReminderEngine {
       if (hours === 16 && !this.sentReminders.has(key1600)) {
         this.sentReminders.add(key1600);
         await this.sendIncompleteReminder(token, chatId, todayStr, 'Afternoon Check-in (16:00)');
+        alertsSent++;
       }
 
       // 3. Evening 21:00 Unfinished Items Review
@@ -95,12 +115,17 @@ export class VpsReminderEngine {
       if (hours === 21 && !this.sentReminders.has(key2100)) {
         this.sentReminders.add(key2100);
         await this.sendIncompleteReminder(token, chatId, todayStr, 'Evening Review (21:00)');
+        alertsSent++;
       }
 
       // 4. 3 Hours Advance Reminder for Calendar Events
-      await this.checkUpcomingEvents(token, chatId, now, todayStr);
+      const eventsSent = await this.checkUpcomingEvents(token, chatId, now, todayStr);
+      alertsSent += eventsSent || 0;
+
+      return { executed: true, alertsSent };
     } catch (err) {
       console.error('[VpsReminderEngine] Error in reminder loop:', err);
+      return { executed: false, alertsSent };
     }
   }
 
@@ -225,7 +250,8 @@ export class VpsReminderEngine {
     chatId: string,
     now: Date,
     todayStr: string
-  ): Promise<void> {
+  ): Promise<number> {
+    let sentCount = 0;
     try {
       const eventsRes = await this.pool.query(
         "SELECT * FROM calendar_events WHERE start_time::text LIKE $1 AND (deleted_at IS NULL)",
@@ -234,26 +260,34 @@ export class VpsReminderEngine {
 
       for (const ev of eventsRes.rows) {
         if (!ev.start_time) continue;
+        const timeStr = String(ev.start_time);
+        if (!timeStr.includes('T') && !timeStr.includes(':')) continue; // Skip untimed all-day events
+
         const evDate = new Date(ev.start_time);
+        if (isNaN(evDate.getTime())) continue;
         const diffMinutes = Math.round((evDate.getTime() - now.getTime()) / 60000);
 
         // Window: 170 to 185 minutes (~3 hours prior)
         const evKey = `vps_event_3h_${ev.id}_${todayStr}`;
         if (diffMinutes >= 170 && diffMinutes <= 185 && !this.sentReminders.has(evKey)) {
           this.sentReminders.add(evKey);
-          const timeStr = String(ev.start_time).substring(11, 16);
+          const formattedTime = timeStr.includes('T')
+            ? timeStr.split('T')[1].substring(0, 5)
+            : timeStr.substring(11, 16);
           await this.sendMessage(
             token,
             chatId,
             `✦ *Upcoming Event Reminder (in 3 hours)*\n\n` +
               `• *${ev.title}*\n` +
-              (timeStr ? `• Time: ${timeStr}\n` : '') +
+              (formattedTime ? `• Time: ${formattedTime}\n` : '') +
               `• Category: ${ev.event_type || 'General'}`
           );
+          sentCount++;
         }
       }
     } catch (err) {
       console.error('[VpsReminderEngine] Event check error:', err);
     }
+    return sentCount;
   }
 }

@@ -227,8 +227,8 @@ export interface CalendarEvent {
   id: string;
   title: string;
   category: 'meeting' | 'focus' | 'personal' | 'deadline' | 'review';
-  startTime: string; // HH:mm or ISO
-  endTime: string; // HH:mm or ISO
+  startTime?: string; // HH:mm or ISO (optional)
+  endTime?: string; // HH:mm or ISO (optional)
   date: string; // YYYY-MM-DD
   description?: string;
   location?: string;

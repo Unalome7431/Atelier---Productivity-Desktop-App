@@ -138,6 +138,45 @@ async function runCalendarTests() {
   const reloaded = await calendarService.getEvents();
   assert(!reloaded.some((e) => e.id === createdEvent.id), 'deleteEvent successfully removed event');
 
+  // Test optional timeline modes:
+  // 2a. Event with NO timeline (All Day / Date-only)
+  const noTimelineEvent = await calendarService.addEvent(
+    'Company Milestone Day',
+    'personal',
+    '2026-09-20',
+    undefined,
+    undefined,
+    'All day celebration'
+  );
+  assert(Boolean(noTimelineEvent?.id), 'Event with no timeline created');
+  assert(noTimelineEvent.startTime === undefined, 'No timeline event has undefined startTime');
+  assert(noTimelineEvent.endTime === undefined, 'No timeline event has undefined endTime');
+
+  const fetchedAllEvents = await calendarService.getEvents();
+  const fetchedNoTime = fetchedAllEvents.find((e) => e.id === noTimelineEvent.id);
+  assert(Boolean(fetchedNoTime), 'Fetched no-timeline event from DB');
+  assert(!fetchedNoTime?.startTime, 'Persisted no-timeline event has no startTime');
+  await calendarService.deleteEvent(noTimelineEvent.id);
+
+  // 2b. Event with ONLY start time
+  const startOnlyEvent = await calendarService.addEvent(
+    'Quick Standup Call',
+    'meeting',
+    '2026-09-21',
+    '11:00',
+    undefined
+  );
+  assert(Boolean(startOnlyEvent?.id), 'Event with start time only created');
+  assert(startOnlyEvent.startTime === '11:00', 'Start-only event has startTime 11:00');
+  assert(startOnlyEvent.endTime === undefined, 'Start-only event has undefined endTime');
+
+  const fetchedStartOnly = (await calendarService.getEvents()).find(
+    (e) => e.id === startOnlyEvent.id
+  );
+  assert(fetchedStartOnly?.startTime === '11:00', 'Persisted start-only event matches startTime');
+  assert(!fetchedStartOnly?.endTime, 'Persisted start-only event has no endTime');
+  await calendarService.deleteEvent(startOnlyEvent.id);
+
   // -------------------------------------------------------------
   // Test 3: Weekly Recurring Blocks Matrix
   // -------------------------------------------------------------

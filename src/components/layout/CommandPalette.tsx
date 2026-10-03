@@ -20,6 +20,7 @@ import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { useNotesStore } from '@/stores/useNotesStore';
 import { NavigationTab } from '@/types';
 import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/lib/platform';
 
 interface CommandItem {
   id: string;
@@ -46,7 +47,7 @@ export const CommandPalette: React.FC = () => {
         title: 'Go to Daily Cockpit',
         category: 'Navigation',
         icon: LayoutDashboard,
-        shortcut: '⌘1',
+        shortcut: formatShortcut('⌘1'),
         perform: () => setActiveTab('cockpit' as NavigationTab),
       },
       {
@@ -54,7 +55,7 @@ export const CommandPalette: React.FC = () => {
         title: 'Go to Schedule & Calendar',
         category: 'Navigation',
         icon: Calendar,
-        shortcut: '⌘2',
+        shortcut: formatShortcut('⌘2'),
         perform: () => setActiveTab('calendar' as NavigationTab),
       },
       {
@@ -62,7 +63,7 @@ export const CommandPalette: React.FC = () => {
         title: 'Go to Spatial Concept Canvas',
         category: 'Navigation',
         icon: Layers,
-        shortcut: '⌘3',
+        shortcut: formatShortcut('⌘3'),
         perform: () => setActiveTab('canvas' as NavigationTab),
       },
       {
@@ -70,7 +71,7 @@ export const CommandPalette: React.FC = () => {
         title: 'Go to Project Kanban Board',
         category: 'Navigation',
         icon: KanbanSquare,
-        shortcut: '⌘4',
+        shortcut: formatShortcut('⌘4'),
         perform: () => setActiveTab('kanban' as NavigationTab),
       },
       {
@@ -78,7 +79,7 @@ export const CommandPalette: React.FC = () => {
         title: 'Go to Notes & Documentation',
         category: 'Navigation',
         icon: FileText,
-        shortcut: '⌘5',
+        shortcut: formatShortcut('⌘5'),
         perform: () => setActiveTab('notes' as NavigationTab),
       },
       {

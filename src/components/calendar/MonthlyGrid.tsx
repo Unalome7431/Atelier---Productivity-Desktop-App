@@ -222,9 +222,13 @@ export const MonthlyGrid: React.FC<MonthlyGridProps> = ({
                       'px-1.5 py-0.5 rounded text-[10px] font-sans font-medium truncate leading-tight flex items-center gap-1 transition-transform',
                       getEventBadgeClass(ev)
                     )}
-                    title={`${ev.startTime} ${ev.title}${ev.isFixed ? ' (Fixed)' : ' (Flexible)'}`}
+                    title={`${ev.startTime ? ev.startTime + ' ' : ''}${ev.title}${ev.isFixed ? ' (Fixed)' : ' (Flexible)'}`}
                   >
-                    <span className="font-mono text-[9px] opacity-75 shrink-0">{ev.startTime}</span>
+                    {ev.startTime && (
+                      <span className="font-mono text-[9px] opacity-75 shrink-0">
+                        {ev.startTime}
+                      </span>
+                    )}
                     <span className="truncate">{ev.title}</span>
                   </div>
                 ))}

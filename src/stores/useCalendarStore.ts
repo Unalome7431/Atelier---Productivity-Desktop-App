@@ -33,8 +33,8 @@ interface CalendarState {
     title: string,
     category: CalendarEvent['category'],
     date: string,
-    startTime: string,
-    endTime: string,
+    startTime?: string,
+    endTime?: string,
     description?: string,
     options?: {
       colorAccent?: CalendarEvent['colorAccent'];

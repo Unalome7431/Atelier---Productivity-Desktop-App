@@ -9,14 +9,24 @@ export class CalendarService {
   }
 
   private async fetchEvents(): Promise<CalendarEvent[]> {
-    const rawEvents = await db.select<any>('SELECT * FROM calendar_events WHERE deleted_at IS NULL ORDER BY start_time ASC');
+    const rawEvents = await db.select<any>(
+      'SELECT * FROM calendar_events WHERE deleted_at IS NULL ORDER BY start_time ASC'
+    );
     const events = rawEvents.filter((e: any) => !e.deleted_at);
     return events.map((e) => {
       const rawStart = e.start_time || '';
       const rawEnd = e.end_time || '';
       const date = rawStart.includes('T') ? rawStart.split('T')[0] : e.date || rawStart;
-      const startTime = rawStart.includes('T') ? rawStart.split('T')[1].substring(0, 5) : rawStart;
-      const endTime = rawEnd.includes('T') ? rawEnd.split('T')[1].substring(0, 5) : rawEnd;
+      const startTime = rawStart.includes('T')
+        ? rawStart.split('T')[1].substring(0, 5)
+        : rawStart.includes(':')
+          ? rawStart.substring(0, 5)
+          : undefined;
+      const endTime = rawEnd.includes('T')
+        ? rawEnd.split('T')[1].substring(0, 5)
+        : rawEnd.includes(':')
+          ? rawEnd.substring(0, 5)
+          : undefined;
 
       let colorAccent: CalendarEvent['colorAccent'] = 'lavender';
       let description: string | undefined;
@@ -29,7 +39,7 @@ export class CalendarService {
             colorAccent = cleanTag as any;
           }
           description = rest.join('|').trim();
-          } else if (e.color_token.startsWith('#')) {
+        } else if (e.color_token.startsWith('#')) {
           const cleanTag = e.color_token.replace('#', '').trim();
           if (['lavender', 'mint', 'sand', 'blue', 'mauve', 'rose', 'amber'].includes(cleanTag)) {
             colorAccent = cleanTag as any;
@@ -197,8 +207,8 @@ export class CalendarService {
     title: string,
     category: CalendarEvent['category'],
     date: string,
-    startTime: string,
-    endTime: string,
+    startTime?: string,
+    endTime?: string,
     description?: string,
     options?: {
       colorAccent?: CalendarEvent['colorAccent'];
@@ -224,28 +234,21 @@ export class CalendarService {
         ? options.isFixed
         : category === 'meeting' || category === 'review';
 
+    const dbStart = startTime ? `${date}T${startTime}:00` : date;
+    const dbEnd = endTime ? `${date}T${endTime}:00` : '';
+
     await db.execute(
       `INSERT INTO calendar_events (id, title, event_type, start_time, end_time, color_token, task_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        title,
-        category,
-        `${date}T${startTime}:00`,
-        `${date}T${endTime}:00`,
-        colorToken,
-        taskId,
-        now,
-        now,
-      ]
+      [id, title, category, dbStart, dbEnd, colorToken, taskId, now, now]
     );
 
     const event: CalendarEvent = {
       id,
       title,
       category,
-      startTime,
-      endTime,
+      startTime: startTime || undefined,
+      endTime: endTime || undefined,
       date,
       description,
       colorAccent,
@@ -275,6 +278,9 @@ export class CalendarService {
       ? `#${merged.colorAccent || 'lavender'}|${merged.description}`
       : `#${merged.colorAccent || 'lavender'}`;
 
+    const dbStart = merged.startTime ? `${merged.date}T${merged.startTime}:00` : merged.date;
+    const dbEnd = merged.endTime ? `${merged.date}T${merged.endTime}:00` : '';
+
     await db.execute(
       `UPDATE calendar_events
        SET title = ?, event_type = ?, start_time = ?, end_time = ?, color_token = ?, task_id = ?, updated_at = ?
@@ -282,8 +288,8 @@ export class CalendarService {
       [
         merged.title,
         merged.category,
-        `${merged.date}T${merged.startTime}:00`,
-        `${merged.date}T${merged.endTime}:00`,
+        dbStart,
+        dbEnd,
         colorToken,
         merged.taskId || null,
         now,

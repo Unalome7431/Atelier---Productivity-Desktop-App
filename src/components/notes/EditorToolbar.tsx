@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/lib/platform';
 import { CalloutType } from './CalloutComponent';
 import { TableMakerPopover } from './TableMakerPopover';
 
@@ -119,7 +120,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          title="Bold (⌘B)"
+          title={formatShortcut('Bold (⌘B)')}
           className={cn(
             'px-2.5 py-1 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer flex items-center justify-center',
             editor.isActive('bold')
@@ -134,7 +135,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          title="Italic (⌘I)"
+          title={formatShortcut('Italic (⌘I)')}
           className={cn(
             'px-2.5 py-1 rounded-xl text-xs font-sans italic transition-colors cursor-pointer flex items-center justify-center',
             editor.isActive('italic')
@@ -149,7 +150,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          title="Underline (⌘U)"
+          title={formatShortcut('Underline (⌘U)')}
           className={cn(
             'px-2.5 py-1 rounded-xl text-xs font-sans underline transition-colors cursor-pointer flex items-center justify-center',
             editor.isActive('underline')

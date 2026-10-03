@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/lib/platform';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   variant?: 'pill' | 'default';
@@ -44,14 +45,15 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   className,
   ...props
 }) => {
+  const formattedShortcut = shortcut ? formatShortcut(shortcut) : undefined;
   return (
     <Input
       variant="pill"
       leftIcon={<Search className="w-4 h-4" />}
       rightElement={
-        shortcut ? (
+        formattedShortcut ? (
           <kbd className="font-mono text-mono-xs bg-surface border border-border px-1.5 py-0.5 rounded-sm text-midGray">
-            {shortcut}
+            {formattedShortcut}
           </kbd>
         ) : undefined
       }

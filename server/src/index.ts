@@ -183,10 +183,25 @@ app.post('/api/sync/push', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+const reminderEngine = new VpsReminderEngine(pool);
+
+// Trigger background cron check on demand (for external cron jobs or webhook runners)
+app.post('/api/cron/trigger', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const result = await reminderEngine.checkReminders();
+    res.json({
+      status: 'ok',
+      result,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`[Atelier Server] Sync Bridge running on port ${port}`);
 
   // Start 24/7 background reminder worker
-  const reminderEngine = new VpsReminderEngine(pool);
   reminderEngine.start();
 });
